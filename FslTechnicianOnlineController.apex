@@ -656,6 +656,7 @@ public with sharing class FslTechnicianOnlineController {
             State            = wo.State,
             PostalCode       = wo.PostalCode,
             Country          = wo.Country,
+            ParentRecordId   = wo.Id,
             SchedStartTime   = startDateTimeIso,
             SchedEndTime     = Datetime.newInstance(startDateTimeIso.getTime() + durationMs),
             Status           = 'Scheduled'
