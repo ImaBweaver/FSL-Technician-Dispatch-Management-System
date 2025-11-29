@@ -329,9 +329,14 @@
 
 .sfs-calendar-event-title {
     font-weight: 600;
-    white-space: nowrap;
+    white-space: normal;
+    word-wrap: break-word;
     overflow: hidden;
-    text-overflow: ellipsis;
+}
+
+.sfs-calendar-event-wo {
+    font-size: 0.65rem;
+    font-weight: 700;
 }
 
 .sfs-calendar-event-time {
@@ -435,6 +440,13 @@
     font-weight: 600;
     white-space: nowrap;
     margin-bottom: 0.05rem;
+}
+
+.sfs-week-event-wo {
+    display: block;
+    font-weight: 700;
+    font-size: 0.65rem;
+    white-space: nowrap;
 }
 
 .sfs-week-event-title {

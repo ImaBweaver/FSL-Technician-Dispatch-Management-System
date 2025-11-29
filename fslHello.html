@@ -413,16 +413,6 @@
                     </div>
                 </template>
 
-                <template if:true={showDesktopTrayButton}>
-                    <div class="sfs-desktop-tray-button">
-                        <lightning-button
-                            variant="brand"
-                            label="Open schedule tray"
-                            onclick={handleOpenTrayFromButton}
-                        ></lightning-button>
-                    </div>
-                </template>
-
                 <template if:true={isOffline}>
                     <div class="sfs-offline-banner">
                         <lightning-icon
@@ -516,6 +506,12 @@
                                                                 {evt.subject}
                                                             </div>
 
+                                                            <template if:true={evt.workOrderNumber}>
+                                                                <div class="sfs-calendar-event-wo">
+                                                                    {evt.workOrderNumber}
+                                                                </div>
+                                                            </template>
+
                                                             <div class="sfs-calendar-event-time">
                                                                 {evt.timeLabel}
                                                             </div>
@@ -588,6 +584,12 @@
                                                             <template if:true={evt.isCrewAssignment}>
                                                                 <div class="sfs-week-crew-banner">
                                                                     Need Eng Assignment
+                                                                </div>
+                                                            </template>
+
+                                                            <template if:true={evt.workOrderNumber}>
+                                                                <div class="sfs-week-event-wo">
+                                                                    {evt.workOrderNumber}
                                                                 </div>
                                                             </template>
 
