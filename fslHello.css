@@ -62,6 +62,7 @@
     border-radius: 0.5rem;
     padding: 0.75rem 0.75rem 0.9rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16);
+    position: relative;
 }
 
 .sfs-card-header {
@@ -329,9 +330,14 @@
 
 .sfs-calendar-event-title {
     font-weight: 600;
-    white-space: nowrap;
+    white-space: normal;
+    word-wrap: break-word;
     overflow: hidden;
-    text-overflow: ellipsis;
+}
+
+.sfs-calendar-event-wo {
+    font-size: 0.65rem;
+    font-weight: 700;
 }
 
 .sfs-calendar-event-time {
@@ -435,6 +441,13 @@
     font-weight: 600;
     white-space: nowrap;
     margin-bottom: 0.05rem;
+}
+
+.sfs-week-event-wo {
+    display: block;
+    font-weight: 700;
+    font-size: 0.65rem;
+    white-space: nowrap;
 }
 
 .sfs-week-event-title {
@@ -888,6 +901,18 @@
     margin-top: 0.15rem;
 }
 
+.sfs-tray-card-pill {
+    display: inline-block;
+    margin-bottom: 0.2rem;
+    padding: 0.05rem 0.4rem;
+    background: #eef4ff;
+    color: #1a42b8;
+    font-size: 0.7rem;
+    font-weight: 700;
+    border-radius: 999px;
+    border: 1px solid #c6d3ff;
+}
+
 /* Empty message */
 .sfs-tray-empty {
     font-size: 0.75rem;
@@ -920,6 +945,123 @@
     height: 100%;
     opacity: 0.95;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+}
+
+.sfs-unassign-btn {
+    position: absolute;
+    top: 0.35rem;
+    right: 0.35rem;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid #d93025;
+    background: #ffffff;
+    color: #d93025;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16);
+    z-index: 3;
+}
+
+.sfs-unassign-btn:hover {
+    background: #ffeceb;
+}
+
+.sfs-unassign-btn_calendar {
+    top: 2px;
+    right: 2px;
+    width: 20px;
+    height: 20px;
+    font-size: 0.75rem;
+}
+
+.sfs-viewing-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.6rem;
+    background: #eef4ff;
+    color: #1a42b8;
+    border: 1px solid #c6d3ff;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    margin: 0.35rem 0;
+}
+
+.sfs-manager-panel {
+    background: #ffffff;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.16);
+    max-width: 520px;
+}
+
+.sfs-manager-title {
+    margin: 0 0 0.35rem;
+}
+
+.sfs-manager-copy {
+    margin: 0 0 0.75rem;
+    color: #706e6b;
+    font-size: 0.85rem;
+}
+
+.sfs-manager-actions {
+    justify-content: flex-start;
+    gap: 0.5rem;
+}
+
+.sfs-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100000;
+    padding: 1rem;
+}
+
+.sfs-modal {
+    background: #ffffff;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    width: min(520px, 100%);
+    position: relative;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.24);
+}
+
+.sfs-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.35rem;
+}
+
+.sfs-modal-title {
+    margin: 0;
+}
+
+.sfs-modal-close {
+    border: none;
+    background: transparent;
+    font-size: 1.1rem;
+    cursor: pointer;
+    color: #514f4d;
+}
+
+.sfs-modal-copy {
+    margin: 0 0 0.75rem;
+    color: #706e6b;
+}
+
+.sfs-modal-actions {
+    justify-content: flex-end;
+    gap: 0.5rem;
 }
 
 /* Keep things narrow on desktop to mimic phone */
