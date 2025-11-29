@@ -702,13 +702,13 @@
                                 variant="brand"
                                 label="View as team member"
                                 onclick={handleManagerApply}
-                                disabled={!selectedManagerUserId}
+                                disabled={selectedManagerUserId}
                             ></lightning-button>
                             <lightning-button
                                 variant="neutral"
                                 label="Return to my view"
                                 onclick={handleManagerReset}
-                                disabled={!isViewingAsOther}
+                                disabled={isViewingAsOther}
                             ></lightning-button>
                         </div>
                     </div>
@@ -745,7 +745,6 @@
                             variant="brand"
                             label="Send request"
                             onclick={submitRescheduleRequest}
-                            disabled={rescheduleLoading || !rescheduleSelection}
                         ></lightning-button>
                         <lightning-button
                             variant="neutral"
