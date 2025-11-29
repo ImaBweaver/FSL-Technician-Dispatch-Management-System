@@ -6,6 +6,9 @@ import rescheduleAppointment from '@salesforce/apex/FslTechnicianOnlineControlle
 import assignCrewAppointment from '@salesforce/apex/FslTechnicianOnlineController.assignCrewAppointment';
 import createAppointmentForWorkOrder from '@salesforce/apex/FslTechnicianOnlineController.createAppointmentForWorkOrder';
 import updateAppointmentEnd from '@salesforce/apex/FslTechnicianOnlineController.updateAppointmentEnd';
+import unassignAppointment from '@salesforce/apex/FslTechnicianOnlineController.unassignAppointment';
+import getTerritoryResources from '@salesforce/apex/FslTechnicianOnlineController.getTerritoryResources';
+import requestRescheduleToResource from '@salesforce/apex/FslTechnicianOnlineController.requestRescheduleToResource';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
 export default class FslHello extends NavigationMixin(LightningElement) {
@@ -13,6 +16,13 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     @track debugInfo = {};
     @track calendarDays = [];
     @track selectedAppointment = null;
+    currentUserId = null;
+    activeUserId = null;
+    viewingUserName = 'Me';
+    isManager = false;
+    managerTeam = [];
+    selectedManagerUserId = null;
+    selectedManagerUserName = '';
 
     // Unscheduled work orders (tray)
     @track unscheduledWorkOrders = [];
@@ -59,6 +69,13 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     dragDurationHours = null;
     dragHasMoved = false;
     defaultWorkOrderDurationHours = 6;
+
+    // Reschedule with another tech modal
+    isRescheduleModalOpen = false;
+    rescheduleOptions = [];
+    rescheduleSelection = null;
+    rescheduleWorkOrderId = null;
+    rescheduleLoading = false;
 
     // Long press to start drag
     dragLongPressTimer = null;
@@ -108,6 +125,27 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     get isDragGhostVisible() {
         return this.dragGhostVisible;
+    }
+
+    get isViewingAsOther() {
+        return (
+            this.activeUserId &&
+            this.currentUserId &&
+            this.activeUserId !== this.currentUserId
+        );
+    }
+
+    get viewingAsLabel() {
+        return this.isViewingAsOther
+            ? `Viewing as ${this.viewingUserName}`
+            : 'Viewing as yourself';
+    }
+
+    get managerOptions() {
+        return (this.managerTeam || []).map(m => ({
+            label: m.name,
+            value: m.userId
+        }));
     }
 
     // Position + size of the floating event
@@ -407,14 +445,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return this.unscheduledWorkOrders
             ? this.unscheduledWorkOrders.length
             : 0;
-    }
-
-    get showDesktopTrayButton() {
-        return (
-            this.isCalendarTabActive &&
-            this.isDesktopFormFactor &&
-            !this.pullTrayOpen
-        );
     }
 
     get hasUnscheduled() {
@@ -952,6 +982,46 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
 
+    getDayIndexFromClientX(clientX) {
+        const dayEls = Array.from(
+            this.template.querySelectorAll('.sfs-calendar-day')
+        );
+
+        if (!dayEls.length) {
+            return null;
+        }
+
+        let bestIndex = null;
+        let bestDistance = Infinity;
+
+        dayEls.forEach(el => {
+            const idxStr = el.dataset.dayIndex;
+            if (idxStr === undefined) {
+                return;
+            }
+
+            const rect = el.getBoundingClientRect();
+            const center = rect.left + rect.width / 2;
+
+            if (clientX >= rect.left && clientX <= rect.right) {
+                bestIndex = parseInt(idxStr, 10);
+                bestDistance = 0;
+                this.dragDayWidth = rect.width || this.dragDayWidth;
+                return;
+            }
+
+            const distance = Math.abs(clientX - center);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                bestIndex = parseInt(idxStr, 10);
+                this.dragDayWidth = rect.width || this.dragDayWidth;
+            }
+        });
+
+        return bestIndex;
+    }
+
+
 
 
     handleCalendarPointerMove(event) {
@@ -979,23 +1049,42 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             this.dragHasMoved = true;
         }
 
-        const dayOffset =
-            this.dragMode === 'resize'
-                ? 0
-                : Math.round(dx / this.dragDayWidth);
-        let newDayIndex = this.dragStartDayIndex + dayOffset;
+        let newDayIndex = this.getDayIndexFromClientX(clientX);
+        if (newDayIndex == null) {
+            const dayOffset =
+                this.dragMode === 'resize'
+                    ? 0
+                    : Math.round(dx / this.dragDayWidth);
+            newDayIndex = this.dragStartDayIndex + dayOffset;
+        }
         if (newDayIndex < 0) newDayIndex = 0;
         if (newDayIndex >= this.calendarDays.length) {
             newDayIndex = this.calendarDays.length - 1;
         }
         this.dragCurrentDayIndex = newDayIndex;
 
-        const hoursDelta = (dy / this.dragDayBodyHeight) * 24;
+        const bodyHeightForDelta = this.dragDayBodyHeight || 1;
+        const hoursDelta = (dy / bodyHeightForDelta) * 24;
 
         // Compute preview local time for the ghost
         let previewLocal;
         const dayObj = this.calendarDays[newDayIndex];
         const baseDay = new Date(dayObj.date);
+
+        const dayEl = this.template.querySelector(
+            `.sfs-calendar-day[data-day-index="${newDayIndex}"]`
+        );
+        const dayBodyEl = dayEl
+            ? dayEl.querySelector('.sfs-calendar-day-body')
+            : null;
+        const bodyRect = dayBodyEl
+            ? dayBodyEl.getBoundingClientRect()
+            : null;
+
+        if (bodyRect) {
+            this.dragDayBodyHeight = bodyRect.height || this.dragDayBodyHeight;
+            this.dragDayBodyTop = bodyRect.top;
+        }
 
         if (this.dragMode === 'event' && this.dragStartLocal) {
             previewLocal = new Date(baseDay);
@@ -1018,9 +1107,20 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             );
         } else if (this.dragMode === 'wo') {
             previewLocal = new Date(baseDay);
-            previewLocal.setHours(9, 0, 0, 0);
-            const millisDelta = hoursDelta * 60 * 60 * 1000;
-            previewLocal.setTime(previewLocal.getTime() + millisDelta);
+            const usableHeight = this.dragDayBodyHeight || 1;
+            const relativeY = Math.max(
+                0,
+                Math.min(
+                    usableHeight,
+                    clientY - (this.dragDayBodyTop != null ? this.dragDayBodyTop : 0)
+                )
+            );
+            const totalHours = this.calendarEndHour - this.calendarStartHour;
+            const hourFraction =
+                this.calendarStartHour + (relativeY / usableHeight) * totalHours;
+            const hours = Math.floor(hourFraction);
+            const minutes = Math.round((hourFraction - hours) * 60);
+            previewLocal.setHours(hours, minutes, 0, 0);
         }
 
         if (previewLocal) {
@@ -1073,20 +1173,20 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 hourFraction = this.calendarEndHour;
             }
 
+            const bodyHeight = this.dragDayBodyHeight || 1;
             const topRatio =
                 (hourFraction - this.calendarStartHour) / totalHours;
-            const yWithinBody = topRatio * this.dragDayBodyHeight;
+            const yWithinBody = topRatio * bodyHeight;
 
-            const ghostHeight =
-                (durationHours / totalHours) * this.dragDayBodyHeight;
+            const ghostHeight = (durationHours / totalHours) * bodyHeight;
 
             // Position ghost horizontally at the center of the target day column
             let ghostX = clientX;
-            const dayEl = this.template.querySelector(
+            const dayElForGhost = this.template.querySelector(
                 `.sfs-calendar-day[data-day-index="${newDayIndex}"]`
             );
-            if (dayEl) {
-                const dayRect = dayEl.getBoundingClientRect();
+            if (dayElForGhost) {
+                const dayRect = dayElForGhost.getBoundingClientRect();
                 ghostX = dayRect.left + dayRect.width / 2;
                 // Keep day width in sync
                 this.dragDayWidth = dayRect.width;
@@ -1094,7 +1194,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
             // Top of the event box is the selected time; ghostY is the top
             const ghostY =
-                this.dragDayBodyTop +
+                (this.dragDayBodyTop != null ? this.dragDayBodyTop : 0) +
                 yWithinBody; // top edge represents start time
 
             this.showDragGhost(
@@ -1296,7 +1396,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.isLoading = true;
         this.selectedAppointment = null;
 
-        getMyAppointmentsOnline()
+        getMyAppointmentsOnline({ targetUserId: this.activeUserId })
             .then(result => {
                 const appts =
                     result && result.appointments ? result.appointments : [];
@@ -1304,6 +1404,32 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 this.userTimeZoneId =
                     result && result.userTimeZoneId ? result.userTimeZoneId : null;
                 this.userTimeZoneShort = this.computeTimeZoneShort();
+
+                this.currentUserId =
+                    result && result.debug ? result.debug.currentUserId : null;
+                this.activeUserId =
+                    result && result.viewingUserId
+                        ? result.viewingUserId
+                        : this.activeUserId || this.currentUserId;
+                this.managerTeam =
+                    result && result.teamMembers ? result.teamMembers : [];
+                this.isManager = Boolean(result && result.isManager);
+                this.viewingUserName = this.resolveViewingName();
+
+                if (this.isViewingAsOther) {
+                    const selected = this.managerTeam.find(
+                        m => m.userId === this.activeUserId
+                    );
+                    this.selectedManagerUserId = selected
+                        ? selected.userId
+                        : this.selectedManagerUserId;
+                    this.selectedManagerUserName = selected
+                        ? selected.name
+                        : this.selectedManagerUserName;
+                } else {
+                    this.selectedManagerUserId = null;
+                    this.selectedManagerUserName = '';
+                }
 
                 this.debugInfo =
                     result && result.debug
@@ -1317,6 +1443,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                         : [];
                 this.unscheduledWorkOrders = unscheduled.map(wo => {
                     const clone = { ...wo };
+                    clone.isCrewAppointment = Boolean(wo.hasCrewAssignment);
                     const parts = [
                         wo.street,
                         wo.city,
@@ -1433,6 +1560,21 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         } catch (e) {
             return this.userTimeZoneId;
         }
+    }
+
+    resolveViewingName() {
+        if (!this.isManager || !this.activeUserId) {
+            return 'You';
+        }
+
+        if (this.currentUserId && this.activeUserId === this.currentUserId) {
+            return 'You';
+        }
+
+        const match = (this.managerTeam || []).find(
+            m => m.userId === this.activeUserId
+        );
+        return match ? match.name : 'Team Member';
     }
 
     convertUtcToUserLocal(dateLike) {
@@ -1705,6 +1847,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 id: appt.appointmentId,
                 style: `top:${topPct}%;height:${heightPct}%;`,
                 subject: appt.workOrderSubject,
+                workOrderNumber: appt.workOrderNumber,
                 workTypeName: appt.workTypeName,
                 timeLabel,
                 isCrewAssignment: appt.isCrewAssignment,
@@ -2173,6 +2316,32 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.touchStartY = null;
     }
 
+    navigateToRecord(recordId, objectApiName) {
+        if (!recordId) {
+            return;
+        }
+
+        if (this.isDesktopFormFactor) {
+            this[NavigationMixin.Navigate]({
+                type: 'standard__recordPage',
+                attributes: {
+                    recordId,
+                    objectApiName,
+                    actionName: 'view'
+                }
+            });
+        } else {
+            const deepLink = `com.salesforce.fieldservice://v1/sObject/${recordId}`;
+
+            this[NavigationMixin.Navigate]({
+                type: 'standard__webPage',
+                attributes: {
+                    url: deepLink
+                }
+            });
+        }
+    }
+
     handleOpenWorkOrder() {
         if (
             !this.selectedAppointment ||
@@ -2181,14 +2350,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
-        const deepLink = `com.salesforce.fieldservice://v1/sObject/${this.selectedAppointment.appointmentId}`;
-
-        this[NavigationMixin.Navigate]({
-            type: 'standard__webPage',
-            attributes: {
-                url: deepLink
-            }
-        });
+        this.navigateToRecord(
+            this.selectedAppointment.appointmentId,
+            'ServiceAppointment'
+        );
     }
 
     handleOpenAccount() {
@@ -2199,14 +2364,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
-        const deepLink = `com.salesforce.fieldservice://v1/sObject/${this.selectedAppointment.accountId}`;
-
-        this[NavigationMixin.Navigate]({
-            type: 'standard__webPage',
-            attributes: {
-                url: deepLink
-            }
-        });
+        this.navigateToRecord(this.selectedAppointment.accountId, 'Account');
     }
 
     handleOpenContact() {
@@ -2217,17 +2375,38 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
-        const deepLink = `com.salesforce.fieldservice://v1/sObject/${this.selectedAppointment.contactId}`;
-
-        this[NavigationMixin.Navigate]({
-            type: 'standard__webPage',
-            attributes: {
-                url: deepLink
-            }
-        });
+        this.navigateToRecord(this.selectedAppointment.contactId, 'Contact');
     }
 
     // ======= CALENDAR TAB HANDLERS =======
+
+    handleManagerTabActive() {
+        this.isCalendarTabActive = false;
+        this.pullTrayOpen = false;
+    }
+
+    handleManagerUserChange(event) {
+        this.selectedManagerUserId = event.detail.value || null;
+        const selected = (this.managerTeam || []).find(
+            m => m.userId === this.selectedManagerUserId
+        );
+        this.selectedManagerUserName = selected ? selected.name : '';
+    }
+
+    handleManagerApply() {
+        const targetId = this.selectedManagerUserId || this.currentUserId;
+        this.activeUserId = targetId;
+        this.viewingUserName = this.resolveViewingName();
+        this.loadAppointments();
+    }
+
+    handleManagerReset() {
+        this.selectedManagerUserId = null;
+        this.selectedManagerUserName = '';
+        this.activeUserId = this.currentUserId;
+        this.viewingUserName = this.resolveViewingName();
+        this.loadAppointments();
+    }
 
     handleCalendarTabActive() {
         this.isCalendarTabActive = true;
@@ -2284,10 +2463,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.pullTrayOpen = !this.pullTrayOpen;
     }
 
-    handleOpenTrayFromButton() {
-        this.pullTrayOpen = true;
-    }
-
     handleTrayCardClick(event) {
         // If we started a drag, ignore the click
         if (this.dragHasMoved) {
@@ -2318,7 +2493,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         createAppointmentForWorkOrder({
             workOrderId,
             startDateTimeIso: isoStart,
-            endDateTimeIso: isoEnd
+            endDateTimeIso: isoEnd,
+            targetUserId: this.activeUserId
         })
             .then(() => {
                 this.showToast(
@@ -2341,6 +2517,129 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             })
             .finally(() => {
                 this.isLoading = false;
+            });
+    }
+
+    handleUnassignClick(event) {
+        event.stopPropagation();
+        const id = event.currentTarget.dataset.id;
+        if (!id) {
+            return;
+        }
+
+        this.checkOnline();
+        if (this.isOffline) {
+            this.showToast(
+                'Offline',
+                'You must be online to update an assignment.',
+                'warning'
+            );
+            return;
+        }
+
+        this.isLoading = true;
+
+        unassignAppointment({ appointmentId: id })
+            .then(() => {
+                this.showToast(
+                    'Removed from schedule',
+                    'The appointment was returned to the scheduling queue.',
+                    'success'
+                );
+                return this.loadAppointments();
+            })
+            .catch(error => {
+                const message = this.reduceError(error);
+                this.debugInfo = {
+                    note: 'Error calling unassignAppointment',
+                    errorMessage: message
+                };
+                this.showToast('Error removing assignment', message, 'error');
+            })
+            .finally(() => {
+                this.isLoading = false;
+            });
+    }
+
+    handleRequestReschedule(event) {
+        const workOrderId = event.currentTarget.dataset.woid;
+        if (!workOrderId) {
+            return;
+        }
+        event.stopPropagation();
+        this.openRescheduleModal(workOrderId);
+    }
+
+    openRescheduleModal(workOrderId) {
+        this.isRescheduleModalOpen = true;
+        this.rescheduleLoading = true;
+        this.rescheduleOptions = [];
+        this.rescheduleSelection = null;
+        this.rescheduleWorkOrderId = workOrderId;
+
+        getTerritoryResources({ workOrderId })
+            .then(options => {
+                this.rescheduleOptions = (options || []).map(opt => ({
+                    label: opt.name,
+                    value: opt.serviceResourceId
+                }));
+                if (this.rescheduleOptions.length) {
+                    this.rescheduleSelection = this.rescheduleOptions[0].value;
+                } else {
+                    this.showToast(
+                        'No technicians available',
+                        'No active resources were found for this work order territory.',
+                        'warning'
+                    );
+                }
+            })
+            .catch(error => {
+                const message = this.reduceError(error);
+                this.showToast('Unable to load resources', message, 'error');
+            })
+            .finally(() => {
+                this.rescheduleLoading = false;
+            });
+    }
+
+    closeRescheduleModal() {
+        this.isRescheduleModalOpen = false;
+        this.rescheduleWorkOrderId = null;
+        this.rescheduleOptions = [];
+        this.rescheduleSelection = null;
+        this.rescheduleLoading = false;
+    }
+
+    handleRescheduleSelection(event) {
+        this.rescheduleSelection = event.detail.value;
+    }
+
+    submitRescheduleRequest() {
+        if (!this.rescheduleWorkOrderId || !this.rescheduleSelection) {
+            return;
+        }
+
+        this.rescheduleLoading = true;
+
+        requestRescheduleToResource({
+            workOrderId: this.rescheduleWorkOrderId,
+            serviceResourceId: this.rescheduleSelection
+        })
+            .then(() => {
+                this.showToast(
+                    'Request sent',
+                    'The work order was reassigned and moved back to scheduling.',
+                    'success'
+                );
+                this.closeRescheduleModal();
+                return this.loadAppointments();
+            })
+            .catch(error => {
+                const message = this.reduceError(error);
+                this.showToast('Error requesting reschedule', message, 'error');
+            })
+            .finally(() => {
+                this.rescheduleLoading = false;
             });
     }
 
