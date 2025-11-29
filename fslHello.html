@@ -800,6 +800,18 @@
                         ></lightning-combobox>
 
                         <div class="sfs-actions sfs-manager-actions">
+                              <lightning-button
+                                  variant="brand"
+                                  label="View as team member"
+                                  onclick={handleManagerApply}
+                                  disabled={managerApplyDisabled}
+                              ></lightning-button>
+                              <lightning-button
+                                  variant="neutral"
+                                  label="Return to my view"
+                                  onclick={handleManagerReset}
+                                  disabled={managerResetDisabled}
+                              ></lightning-button>
                             <lightning-button
                                 variant="brand"
                                 label="View as team member"
@@ -843,6 +855,12 @@
                         disabled={rescheduleLoading}
                     ></lightning-combobox>
                     <div class="sfs-actions sfs-modal-actions">
+                          <lightning-button
+                              variant="brand"
+                              label="Send request"
+                              onclick={submitRescheduleRequest}
+                              disabled={rescheduleSubmitDisabled}
+                          ></lightning-button>
                         <lightning-button
                             variant="brand"
                             label="Send request"

@@ -148,6 +148,18 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }));
     }
 
+    get managerApplyDisabled() {
+        return !this.selectedManagerUserId;
+    }
+
+    get managerResetDisabled() {
+        return !this.isViewingAsOther;
+    }
+
+    get rescheduleSubmitDisabled() {
+        return this.rescheduleLoading || !this.rescheduleSelection;
+    }
+
     // Position + size of the floating event
     get dragGhostStyle() {
         return `top:${this.dragGhostY}px;left:${this.dragGhostX}px;width:${this.dragGhostWidth}px;height:${this.dragGhostHeight}px;transform:translateX(-50%);`;
@@ -1064,7 +1076,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.dragCurrentDayIndex = newDayIndex;
 
         const bodyHeightForDelta = this.dragDayBodyHeight || 1;
-        const hoursDelta = (dy / bodyHeightForDelta) * 24;
+        let hoursDelta = (dy / bodyHeightForDelta) * 24;
+
+        // When resizing, snap duration changes to 15-minute increments
+        if (this.dragMode === 'resize') {
+            hoursDelta = Math.round(hoursDelta / 0.25) * 0.25;
+        }
 
         // Compute preview local time for the ghost
         let previewLocal;
@@ -2537,6 +2554,13 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
+        const confirmed = confirm(
+            'Are you sure you want to unschedule this service appointment?'
+        );
+        if (!confirmed) {
+            return;
+        }
+
         this.isLoading = true;
 
         unassignAppointment({ appointmentId: id })
@@ -2547,6 +2571,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     'success'
                 );
                 return this.loadAppointments();
+            })
+            .then(() => {
+                if (this.isCalendarTabActive) {
+                    this.handleCalendarToday();
+                }
             })
             .catch(error => {
                 const message = this.reduceError(error);
