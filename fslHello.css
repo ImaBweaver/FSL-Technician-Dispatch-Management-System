@@ -1024,6 +1024,11 @@
     gap: 0.5rem;
 }
 
+/* In some orgs a duplicate manager action bar was rendering; hide any extras */
+.sfs-manager-panel .sfs-manager-actions:not(:first-of-type) {
+    display: none;
+}
+
 .sfs-modal-backdrop {
     position: fixed;
     inset: 0;
