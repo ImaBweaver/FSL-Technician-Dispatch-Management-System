@@ -800,29 +800,17 @@
                         ></lightning-combobox>
 
                         <div class="sfs-actions sfs-manager-actions">
-                              <lightning-button
-                                  variant="brand"
-                                  label="View as team member"
-                                  onclick={handleManagerApply}
-                                  disabled={managerApplyDisabled}
-                              ></lightning-button>
-                              <lightning-button
-                                  variant="neutral"
-                                  label="Return to my view"
-                                  onclick={handleManagerReset}
-                                  disabled={managerResetDisabled}
-                              ></lightning-button>
                             <lightning-button
                                 variant="brand"
                                 label="View as team member"
                                 onclick={handleManagerApply}
-                                disabled={!selectedManagerUserId}
+                                disabled={managerApplyDisabled}
                             ></lightning-button>
                             <lightning-button
                                 variant="neutral"
                                 label="Return to my view"
                                 onclick={handleManagerReset}
-                                disabled={!isViewingAsOther}
+                                disabled={managerResetDisabled}
                             ></lightning-button>
                         </div>
                     </div>
