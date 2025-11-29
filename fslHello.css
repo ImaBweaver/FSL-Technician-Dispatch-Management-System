@@ -552,17 +552,26 @@
     opacity: 0;
 }
 
+.sfs-detail-header {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0.1rem 0.5rem 0;
+    margin-bottom: 0.35rem;
+}
+
 .sfs-detail-drag-handle {
     width: 40px;
     height: 4px;
     border-radius: 999px;
     background: #d8dde6;
-    margin: 0 auto 0.35rem;
+    margin: 0;
 }
 
 .sfs-detail-close {
     position: absolute;
-    top: 8px;
+    top: 50%;
     right: 10px;
     font-size: 1rem;
     cursor: pointer;
@@ -571,6 +580,7 @@
     border: none;
     padding: 0;
     line-height: 1;
+    transform: translateY(-50%);
     transition: color 0.15s ease;
 }
 

@@ -947,14 +947,16 @@
                     ontouchstart={handleDetailTouchStart}
                     ontouchend={handleDetailTouchEnd}
                 >
-                    <div class="sfs-detail-drag-handle"></div>
-                    <button
-                        class="sfs-detail-close"
-                        type="button"
-                        onclick={handleCloseDetails}
-                    >
-                        ✕
-                    </button>
+                    <div class="sfs-detail-header">
+                        <div class="sfs-detail-drag-handle"></div>
+                        <button
+                            class="sfs-detail-close"
+                            type="button"
+                            onclick={handleCloseDetails}
+                        >
+                            ✕
+                        </button>
+                    </div>
 
                     <h3 class="sfs-detail-title">
                         <button
