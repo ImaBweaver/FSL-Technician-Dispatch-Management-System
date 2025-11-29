@@ -213,14 +213,18 @@ public with sharing class FslTechnicianOnlineController {
 
         if (saIds.isEmpty()) {
             dbg.note   = 'No AssignedResource / ServiceAppointment rows for these resources / crews.';
+            List<Engineer_Transfer_Request__c> pendingRequests =
+                getPendingTransferRequests(effectiveUserId);
+            Set<Id> pendingTransferWoIds = extractWorkOrderIds(pendingRequests);
             wrapper.appointments = new List<AppointmentDTO>();
             wrapper.unscheduledWorkOrders = buildUnscheduledWorkOrders(
                 new Set<Id>(),
                 userSrIds,
                 crewIds,
-                effectiveUserId
+                effectiveUserId,
+                pendingTransferWoIds
             );
-            wrapper.transferRequests = buildTransferRequests(effectiveUserId);
+            wrapper.transferRequests = buildTransferRequests(pendingRequests);
             dbg.length = 0;
             return wrapper;
         }
@@ -415,14 +419,19 @@ public with sharing class FslTechnicianOnlineController {
             results.add(dto);
         }
 
+        List<Engineer_Transfer_Request__c> pendingRequests =
+            getPendingTransferRequests(effectiveUserId);
+        Set<Id> pendingTransferWoIds = extractWorkOrderIds(pendingRequests);
+
         wrapper.appointments = results;
         wrapper.unscheduledWorkOrders = buildUnscheduledWorkOrders(
             workOrdersWithThisTech,
             userSrIds,
             crewIds,
-            effectiveUserId
+            effectiveUserId,
+            pendingTransferWoIds
         );
-        wrapper.transferRequests = buildTransferRequests(effectiveUserId);
+        wrapper.transferRequests = buildTransferRequests(pendingRequests);
         dbg.length = results.size();
         if (String.isBlank(dbg.note)) {
             dbg.note = 'Online fetch succeeded.';
@@ -431,14 +440,14 @@ public with sharing class FslTechnicianOnlineController {
         return wrapper;
     }
 
-    private static List<TransferRequestDTO> buildTransferRequests(Id targetUserId) {
+    private static List<Engineer_Transfer_Request__c> getPendingTransferRequests(
+        Id targetUserId
+    ) {
         if (targetUserId == null) {
-            return new List<TransferRequestDTO>();
+            return new List<Engineer_Transfer_Request__c>();
         }
 
-        List<TransferRequestDTO> dtos = new List<TransferRequestDTO>();
-
-        for (Engineer_Transfer_Request__c req : [
+        return [
             SELECT Id,
                 Work_Order_to_Transfer__c,
                 Work_Order_to_Transfer__r.WorkOrderNumber,
@@ -455,7 +464,15 @@ public with sharing class FslTechnicianOnlineController {
             AND Accepted_on__c = null
             AND Date_Rejected_On__c = null
             ORDER BY CreatedDate ASC
-        ]) {
+        ];
+    }
+
+    private static List<TransferRequestDTO> buildTransferRequests(
+        List<Engineer_Transfer_Request__c> requests
+    ) {
+        List<TransferRequestDTO> dtos = new List<TransferRequestDTO>();
+
+        for (Engineer_Transfer_Request__c req : requests) {
             TransferRequestDTO dto = new TransferRequestDTO();
             dto.transferRequestId = req.Id;
             dto.workOrderId = req.Work_Order_to_Transfer__c;
@@ -490,6 +507,20 @@ public with sharing class FslTechnicianOnlineController {
         return dtos;
     }
 
+    private static Set<Id> extractWorkOrderIds(
+        List<Engineer_Transfer_Request__c> requests
+    ) {
+        Set<Id> woIds = new Set<Id>();
+
+        for (Engineer_Transfer_Request__c req : requests) {
+            if (req.Work_Order_to_Transfer__c != null) {
+                woIds.add(req.Work_Order_to_Transfer__c);
+            }
+        }
+
+        return woIds;
+    }
+
     /**
      * Build the list of work orders that:
      *  - are owned by the current user
@@ -500,7 +531,8 @@ public with sharing class FslTechnicianOnlineController {
         Set<Id> workOrdersWithThisTech,
         Set<Id> userSrIds,
         Set<Id> crewIds,
-        Id ownerUserId
+        Id ownerUserId,
+        Set<Id> pendingTransferWorkOrderIds
     ) {
         // Work Orders that are effectively "closed" from the technician perspective
         Set<String> closedStatuses = new Set<String>{
@@ -541,6 +573,12 @@ public with sharing class FslTechnicianOnlineController {
         // Collect candidate Work Order Ids
         Set<Id> candidateWoIds = new Set<Id>();
         for (WorkOrder wo : candidates) {
+            if (pendingTransferWorkOrderIds != null
+                && pendingTransferWorkOrderIds.contains(wo.Id)) {
+                // Pending transfer to this technician; keep it out of the unscheduled list
+                // until the request is accepted or rejected.
+                continue;
+            }
             candidateWoIds.add(wo.Id);
         }
 
@@ -886,12 +924,19 @@ public with sharing class FslTechnicianOnlineController {
         ]) {
             if (stm.ServiceResourceId == null) continue;
 
+            // Only include resources that are linked to a User (not crews/queues)
+            Id relatedId = (stm.ServiceResource != null)
+                ? stm.ServiceResource.RelatedRecordId
+                : null;
+
+            if (relatedId == null || relatedId.getSObjectType() != User.sObjectType) {
+                continue;
+            }
+
             ServiceResourceOption opt = new ServiceResourceOption();
             opt.serviceResourceId = stm.ServiceResourceId;
             opt.name = (stm.ServiceResource != null) ? stm.ServiceResource.Name : null;
-            opt.userId = (stm.ServiceResource != null)
-                ? stm.ServiceResource.RelatedRecordId
-                : null;
+            opt.userId = relatedId;
             options.add(opt);
         }
 
