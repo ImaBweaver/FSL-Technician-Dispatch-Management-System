@@ -44,6 +44,7 @@ public with sharing class FslTechnicianOnlineController {
     public class ServiceResourceOption {
         @AuraEnabled public Id serviceResourceId;
         @AuraEnabled public String name;
+        @AuraEnabled public Id userId;
     }
 
     // Unscheduled Work Orders for tray
@@ -62,6 +63,20 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public String country;
     }
 
+    public class TransferRequestDTO {
+        @AuraEnabled public Id transferRequestId;
+        @AuraEnabled public Id workOrderId;
+        @AuraEnabled public String workOrderNumber;
+        @AuraEnabled public String workOrderSubject;
+        @AuraEnabled public String accountName;
+        @AuraEnabled public String street;
+        @AuraEnabled public String city;
+        @AuraEnabled public String state;
+        @AuraEnabled public String postalCode;
+        @AuraEnabled public String country;
+        @AuraEnabled public String requestedByName;
+    }
+
     public class DebugInfo {
         @AuraEnabled public Id currentUserId;
         @AuraEnabled public List<Id> serviceResourceIds;
@@ -76,6 +91,7 @@ public with sharing class FslTechnicianOnlineController {
     public class AppointmentResult {
         @AuraEnabled public List<AppointmentDTO> appointments;
         @AuraEnabled public List<UnscheduledWorkOrderDTO> unscheduledWorkOrders;
+        @AuraEnabled public List<TransferRequestDTO> transferRequests;
         @AuraEnabled public DebugInfo debug;
         @AuraEnabled public String userTimeZoneId;
         @AuraEnabled public Boolean isManager;
@@ -140,6 +156,7 @@ public with sharing class FslTechnicianOnlineController {
             dbg.note   = 'No ServiceResource found for user.';
             wrapper.appointments = new List<AppointmentDTO>();
             wrapper.unscheduledWorkOrders = new List<UnscheduledWorkOrderDTO>();
+            wrapper.transferRequests = buildTransferRequests(effectiveUserId);
             dbg.length = 0;
             return wrapper;
         }
@@ -203,6 +220,7 @@ public with sharing class FslTechnicianOnlineController {
                 crewIds,
                 effectiveUserId
             );
+            wrapper.transferRequests = buildTransferRequests(effectiveUserId);
             dbg.length = 0;
             return wrapper;
         }
@@ -404,12 +422,72 @@ public with sharing class FslTechnicianOnlineController {
             crewIds,
             effectiveUserId
         );
+        wrapper.transferRequests = buildTransferRequests(effectiveUserId);
         dbg.length = results.size();
         if (String.isBlank(dbg.note)) {
             dbg.note = 'Online fetch succeeded.';
         }
 
         return wrapper;
+    }
+
+    private static List<TransferRequestDTO> buildTransferRequests(Id targetUserId) {
+        if (targetUserId == null) {
+            return new List<TransferRequestDTO>();
+        }
+
+        List<TransferRequestDTO> dtos = new List<TransferRequestDTO>();
+
+        for (Engineer_Transfer_Request__c req : [
+            SELECT Id,
+                Work_Order_to_Transfer__c,
+                Work_Order_to_Transfer__r.WorkOrderNumber,
+                Work_Order_to_Transfer__r.Subject,
+                Work_Order_to_Transfer__r.Account.Name,
+                Work_Order_to_Transfer__r.Street,
+                Work_Order_to_Transfer__r.City,
+                Work_Order_to_Transfer__r.State,
+                Work_Order_to_Transfer__r.PostalCode,
+                Work_Order_to_Transfer__r.Country,
+                CreatedBy.Name
+            FROM Engineer_Transfer_Request__c
+            WHERE Transfer_Work_Order_To_Engineer__c = :targetUserId
+            AND Accepted_on__c = null
+            AND Date_Rejected_On__c = null
+            ORDER BY CreatedDate ASC
+        ]) {
+            TransferRequestDTO dto = new TransferRequestDTO();
+            dto.transferRequestId = req.Id;
+            dto.workOrderId = req.Work_Order_to_Transfer__c;
+            dto.workOrderNumber = req.Work_Order_to_Transfer__r != null
+                ? req.Work_Order_to_Transfer__r.WorkOrderNumber
+                : null;
+            dto.workOrderSubject = req.Work_Order_to_Transfer__r != null
+                ? req.Work_Order_to_Transfer__r.Subject
+                : null;
+            dto.accountName = req.Work_Order_to_Transfer__r != null
+                ? req.Work_Order_to_Transfer__r.Account.Name
+                : null;
+            dto.street = req.Work_Order_to_Transfer__r != null
+                ? req.Work_Order_to_Transfer__r.Street
+                : null;
+            dto.city = req.Work_Order_to_Transfer__r != null
+                ? req.Work_Order_to_Transfer__r.City
+                : null;
+            dto.state = req.Work_Order_to_Transfer__r != null
+                ? req.Work_Order_to_Transfer__r.State
+                : null;
+            dto.postalCode = req.Work_Order_to_Transfer__r != null
+                ? req.Work_Order_to_Transfer__r.PostalCode
+                : null;
+            dto.country = req.Work_Order_to_Transfer__r != null
+                ? req.Work_Order_to_Transfer__r.Country
+                : null;
+            dto.requestedByName = req.CreatedBy != null ? req.CreatedBy.Name : null;
+            dtos.add(dto);
+        }
+
+        return dtos;
     }
 
     /**
@@ -798,6 +876,7 @@ public with sharing class FslTechnicianOnlineController {
         List<ServiceResourceOption> options = new List<ServiceResourceOption>();
         for (ServiceTerritoryMember stm : [
             SELECT Id, ServiceResourceId, ServiceResource.Name
+                , ServiceResource.RelatedRecordId
             FROM ServiceTerritoryMember
             WHERE ServiceTerritoryId = :wo.ServiceTerritoryId
             AND EffectiveStartDate != null
@@ -810,6 +889,9 @@ public with sharing class FslTechnicianOnlineController {
             ServiceResourceOption opt = new ServiceResourceOption();
             opt.serviceResourceId = stm.ServiceResourceId;
             opt.name = (stm.ServiceResource != null) ? stm.ServiceResource.Name : null;
+            opt.userId = (stm.ServiceResource != null)
+                ? stm.ServiceResource.RelatedRecordId
+                : null;
             options.add(opt);
         }
 
@@ -890,5 +972,155 @@ public with sharing class FslTechnicianOnlineController {
         }
 
         update openAppointments;
+    }
+
+    @AuraEnabled
+    public static void createEngineerTransferRequest(
+        Id workOrderId,
+        Id targetUserId
+    ) {
+        if (workOrderId == null || targetUserId == null) {
+            throw new AuraHandledException(
+                'Work Order and target technician are required to submit a transfer request.'
+            );
+        }
+
+        List<Engineer_Transfer_Request__c> existing = [
+            SELECT Id
+            FROM Engineer_Transfer_Request__c
+            WHERE Work_Order_to_Transfer__c = :workOrderId
+            AND Transfer_Work_Order_To_Engineer__c = :targetUserId
+            AND Accepted_on__c = null
+            AND Date_Rejected_On__c = null
+            LIMIT 1
+        ];
+
+        if (!existing.isEmpty()) {
+            return;
+        }
+
+        Engineer_Transfer_Request__c req = new Engineer_Transfer_Request__c();
+        req.Work_Order_to_Transfer__c = workOrderId;
+        req.Transfer_Work_Order_To_Engineer__c = targetUserId;
+
+        insert req;
+    }
+
+    @AuraEnabled
+    public static void acceptEngineerTransferRequest(Id transferRequestId) {
+        if (transferRequestId == null) {
+            throw new AuraHandledException('Transfer Request Id is required to accept.');
+        }
+
+        Engineer_Transfer_Request__c req = [
+            SELECT Id,
+                Work_Order_to_Transfer__c,
+                Transfer_Work_Order_To_Engineer__c
+            FROM Engineer_Transfer_Request__c
+            WHERE Id = :transferRequestId
+            LIMIT 1
+            FOR UPDATE
+        ];
+
+        if (req.Transfer_Work_Order_To_Engineer__c != UserInfo.getUserId()) {
+            throw new AuraHandledException('You are not authorized to accept this request.');
+        }
+
+        req.Accepted_on__c = Datetime.now();
+        req.Date_Rejected_On__c = null;
+        req.Rejected_Reason__c = null;
+        update req;
+
+        if (req.Work_Order_to_Transfer__c == null) {
+            return;
+        }
+
+        WorkOrder wo = [
+            SELECT Id
+            FROM WorkOrder
+            WHERE Id = :req.Work_Order_to_Transfer__c
+            LIMIT 1
+            FOR UPDATE
+        ];
+
+        wo.OwnerId = UserInfo.getUserId();
+        update wo;
+
+        Set<String> closedStatuses = new Set<String>{
+            'Completed',
+            'Completed WO',
+            'Closed',
+            'Cannot Complete',
+            'Canceled',
+            'Closed - Submitted'
+        };
+
+        List<ServiceAppointment> openAppointments = [
+            SELECT Id
+            FROM ServiceAppointment
+            WHERE Work_Order__c = :req.Work_Order_to_Transfer__c
+            AND Status NOT IN :closedStatuses
+            FOR UPDATE
+        ];
+
+        if (openAppointments.isEmpty()) {
+            return;
+        }
+
+        Set<Id> openApptIds = new Set<Id>();
+        for (ServiceAppointment sa : openAppointments) {
+            openApptIds.add(sa.Id);
+        }
+
+        List<AssignedResource> ars = [
+            SELECT Id
+            FROM AssignedResource
+            WHERE ServiceAppointmentId IN :openApptIds
+        ];
+
+        if (!ars.isEmpty()) {
+            delete ars;
+        }
+
+        for (ServiceAppointment sa : openAppointments) {
+            sa.Status = 'Canceled';
+            sa.SchedStartTime = null;
+            sa.SchedEndTime = null;
+        }
+
+        update openAppointments;
+    }
+
+    @AuraEnabled
+    public static void rejectEngineerTransferRequest(
+        Id transferRequestId,
+        String reason
+    ) {
+        if (transferRequestId == null) {
+            throw new AuraHandledException('Transfer Request Id is required to reject.');
+        }
+
+        if (String.isBlank(reason)) {
+            throw new AuraHandledException('A rejection reason is required.');
+        }
+
+        Engineer_Transfer_Request__c req = [
+            SELECT Id,
+                Transfer_Work_Order_To_Engineer__c
+            FROM Engineer_Transfer_Request__c
+            WHERE Id = :transferRequestId
+            LIMIT 1
+            FOR UPDATE
+        ];
+
+        if (req.Transfer_Work_Order_To_Engineer__c != UserInfo.getUserId()) {
+            throw new AuraHandledException('You are not authorized to reject this request.');
+        }
+
+        req.Date_Rejected_On__c = Datetime.now();
+        req.Rejected_Reason__c = reason;
+        req.Accepted_on__c = null;
+
+        update req;
     }
 }

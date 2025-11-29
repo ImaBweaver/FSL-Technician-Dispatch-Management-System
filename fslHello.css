@@ -65,11 +65,37 @@
     position: relative;
 }
 
+.sfs-transfer-card {
+    border-left: 5px solid #c23934;
+}
+
 .sfs-card-header {
     display: flex;
     align-items: center;
     gap: 0.35rem;
     flex-wrap: wrap;
+}
+
+.sfs-transfer-header {
+    justify-content: space-between;
+}
+
+.sfs-transfer-pill {
+    display: inline-block;
+    background: #c23934;
+    color: white;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.sfs-transfer-requester {
+    font-size: 0.75rem;
+    color: #5f5f5f;
+    margin-left: auto;
+    padding-left: 0.4rem;
 }
 
 .sfs-makemodel-pill {
@@ -124,6 +150,10 @@
     text-align: right;
 }
 
+.sfs-value_left {
+    text-align: left;
+}
+
 .sfs-input-block {
     margin-top: 0.6rem;
 }
@@ -139,6 +169,10 @@
     display: flex;
     justify-content: flex-end;
     margin-top: 0.5rem;
+}
+
+.sfs-transfer-actions {
+    gap: 0.4rem;
 }
 
 /* CALENDAR TAB HEADER */
@@ -193,6 +227,12 @@
     border-radius: 999px;
     font-size: 0.7rem;
     cursor: pointer;
+}
+
+.sfs-mode-btn_transfer-alert {
+    background: #ffe6e6;
+    color: #c23934;
+    font-weight: 700;
 }
 
 .sfs-list-mode {

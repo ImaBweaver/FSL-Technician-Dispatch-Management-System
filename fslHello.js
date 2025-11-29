@@ -8,7 +8,9 @@ import createAppointmentForWorkOrder from '@salesforce/apex/FslTechnicianOnlineC
 import updateAppointmentEnd from '@salesforce/apex/FslTechnicianOnlineController.updateAppointmentEnd';
 import unassignAppointment from '@salesforce/apex/FslTechnicianOnlineController.unassignAppointment';
 import getTerritoryResources from '@salesforce/apex/FslTechnicianOnlineController.getTerritoryResources';
-import requestRescheduleToResource from '@salesforce/apex/FslTechnicianOnlineController.requestRescheduleToResource';
+import createEngineerTransferRequest from '@salesforce/apex/FslTechnicianOnlineController.createEngineerTransferRequest';
+import acceptEngineerTransferRequest from '@salesforce/apex/FslTechnicianOnlineController.acceptEngineerTransferRequest';
+import rejectEngineerTransferRequest from '@salesforce/apex/FslTechnicianOnlineController.rejectEngineerTransferRequest';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
 export default class FslHello extends NavigationMixin(LightningElement) {
@@ -26,6 +28,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     // Unscheduled work orders (tray)
     @track unscheduledWorkOrders = [];
+    @track transferRequests = [];
     pullTrayOpen = false;
     isDesktopFormFactor = FORM_FACTOR === 'Large';
     isCalendarTabActive = false;
@@ -76,6 +79,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     rescheduleSelection = null;
     rescheduleWorkOrderId = null;
     rescheduleLoading = false;
+
+    // Transfer request rejection modal
+    isRejectModalOpen = false;
+    rejectReason = '';
+    rejectRequestId = null;
 
     // Long press to start drag
     dragLongPressTimer = null;
@@ -213,6 +221,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return this.appointments.filter(a => a.isCrewAssignment).length;
     }
 
+    get transferRequestCount() {
+        return (this.transferRequests && Array.isArray(this.transferRequests))
+            ? this.transferRequests.length
+            : 0;
+    }
+
     get partsReadyCount() {
         if (!this.appointments) return 0;
         return this.appointments.filter(a => a.allPartsEnRoute).length;
@@ -339,6 +353,24 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         if (this.listMode === 'crew') {
             classes += ' sfs-mode-btn_active';
         }
+        return classes;
+    }
+
+    get isTransferMode() {
+        return this.listMode === 'transferRequests';
+    }
+
+    get listTransferModeClass() {
+        let classes = 'sfs-mode-btn';
+
+        if (this.transferRequestCount > 0) {
+            classes += ' sfs-mode-btn_transfer-alert';
+        }
+
+        if (this.isTransferMode) {
+            classes += ' sfs-mode-btn_active';
+        }
+
         return classes;
     }
 
@@ -1467,6 +1499,24 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                         wo.state,
                         wo.postalCode,
                         wo.country
+                    ].filter(Boolean);
+                    clone.fullAddress = parts.join(', ');
+                    return clone;
+                });
+
+                const transferRequests =
+                    result && result.transferRequests
+                        ? result.transferRequests
+                        : [];
+
+                this.transferRequests = transferRequests.map(req => {
+                    const clone = { ...req };
+                    const parts = [
+                        req.street,
+                        req.city,
+                        req.state,
+                        req.postalCode,
+                        req.country
                     ].filter(Boolean);
                     clone.fullAddress = parts.join(', ');
                     return clone;
@@ -2646,16 +2696,23 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         getTerritoryResources({ workOrderId })
             .then(options => {
-                this.rescheduleOptions = (options || []).map(opt => ({
-                    label: opt.name,
-                    value: opt.serviceResourceId
-                }));
+                const optionList = (options || [])
+                    .filter(opt => opt.userId)
+                    .map(opt => {
+                        return {
+                            label: opt.name,
+                            value: opt.userId
+                        };
+                    });
+
+                this.rescheduleOptions = optionList;
+
                 if (this.rescheduleOptions.length) {
                     this.rescheduleSelection = this.rescheduleOptions[0].value;
                 } else {
                     this.showToast(
                         'No technicians available',
-                        'No active resources were found for this work order territory.',
+                        'No active resources with linked users were found for this work order territory.',
                         'warning'
                     );
                 }
@@ -2688,25 +2745,100 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         this.rescheduleLoading = true;
 
-        requestRescheduleToResource({
+        createEngineerTransferRequest({
             workOrderId: this.rescheduleWorkOrderId,
-            serviceResourceId: this.rescheduleSelection
+            targetUserId: this.rescheduleSelection
         })
             .then(() => {
                 this.showToast(
-                    'Request sent',
-                    'The work order was reassigned and moved back to scheduling.',
+                    'Transfer request sent',
+                    'The selected technician will review the transfer request.',
                     'success'
                 );
                 this.closeRescheduleModal();
+            })
+            .catch(error => {
+                const message = this.reduceError(error);
+                this.showToast('Error requesting transfer', message, 'error');
+            })
+            .finally(() => {
+                this.rescheduleLoading = false;
+            });
+    }
+
+    handleAcceptTransferRequest(event) {
+        const requestId = event.currentTarget.dataset.id;
+        if (!requestId) {
+            return;
+        }
+
+        this.isLoading = true;
+
+        acceptEngineerTransferRequest({ transferRequestId: requestId })
+            .then(() => {
+                this.showToast(
+                    'Transfer accepted',
+                    'The work order has been moved to your scheduling queue.',
+                    'success'
+                );
                 return this.loadAppointments();
             })
             .catch(error => {
                 const message = this.reduceError(error);
-                this.showToast('Error requesting reschedule', message, 'error');
+                this.showToast('Unable to accept transfer', message, 'error');
             })
             .finally(() => {
-                this.rescheduleLoading = false;
+                this.isLoading = false;
+            });
+    }
+
+    openRejectModal(event) {
+        const requestId = event.currentTarget.dataset.id;
+        if (!requestId) {
+            return;
+        }
+
+        this.rejectRequestId = requestId;
+        this.rejectReason = '';
+        this.isRejectModalOpen = true;
+    }
+
+    closeRejectModal() {
+        this.isRejectModalOpen = false;
+        this.rejectReason = '';
+        this.rejectRequestId = null;
+    }
+
+    handleRejectReasonChange(event) {
+        this.rejectReason = event.target.value;
+    }
+
+    submitRejectRequest() {
+        if (!this.rejectRequestId || !this.rejectReason) {
+            return;
+        }
+
+        this.isLoading = true;
+
+        rejectEngineerTransferRequest({
+            transferRequestId: this.rejectRequestId,
+            reason: this.rejectReason
+        })
+            .then(() => {
+                this.showToast(
+                    'Transfer rejected',
+                    'The requester will be notified of the rejection reason.',
+                    'success'
+                );
+                this.closeRejectModal();
+                return this.loadAppointments();
+            })
+            .catch(error => {
+                const message = this.reduceError(error);
+                this.showToast('Unable to reject transfer', message, 'error');
+            })
+            .finally(() => {
+                this.isLoading = false;
             });
     }
 
