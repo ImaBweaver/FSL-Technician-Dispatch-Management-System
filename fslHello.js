@@ -1,9 +1,11 @@
 import { LightningElement, track } from 'lwc';
+import FORM_FACTOR from '@salesforce/client/formFactor';
 import { NavigationMixin } from 'lightning/navigation';
 import getMyAppointmentsOnline from '@salesforce/apex/FslTechnicianOnlineController.getMyAppointmentsOnline';
 import rescheduleAppointment from '@salesforce/apex/FslTechnicianOnlineController.rescheduleAppointment';
 import assignCrewAppointment from '@salesforce/apex/FslTechnicianOnlineController.assignCrewAppointment';
 import createAppointmentForWorkOrder from '@salesforce/apex/FslTechnicianOnlineController.createAppointmentForWorkOrder';
+import updateAppointmentEnd from '@salesforce/apex/FslTechnicianOnlineController.updateAppointmentEnd';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
 export default class FslHello extends NavigationMixin(LightningElement) {
@@ -15,6 +17,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     // Unscheduled work orders (tray)
     @track unscheduledWorkOrders = [];
     pullTrayOpen = false;
+    isDesktopFormFactor = FORM_FACTOR === 'Large';
+    isCalendarTabActive = false;
 
     // Global "now" line state
     showNowLine = false;
@@ -38,7 +42,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     calendarEndHour = 24;
 
     // Drag and drop state for calendar
-    dragMode = null;              // 'event' or 'wo'
+    dragMode = null;              // 'event', 'wo', or 'resize'
     draggingEventId = null;
     draggingWorkOrderId = null;
     dragStartDayIndex = null;
@@ -49,7 +53,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     dragDayWidth = null;
     dragDayBodyTop = null; // screen Y of the top of the day body (for time alignment)
     dragDayBodyHeight = null;
+    dragPreviewLocal = null;
+    dragStartEndLocal = null;
+    dragPreviewDurationHours = null;
+    dragDurationHours = null;
     dragHasMoved = false;
+    defaultWorkOrderDurationHours = 6;
 
     // Long press to start drag
     dragLongPressTimer = null;
@@ -394,41 +403,38 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return this.pullTrayOpen ? 'sfs-tray sfs-tray_open' : 'sfs-tray';
     }
 
-        get unscheduledCount() {
-            return this.unscheduledWorkOrders
-                ? this.unscheduledWorkOrders.length
-                : 0;
-        }
-
-        get hasUnscheduled() {
-            return this.unscheduledCount > 0;
-        }
-
-        /**
-         * Friendly text for the tray handle
-         * e.g. "3 work orders need scheduling" or "No work orders need scheduling"
-         */
-        get unscheduledLabel() {
-            const count = this.unscheduledCount;
-
-            if (count === 0) {
-                return 'No work orders need scheduling';
-            }
-            if (count === 1) {
-                return '1 work order needs scheduling';
-            }
-            return `${count} work orders need scheduling`;
-        }
-
-
     get unscheduledCount() {
         return this.unscheduledWorkOrders
             ? this.unscheduledWorkOrders.length
             : 0;
     }
 
+    get showDesktopTrayButton() {
+        return (
+            this.isCalendarTabActive &&
+            this.isDesktopFormFactor &&
+            !this.pullTrayOpen
+        );
+    }
+
     get hasUnscheduled() {
         return this.unscheduledCount > 0;
+    }
+
+    /**
+     * Friendly text for the tray handle
+     * e.g. "3 work orders need scheduling" or "No work orders need scheduling"
+     */
+    get unscheduledLabel() {
+        const count = this.unscheduledCount;
+
+        if (count === 0) {
+            return 'No work orders need scheduling';
+        }
+        if (count === 1) {
+            return '1 work order needs scheduling';
+        }
+        return `${count} work orders need scheduling`;
     }
 
     // ======= LIFECYCLE =======
@@ -598,13 +604,104 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         event.stopPropagation();
     }
 
-        handleEventPressEnd() {
+    handleEventPressEnd() {
         // If we were only waiting for a long press and never started a drag, cancel it
         if (this.isPressingForDrag && !this.dragMode) {
             this.isPressingForDrag = false;
             this._pendingDrag = null;
             this.clearLongPressTimer();
         }
+    }
+
+    handleEventResizeStart(event) {
+        if (this.dragMode) {
+            return;
+        }
+
+        const id = event.currentTarget.dataset.id;
+        const dayIndexStr = event.currentTarget.dataset.dayIndex;
+        if (!id || !dayIndexStr) {
+            return;
+        }
+
+        const dayIndex = parseInt(dayIndexStr, 10);
+        const appt = this.appointments.find(a => a.appointmentId === id);
+        if (!appt || !appt.schedStart) {
+            return;
+        }
+
+        let clientX;
+        let clientY;
+        if (event.touches && event.touches.length) {
+            clientX = event.touches[0].clientX;
+            clientY = event.touches[0].clientY;
+        } else {
+            clientX = event.clientX;
+            clientY = event.clientY;
+        }
+
+        const dayBodyEl = event.currentTarget.closest('.sfs-calendar-day-body');
+        const dayEl = event.currentTarget.closest('.sfs-calendar-day');
+        const eventEl = event.currentTarget.closest('.sfs-calendar-event');
+
+        if (!dayBodyEl || !dayEl || !eventEl) {
+            return;
+        }
+
+        const bodyRect = dayBodyEl.getBoundingClientRect();
+        const dayRect = dayEl.getBoundingClientRect();
+        const eventRect = eventEl.getBoundingClientRect();
+
+        const startLocal = this.convertUtcToUserLocal(appt.schedStart);
+        const endLocal = appt.schedEnd
+            ? this.convertUtcToUserLocal(appt.schedEnd)
+            : new Date(startLocal.getTime() + 60 * 60 * 1000);
+
+        const durationHours = this.computeDurationHours(startLocal, endLocal);
+
+        this.dragMode = 'resize';
+        this.draggingEventId = id;
+        this.draggingWorkOrderId = null;
+        this.dragStartDayIndex = dayIndex;
+        this.dragCurrentDayIndex = dayIndex;
+        this.dragStartLocal = startLocal;
+        this.dragStartEndLocal = endLocal;
+        this.dragDurationHours = durationHours;
+        this.dragPreviewDurationHours = durationHours;
+        this.dragStartClientX = clientX;
+        this.dragStartClientY = clientY;
+        this.dragDayBodyHeight = bodyRect.height || dayBodyEl.clientHeight || 1;
+        this.dragDayBodyTop = bodyRect.top;
+        this.dragDayWidth = dayRect.width || 1;
+        this.dragHasMoved = false;
+        this.dragPreviewLocal = new Date(startLocal);
+
+        const totalHours = this.calendarEndHour - this.calendarStartHour;
+        const startHourFraction =
+            startLocal.getHours() + startLocal.getMinutes() / 60;
+        const yWithinBody =
+            ((startHourFraction - this.calendarStartHour) / totalHours) *
+            this.dragDayBodyHeight;
+
+        const ghostHeight =
+            (durationHours / totalHours) * this.dragDayBodyHeight;
+        const ghostX = dayRect.left + dayRect.width / 2;
+        const timeLabel = this.formatTimeRange(startLocal, endLocal);
+        const typeClass = this.getEventTypeClass(appt.workTypeName);
+
+        this.showDragGhost(
+            ghostX,
+            this.dragDayBodyTop + yWithinBody,
+            appt.workOrderSubject || 'Appointment',
+            timeLabel,
+            typeClass,
+            eventRect.width,
+            ghostHeight
+        );
+
+        this.updateSelectedEventStyles();
+        event.stopPropagation();
+        event.preventDefault();
     }
 
 
@@ -695,11 +792,15 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             this.dragStartDayIndex = pending.dayIndex;
             this.dragCurrentDayIndex = pending.dayIndex;
             this.dragStartLocal = pending.localStart;
+            this.dragStartEndLocal = null;
             this.dragStartClientX = pending.clientX;
             this.dragStartClientY = pending.clientY;
             this.dragDayBodyHeight = pending.dayBodyHeight;
             this.dragDayWidth = pending.dayWidth;
             this.dragHasMoved = false;
+            this.dragPreviewLocal = null;
+            this.dragPreviewDurationHours = null;
+            this.dragDurationHours = null;
 
             // Find the original event DOM node to clone its size
             const selector = `.sfs-calendar-day-body [data-id="${pending.id}"][data-day-index="${pending.dayIndex}"]`;
@@ -719,6 +820,46 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 ? this.getEventTypeClass(appt.workTypeName)
                 : '';
 
+            if (appt) {
+                const endLocal = appt.schedEnd
+                    ? this.convertUtcToUserLocal(appt.schedEnd)
+                    : new Date(
+                          pending.localStart.getTime() + 60 * 60 * 1000
+                      );
+
+                this.dragStartEndLocal = endLocal;
+
+                const durationHours = this.computeDurationHours(
+                    pending.localStart,
+                    endLocal
+                );
+                this.dragDurationHours = durationHours;
+                this.dragPreviewDurationHours = durationHours;
+
+                const totalHours = this.calendarEndHour - this.calendarStartHour;
+                const scaledHeight =
+                    (durationHours / totalHours) * this.dragDayBodyHeight;
+                height = scaledHeight;
+
+                const timeLabel = this.formatTimeRange(
+                    pending.localStart,
+                    endLocal
+                );
+
+                this.showDragGhost(
+                    pending.clientX,
+                    pending.clientY,
+                    pending.title,
+                    timeLabel,
+                    typeClass,
+                    width,
+                    height
+                );
+
+                this.updateSelectedEventStyles();
+                return;
+            }
+
             const timeLabel = pending.localStart.toLocaleTimeString([], {
                 hour: 'numeric',
                 minute: '2-digit'
@@ -735,37 +876,45 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             );
 
             this.updateSelectedEventStyles();
-        }
-
-         else if (pending.type === 'wo') {
+        } else if (pending.type === 'wo') {
             this.dragMode = 'wo';
             this.draggingWorkOrderId = pending.workOrderId;
             this.draggingEventId = null;
             this.dragStartDayIndex = pending.dayIndex;
             this.dragCurrentDayIndex = pending.dayIndex;
             this.dragStartLocal = null;
+            this.dragStartEndLocal = null;
             this.dragStartClientX = pending.clientX;
             this.dragStartClientY = pending.clientY;
             this.dragDayBodyHeight = pending.dayBodyHeight;
             this.dragDayWidth = pending.dayWidth;
             this.dragHasMoved = false;
             this.dragDayBodyTop = pending.dayBodyTop;
+            this.dragPreviewLocal = null;
+            this.dragPreviewDurationHours = this.defaultWorkOrderDurationHours;
+            this.dragDurationHours = this.defaultWorkOrderDurationHours;
 
 
-            // Approximate size for a new 1-hour event
+            // Approximate size for a new 6-hour event
             const dayHeight = pending.dayBodyHeight;
-            const oneHourHeight = dayHeight / 24;
+            const sixHourHeight =
+                (this.defaultWorkOrderDurationHours / 24) * dayHeight;
             const width = pending.dayWidth * 0.88; // match left/right 6% padding
-            const height = oneHourHeight;
+            const height = sixHourHeight;
 
             const dayObj = this.calendarDays[pending.dayIndex];
             const preview = new Date(dayObj.date);
             preview.setHours(9, 0, 0, 0);
 
-            const timeLabel = preview.toLocaleTimeString([], {
-                hour: 'numeric',
-                minute: '2-digit'
-            });
+            const endPreview = new Date(preview);
+            endPreview.setHours(
+                endPreview.getHours() + this.defaultWorkOrderDurationHours,
+                endPreview.getMinutes(),
+                0,
+                0
+            );
+
+            const timeLabel = this.formatTimeRange(preview, endPreview);
 
             this.showDragGhost(
                 pending.clientX,
@@ -830,7 +979,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             this.dragHasMoved = true;
         }
 
-        const dayOffset = Math.round(dx / this.dragDayWidth);
+        const dayOffset =
+            this.dragMode === 'resize'
+                ? 0
+                : Math.round(dx / this.dragDayWidth);
         let newDayIndex = this.dragStartDayIndex + dayOffset;
         if (newDayIndex < 0) newDayIndex = 0;
         if (newDayIndex >= this.calendarDays.length) {
@@ -856,6 +1008,14 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
             const millisDelta = hoursDelta * 60 * 60 * 1000;
             previewLocal.setTime(previewLocal.getTime() + millisDelta);
+        } else if (this.dragMode === 'resize' && this.dragStartLocal) {
+            previewLocal = new Date(baseDay);
+            previewLocal.setHours(
+                this.dragStartLocal.getHours(),
+                this.dragStartLocal.getMinutes(),
+                0,
+                0
+            );
         } else if (this.dragMode === 'wo') {
             previewLocal = new Date(baseDay);
             previewLocal.setHours(9, 0, 0, 0);
@@ -868,14 +1028,39 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             const roundedMinutes = Math.round(minutes / 15) * 15;
             previewLocal.setMinutes(roundedMinutes, 0, 0);
 
-            const timeLabel = previewLocal.toLocaleTimeString([], {
-                hour: 'numeric',
-                minute: '2-digit'
-            });
+            this.dragPreviewLocal = new Date(previewLocal);
 
         const totalHours = this.calendarEndHour - this.calendarStartHour;
 
         if (previewLocal && this.dragDayBodyTop != null) {
+            let durationHours = this.dragDurationHours || 1;
+
+            if (this.dragMode === 'resize' && this.dragStartEndLocal) {
+                const baseDuration = this.computeDurationHours(
+                    this.dragStartLocal,
+                    this.dragStartEndLocal
+                );
+                durationHours = baseDuration + hoursDelta;
+                const startHourFraction =
+                    previewLocal.getHours() + previewLocal.getMinutes() / 60;
+                const maxDuration =
+                    this.calendarEndHour - startHourFraction;
+                durationHours = Math.min(
+                    Math.max(durationHours, 0.25),
+                    Math.max(maxDuration, 0.25)
+                );
+                this.dragPreviewDurationHours = durationHours;
+            } else {
+                this.dragPreviewDurationHours = durationHours;
+            }
+
+            const endPreview = new Date(previewLocal);
+            endPreview.setTime(
+                endPreview.getTime() + durationHours * 60 * 60 * 1000
+            );
+
+            const timeLabel = this.formatTimeRange(previewLocal, endPreview);
+
             // Convert previewLocal time -> vertical position in day body
             let hourFraction =
                 previewLocal.getHours() + previewLocal.getMinutes() / 60;
@@ -891,6 +1076,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             const topRatio =
                 (hourFraction - this.calendarStartHour) / totalHours;
             const yWithinBody = topRatio * this.dragDayBodyHeight;
+
+            const ghostHeight =
+                (durationHours / totalHours) * this.dragDayBodyHeight;
 
             // Position ghost horizontally at the center of the target day column
             let ghostX = clientX;
@@ -916,7 +1104,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 timeLabel,
                 this.dragGhostTypeClass,
                 this.dragGhostWidth,
-                this.dragGhostHeight
+                ghostHeight || this.dragGhostHeight
             );
         } else {
             // Fallback – just move with finger if we somehow lack geometry
@@ -1013,15 +1201,62 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             }
 
             this.handleReschedule({ target: { dataset: { id } } });
+        } else if (this.dragMode === 'resize') {
+            const id = this.draggingEventId;
+            if (id && this.dragStartLocal) {
+                const startLocal = new Date(baseDay);
+                startLocal.setHours(
+                    this.dragStartLocal.getHours(),
+                    this.dragStartLocal.getMinutes(),
+                    0,
+                    0
+                );
+
+                let durationHours =
+                    this.dragPreviewDurationHours || this.dragDurationHours || 1;
+
+                const newEnd = new Date(startLocal);
+                newEnd.setTime(
+                    newEnd.getTime() + durationHours * 60 * 60 * 1000
+                );
+
+                const roundedMinutes =
+                    Math.round(newEnd.getMinutes() / 15) * 15;
+                newEnd.setMinutes(roundedMinutes, 0, 0);
+
+                this.updateAppointmentEndTime(id, newEnd.toISOString());
+            }
         } else if (this.dragMode === 'wo') {
             const workOrderId = this.draggingWorkOrderId;
             if (workOrderId) {
-                // For new appointments, pick 9 AM local on the drop day
-                const newLocal = new Date(baseDay);
-                newLocal.setHours(9, 0, 0, 0);
-                const isoString = newLocal.toISOString();
+                const dropLocal =
+                    this.dragPreviewLocal != null
+                        ? new Date(this.dragPreviewLocal)
+                        : (() => {
+                              const fallback = new Date(baseDay);
+                              fallback.setHours(9, 0, 0, 0);
+                              const millisDelta = hoursDelta * 60 * 60 * 1000;
+                              fallback.setTime(fallback.getTime() + millisDelta);
+                              return fallback;
+                          })();
 
-                this.createAppointmentFromWorkOrder(workOrderId, isoString);
+                const minutes = dropLocal.getMinutes();
+                const roundedMinutes = Math.round(minutes / 15) * 15;
+                dropLocal.setMinutes(roundedMinutes, 0, 0);
+
+                const dropEnd = new Date(dropLocal);
+                const durationHours =
+                    this.dragPreviewDurationHours ||
+                    this.defaultWorkOrderDurationHours;
+                dropEnd.setTime(
+                    dropEnd.getTime() + durationHours * 60 * 60 * 1000
+                );
+
+                this.createAppointmentFromWorkOrder(
+                    workOrderId,
+                    dropLocal.toISOString(),
+                    dropEnd.toISOString()
+                );
             }
         }
 
@@ -1040,6 +1275,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.dragDayWidth = null;
         this.dragDayBodyHeight = null;
         this.dragStartLocal = null;
+        this.dragStartEndLocal = null;
+        this.dragPreviewLocal = null;
+        this.dragPreviewDurationHours = null;
+        this.dragDurationHours = null;
         this.dragHasMoved = false;
         this.isPressingForDrag = false;
         this._pendingDrag = null;
@@ -1226,6 +1465,31 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const minute = parseInt(lookup.minute, 10);
 
         return new Date(year, month - 1, day, hour, minute, 0, 0);
+    }
+
+    computeDurationHours(startDate, endDate) {
+        if (!startDate || !endDate) {
+            return 1;
+        }
+        const diffMs = endDate.getTime() - startDate.getTime();
+        return Math.max(diffMs / (60 * 60 * 1000), 0.25);
+    }
+
+    formatTimeRange(startDate, endDate) {
+        if (!startDate || !endDate) {
+            return '';
+        }
+
+        const startText = startDate.toLocaleTimeString([], {
+            hour: 'numeric',
+            minute: '2-digit'
+        });
+        const endText = endDate.toLocaleTimeString([], {
+            hour: 'numeric',
+            minute: '2-digit'
+        });
+
+        return `${startText} – ${endText}`;
     }
 
     pad2(num) {
@@ -1479,8 +1743,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             ? this.selectedAppointment.appointmentId
             : null;
 
-        const draggingId =
-            this.dragMode === 'event' ? this.draggingEventId : null;
+        const draggingId = this.dragMode ? this.draggingEventId : null;
 
         const updatedDays = this.calendarDays.map(day => {
             const newEvents = day.events.map(evt => {
@@ -1715,6 +1978,47 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             });
     }
 
+    updateAppointmentEndTime(appointmentId, newEndIso) {
+        this.checkOnline();
+        if (this.isOffline) {
+            this.showToast(
+                'Offline',
+                'You must be online to change the appointment duration.',
+                'warning'
+            );
+            return;
+        }
+
+        this.isLoading = true;
+
+        updateAppointmentEnd({
+            appointmentId,
+            newEnd: newEndIso
+        })
+            .then(() => {
+                this.showToast(
+                    'Appointment updated',
+                    'The appointment duration has been changed.',
+                    'success'
+                );
+                return this.loadAppointments();
+            })
+            .then(() => {
+                this.handleCalendarToday();
+            })
+            .catch(error => {
+                const message = this.reduceError(error);
+                this.debugInfo = {
+                    note: 'Error updating appointment end time',
+                    errorMessage: message
+                };
+                this.showToast('Error updating appointment', message, 'error');
+            })
+            .finally(() => {
+                this.isLoading = false;
+            });
+    }
+
     // ======= DETAIL RESCHEDULE HANDLERS =======
 
     handleDetailDateChange(event) {
@@ -1926,7 +2230,13 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     // ======= CALENDAR TAB HANDLERS =======
 
     handleCalendarTabActive() {
+        this.isCalendarTabActive = true;
         this.handleCalendarToday();
+    }
+
+    handleListTabActive() {
+        this.isCalendarTabActive = false;
+        this.pullTrayOpen = false;
     }
 
     handleCalendarPrev() {
@@ -1974,6 +2284,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.pullTrayOpen = !this.pullTrayOpen;
     }
 
+    handleOpenTrayFromButton() {
+        this.pullTrayOpen = true;
+    }
+
     handleTrayCardClick(event) {
         // If we started a drag, ignore the click
         if (this.dragHasMoved) {
@@ -1988,7 +2302,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         );
     }
 
-    createAppointmentFromWorkOrder(workOrderId, isoStart) {
+    createAppointmentFromWorkOrder(workOrderId, isoStart, isoEnd) {
         this.checkOnline();
         if (this.isOffline) {
             this.showToast(
@@ -2003,7 +2317,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         createAppointmentForWorkOrder({
             workOrderId,
-            startDateTimeIso: isoStart
+            startDateTimeIso: isoStart,
+            endDateTimeIso: isoEnd
         })
             .then(() => {
                 this.showToast(

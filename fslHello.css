@@ -179,6 +179,12 @@
     padding: 0.1rem;
 }
 
+.sfs-desktop-tray-button {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.25rem;
+}
+
 .sfs-mode-btn {
     border: none;
     background: transparent;
@@ -305,6 +311,20 @@
     box-sizing: border-box;
     overflow: hidden;
     cursor: pointer;
+}
+
+.sfs-calendar-event-resize {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 10px;
+    cursor: ns-resize;
+    background: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0) 0%,
+        rgba(0, 0, 0, 0.08) 100%
+    );
 }
 
 .sfs-calendar-event-title {
@@ -767,8 +787,8 @@
     right: 0;
     bottom: 0;
     z-index: 9000;
-    /* Match the component’s max width on desktop */
-    max-width: 520px;
+    width: 100%;
+    max-width: none;
     margin: 0 auto;
     padding: 0 0.75rem 0.75rem;
     box-sizing: border-box;
