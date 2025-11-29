@@ -179,6 +179,12 @@
     padding: 0.1rem;
 }
 
+.sfs-desktop-tray-button {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.25rem;
+}
+
 .sfs-mode-btn {
     border: none;
     background: transparent;

@@ -1,4 +1,5 @@
 import { LightningElement, track } from 'lwc';
+import FORM_FACTOR from '@salesforce/client/formFactor';
 import { NavigationMixin } from 'lightning/navigation';
 import getMyAppointmentsOnline from '@salesforce/apex/FslTechnicianOnlineController.getMyAppointmentsOnline';
 import rescheduleAppointment from '@salesforce/apex/FslTechnicianOnlineController.rescheduleAppointment';
@@ -16,6 +17,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     // Unscheduled work orders (tray)
     @track unscheduledWorkOrders = [];
     pullTrayOpen = false;
+    isDesktopFormFactor = FORM_FACTOR === 'Large';
     isCalendarTabActive = false;
 
     // Global "now" line state
@@ -405,6 +407,14 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return this.unscheduledWorkOrders
             ? this.unscheduledWorkOrders.length
             : 0;
+    }
+
+    get showDesktopTrayButton() {
+        return (
+            this.isCalendarTabActive &&
+            this.isDesktopFormFactor &&
+            !this.pullTrayOpen
+        );
     }
 
     get hasUnscheduled() {
@@ -2272,6 +2282,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     toggleTray() {
         this.pullTrayOpen = !this.pullTrayOpen;
+    }
+
+    handleOpenTrayFromButton() {
+        this.pullTrayOpen = true;
     }
 
     handleTrayCardClick(event) {

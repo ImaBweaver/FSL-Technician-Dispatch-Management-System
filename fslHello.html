@@ -413,6 +413,16 @@
                     </div>
                 </template>
 
+                <template if:true={showDesktopTrayButton}>
+                    <div class="sfs-desktop-tray-button">
+                        <lightning-button
+                            variant="brand"
+                            label="Open schedule tray"
+                            onclick={handleOpenTrayFromButton}
+                        ></lightning-button>
+                    </div>
+                </template>
+
                 <template if:true={isOffline}>
                     <div class="sfs-offline-banner">
                         <lightning-icon
