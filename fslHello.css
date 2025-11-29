@@ -1,0 +1,912 @@
+.sfs-container {
+    min-height: 100vh;
+    padding: 0.75rem;
+    background: #f3f2f2;
+    box-sizing: border-box;
+}
+
+/* COMMON HEADER / EMPTY / LOADING */
+
+.sfs-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.sfs-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.sfs-refresh-btn {
+    margin-left: 0.5rem;
+}
+
+.sfs-offline-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: #fff4e5;
+    color: #8c4b00;
+    border-radius: 0.5rem;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.sfs-offline-icon {
+    margin-right: 0.15rem;
+}
+
+.sfs-loading,
+.sfs-empty {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1.5rem 0.5rem;
+    text-align: center;
+}
+
+/* LIST TAB CARDS */
+
+.sfs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.sfs-card {
+    background: #ffffff;
+    border-radius: 0.5rem;
+    padding: 0.75rem 0.75rem 0.9rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16);
+}
+
+.sfs-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.sfs-makemodel-pill {
+    display: inline-block;
+    padding: 0.15rem 0.45rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    border-radius: 999px;
+    background: #eef1f6;
+    border: 1px solid #d0d7e3;
+    color: #4a4a4a;
+    max-width: 60%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+.sfs-worktype {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.15rem 0.4rem;
+    border-radius: 999px;
+    background: #f4f6f9;
+}
+
+.sfs-card-body {
+    font-size: 0.8rem;
+}
+
+.sfs-subject {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+}
+
+.sfs-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin: 0.1rem 0;
+}
+
+.sfs-label {
+    font-weight: 600;
+}
+
+.sfs-value {
+    text-align: right;
+}
+
+.sfs-input-block {
+    margin-top: 0.6rem;
+}
+
+/* keep the lightning-input nicely contained */
+.sfs-input-block lightning-input {
+    display: block;
+    width: calc(100% - 30px);
+    margin: 0 auto;
+}
+
+.sfs-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.5rem;
+}
+
+/* CALENDAR TAB HEADER */
+
+.sfs-header-calendar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.25rem;
+}
+
+.sfs-calendar-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+}
+
+.sfs-calendar-nav-btn {
+    flex: 0 0 auto;
+}
+
+.sfs-calendar-range {
+    flex: 1;
+    text-align: center;
+    font-weight: 600;
+}
+
+.sfs-calendar-today-btn {
+    flex: 0 0 auto;
+    font-size: 0.7rem;
+    padding: 0 0.5rem;
+}
+
+.sfs-calendar-mode {
+    display: inline-flex;
+    align-self: center;
+    border-radius: 999px;
+    background: #e5e5e5;
+    padding: 0.1rem;
+}
+
+.sfs-mode-btn {
+    border: none;
+    background: transparent;
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    cursor: pointer;
+}
+
+.sfs-list-mode {
+    margin-bottom: 0.4rem;
+    display: inline-flex;
+    padding: 0.1rem;
+    border-radius: 999px;
+    background: #e5e5e5;
+    gap: 0.1rem;
+}
+
+
+.sfs-mode-btn_active {
+    background: #ffffff;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+/* TIMELINE MODE – CAROUSEL */
+
+.sfs-calendar {
+    display: flex;
+    margin-top: 0.25rem;
+    position: relative; /* needed so now-line positions correctly */
+}
+
+
+.sfs-calendar-hours {
+    flex: 0 0 48px;
+    font-size: 0.7rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding-top: 1.5rem;
+    padding-bottom: 0.5rem;
+    padding-right: 0.25rem;
+    color: #706e6b;
+}
+
+.sfs-calendar-hour-label {
+    flex: 1;
+    text-align: right;
+}
+
+.sfs-calendar-days-wrapper {
+    flex: 1;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    scroll-snap-type: x mandatory;
+}
+
+.sfs-calendar-days {
+    display: flex;
+    min-height: 720px; /* match day-body height */
+}
+
+.sfs-calendar-day {
+    flex: 0 0 140px;
+    border-left: 1px solid #e5e5e5;
+    background: #ffffff;
+    scroll-snap-align: center;
+}
+
+.sfs-calendar-day-header {
+    padding: 0.25rem 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-bottom: 1px solid #e5e5e5;
+    background: #f4f6f9;
+}
+
+/* List card date/time input */
+.sfs-card .sfs-input-block lightning-input {
+    display: block;
+    width: 80%;
+    margin: 0 auto;
+}
+
+.sfs-timezone-label {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+    font-size: 0.7rem;
+    color: #706e6b;
+    text-align: center;
+}
+
+
+.sfs-calendar-day-body {
+    position: relative;
+    height: 720px; /* taller: more vertical room for 24 hours */
+    background-image: linear-gradient(to bottom, #f3f2f2 1px, transparent 1px);
+    background-size: 100% calc(100% / 24); /* 24 hours grid lines */
+}
+
+/* Horizontal "now" line */
+
+/* global "now" line across calendar */
+.sfs-calendar-now-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: rgba(194, 57, 52, 0.35); /* lighter red */
+    z-index: 2;
+}
+
+
+
+.sfs-calendar-event {
+    position: absolute;
+    left: 6%;
+    right: 6%;
+    border-radius: 0.35rem;
+    padding: 0.15rem 0.25rem;
+    background: #e5f3ff;
+    border: 1px solid #a0c8ff;
+    font-size: 0.7rem;
+    box-sizing: border-box;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.sfs-calendar-event-title {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sfs-calendar-event-time {
+    font-size: 0.65rem;
+}
+
+/* TODAY highlighting in timeline view */
+
+.sfs-calendar-day_today {
+    background: #f7f7f7;
+    border-left: 2px solid #c23934;
+    border-right: 2px solid #c23934;
+}
+
+.sfs-calendar-day_today .sfs-calendar-day-header {
+    background: #fdeaea;
+    color: #c23934;
+    border-bottom-color: #f5b7b1;
+}
+
+/* Selected event (timeline) */
+
+.sfs-calendar-event_selected {
+    background: #fff1e6 !important;
+    border-color: #ff9a66 !important;
+}
+
+/* WEEK MODE – HEADER + UNIFORM GRID */
+
+.sfs-week-header-row {
+    margin-top: 0.5rem;
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.15rem;
+    font-size: 0.7rem;
+}
+
+.sfs-week-header-cell {
+    text-align: center;
+    font-weight: 600;
+    color: #706e6b;
+}
+
+.sfs-weekgrid {
+    margin-top: 0.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.sfs-week-row {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.15rem;
+}
+
+.sfs-week-cell {
+    background: #ffffff;
+    border-radius: 0.35rem;
+    border: 1px solid #e5e5e5;
+    height: 110px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    min-width: 0;
+}
+
+.sfs-week-cell-date {
+    position: absolute;
+    top: 0.15rem;
+    right: 0.25rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #706e6b;
+}
+
+.sfs-week-cell-events {
+    margin-top: 1.1rem;
+    padding: 0.1rem 0.2rem 0.2rem;
+    font-size: 0.7rem;
+    overflow: hidden;
+    white-space: normal;
+}
+
+/* Event boxes in week view */
+
+.sfs-week-event-box {
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 0.25rem;
+    border: 1px solid #d8dde6;
+    background: #f4f6f9;
+    padding: 0.1rem 0.2rem;
+    margin-bottom: 0.1rem;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.sfs-week-event-time {
+    display: block;
+    font-weight: 600;
+    white-space: nowrap;
+    margin-bottom: 0.05rem;
+}
+
+.sfs-week-event-title {
+    display: block;
+    white-space: normal;
+    word-wrap: break-word;
+    overflow: hidden;
+}
+
+/* Selected event (week) */
+
+.sfs-week-event-box_selected {
+    background: #fff1e6 !important;
+    border-color: #ff9a66 !important;
+}
+
+/* TODAY highlighting in week view */
+
+.sfs-week-cell_today {
+    border-color: #c23934;
+    background: #f7f7f7;
+}
+
+.sfs-week-cell_today .sfs-week-cell-date {
+    color: #c23934;
+}
+
+/* DETAIL OVERLAY / BOTTOM SHEET */
+
+.sfs-detail-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.25);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.sfs-detail-card {
+    max-width: 520px;
+    width: 100%;
+    background: #ffffff;
+    border-radius: 1rem 1rem 0 0;
+    padding: 0.75rem 0.9rem 0.85rem;
+    box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.25);
+    font-size: 0.8rem;
+    position: relative;
+    transform: translateY(100%);
+    opacity: 0;
+    transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+}
+
+.sfs-detail-card_open {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.sfs-detail-card_closing {
+    transform: translateY(100%);
+    opacity: 0;
+}
+
+.sfs-detail-drag-handle {
+    width: 40px;
+    height: 4px;
+    border-radius: 999px;
+    background: #d8dde6;
+    margin: 0 auto 0.35rem;
+}
+
+.sfs-detail-close {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    font-size: 1rem;
+    cursor: pointer;
+    color: #999;
+    background: transparent;
+    border: none;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.15s ease;
+}
+
+.sfs-detail-close:hover {
+    color: #c23934;
+}
+
+.sfs-detail-title {
+    margin: 0 0 0.4rem 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.sfs-detail-title-link {
+    border: none;
+    background: none;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    text-align: left;
+    color: #0070d2;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.sfs-detail-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin: 0.1rem 0;
+}
+
+.sfs-detail-label {
+    font-weight: 600;
+}
+
+.sfs-detail-value {
+    text-align: right;
+}
+
+.sfs-detail-reschedule {
+    margin-top: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    width: 92.5%;
+}
+
+.sfs-detail-section {
+    margin-top: 0.35rem;
+    padding-top: 0.25rem;
+    border-top: 1px solid #e5e5e5;
+}
+
+.sfs-detail-section:first-of-type {
+    border-top: none;
+}
+
+.sfs-detail-section-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #706e6b;
+    margin-bottom: 0.15rem;
+}
+
+/* Give each detail row some padding and allow alternating shading */
+.sfs-detail-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin: 0.05rem 0;
+    padding: 0.15rem 0.25rem;
+    border-radius: 0.3rem;
+}
+
+/* Alternate row background inside each section */
+.sfs-detail-section .sfs-detail-line:nth-of-type(odd) {
+    background: #fafafa;
+}
+
+.sfs-detail-section .sfs-detail-line:nth-of-type(even) {
+    background: #ffffff;
+}
+
+/* Multiline tweaks you already had, just keep them */
+.sfs-detail-line_multiline {
+    align-items: flex-start;
+}
+
+.sfs-detail-value_multiline {
+    text-align: left;
+    white-space: pre-wrap;
+}
+
+.sfs-subject-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0;
+    margin: 0 0 0.35rem 0;
+    border: none;
+    background: transparent;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #080707;
+    cursor: pointer;
+}
+
+.sfs-calendar-event_dragging,
+.sfs-week-event-box_dragging {
+    opacity: 0; /* hide the original while the ghost is moving */
+    box-shadow: none;
+    cursor: grabbing;
+}
+
+
+
+.sfs-subject-btn:hover {
+    text-decoration: underline;
+}
+
+.sfs-line_address .sfs-label {
+    align-self: flex-start;
+}
+
+.sfs-value_address {
+    text-align: right;
+    white-space: normal;
+    word-wrap: break-word;
+}
+
+
+/* Base worktype pill already uses .sfs-worktype */
+.sfs-event-breakfix {
+    background: #fdecea;
+    border: 1px solid #f5b7b1;
+    color: #b0301c;
+}
+
+.sfs-event-pm {
+    background: #e7f5e8;
+    border: 1px solid #a8d5a2;
+    color: #27632a;
+}
+
+.sfs-event-install {
+    background: #e8f4fd;
+    border: 1px solid #a3c7f3;
+    color: #205493;
+}
+
+.sfs-event-default {
+    background: #f4f6f9;
+    border: 1px solid #d8dde6;
+    color: #3e3e3c;
+}
+
+.sfs-list-toggle-row {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.sfs-list-toggle-btn {
+    border: none;
+    background: transparent;
+    padding: 0.1rem 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #0070d2;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.sfs-list-toggle-chevron {
+    display: inline-block;
+    margin-right: 0.2rem;
+    transition: transform 0.15s ease;
+}
+
+.sfs-list-toggle-btn_open .sfs-list-toggle-chevron {
+    transform: rotate(90deg);
+}
+
+.sfs-list-details {
+    margin-top: 0.1rem;
+    margin-bottom: 0.35rem;
+    padding: 0.35rem 0.45rem;
+    border-radius: 0.5rem;
+    background: #f9fafb;
+    border: 1px dashed #d8dde6;
+    font-size: 0.75rem;
+}
+
+.sfs-list-details-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin: 0.06rem 0;
+}
+
+.sfs-list-details-label {
+    font-weight: 600;
+}
+
+.sfs-list-details-value {
+    text-align: right;
+}
+
+.sfs-list-details-value a {
+    color: #0070d2;
+    text-decoration: underline;
+}
+
+.sfs-calendar-crew-banner {
+    background: #ff4d4f; /* bright red */
+    color: white;
+    font-weight: bold;
+    font-size: 10px;
+    padding: 2px 4px;
+    text-align: center;
+    border-radius: 3px;
+    margin-bottom: 4px;
+}
+
+.sfs-week-crew-banner {
+    background: #ff4d4f;
+    color: white;
+    font-weight: bold;
+    font-size: 10px;
+    padding: 2px 4px;
+    text-align: center;
+    border-radius: 3px;
+    margin-bottom: 2px;
+}
+
+.sfs-mode-btn_alert {
+    color: #c23934;
+    font-weight: 700;
+}
+
+.sfs-calendar-event-drag-label {
+    position: absolute;
+    right: 4px;
+    top: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: rgba(0,0,0,0.75);
+    color: #fff;
+    padding: 2px 4px;
+    border-radius: 4px;
+    pointer-events: none;
+}
+
+.sfs-my-status-filter {
+    margin: 0.5rem 0 1rem 0;
+}
+
+/* ===== PULL-UP TRAY (Unscheduled Work Orders) ===== */
+
+.sfs-tray {
+    position: fixed;              /* stick to bottom of the viewport */
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9000;
+    /* Match the component’s max width on desktop */
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 0 0.75rem 0.75rem;
+    box-sizing: border-box;
+
+    /* Closed state: only the handle shows (about 40px tall) */
+    transform: translateY(calc(100% - 40px));
+    transition: transform 0.2s ease-out;
+}
+
+/* Open state: slide fully into view */
+.sfs-tray_open {
+    transform: translateY(0);
+}
+
+/* Handle / tab at the top of the tray */
+.sfs-tray-handle {
+    background: #ffffff;
+    border-radius: 0.75rem 0.75rem 0 0;
+    padding: 0.35rem 0.6rem;
+    box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.16);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+}
+
+/* Little “grip” bar */
+.sfs-tray-grip {
+    width: 32px;
+    height: 4px;
+    border-radius: 999px;
+    background: #d8dde6;
+}
+
+/* Text inside the handle */
+.sfs-tray-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sfs-tray-title-main {
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.sfs-tray-title-sub {
+    font-size: 0.7rem;
+    color: #706e6b;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.sfs-tray-arrow {
+    font-size: 0.7rem;
+    line-height: 1;
+}
+
+
+/* Body that slides up with the tray */
+.sfs-tray-body {
+    background: #ffffff;
+    padding: 0.5rem 0.6rem 0.4rem;
+    border-radius: 0 0 0.75rem 0.75rem;
+    max-height: 260px;
+    overflow-y: auto;
+    box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.16);
+}
+
+/* Cards in the tray */
+.sfs-tray-card {
+    border-radius: 0.5rem;
+    border: 1px solid #d8dde6;
+    padding: 0.4rem 0.5rem;
+    margin-bottom: 0.35rem;
+    background: #f9fafb;
+    cursor: grab;
+}
+
+.sfs-tray-card-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 0.1rem;
+}
+
+.sfs-tray-card-subtitle {
+    font-size: 0.75rem;
+    color: #706e6b;
+}
+
+.sfs-tray-card-status {
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-top: 0.15rem;
+}
+
+/* Empty message */
+.sfs-tray-empty {
+    font-size: 0.75rem;
+    color: #706e6b;
+    margin: 0.25rem 0;
+}
+
+/* Give main content bottom padding so it isn't hidden under the tray */
+.sfs-container {
+    min-height: 100vh;
+    padding: 0.75rem;
+    padding-bottom: 80px; /* add this line so the calendar isn't covered */
+    background: #f3f2f2;
+    box-sizing: border-box;
+}
+
+/* Floating ghost wrapper – inner uses .sfs-calendar-event styles */
+.sfs-drag-ghost {
+    position: fixed;
+    z-index: 99999;
+    pointer-events: none;
+}
+
+/* Ghost event inside floating wrapper – use full container size */
+.sfs-calendar-event_ghost {
+    position: relative;  /* override absolute from base .sfs-calendar-event */
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 100%;
+    opacity: 0.95;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+}
+
+/* Keep things narrow on desktop to mimic phone */
+
+@media (min-width: 900px) {
+    .sfs-container {
+        max-width: 520px;
+        margin: 0 auto;
+    }
+}
