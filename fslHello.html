@@ -13,6 +13,10 @@
                     ></lightning-button>
                 </div>
 
+                <template if:true={isManager}>
+                    <div class="sfs-viewing-pill">{viewingAsLabel}</div>
+                </template>
+
                 <div class="sfs-list-mode">
                     <button
                         type="button"
@@ -84,6 +88,15 @@
                         <div class="sfs-list">
                             <template for:each={visibleAppointments} for:item="appt">
                                 <article key={appt.appointmentId} class="sfs-card">
+                                    <button
+                                        class="sfs-unassign-btn"
+                                        title="Remove me from this work order"
+                                        data-id={appt.appointmentId}
+                                        onclick={handleUnassignClick}
+                                        type="button"
+                                    >
+                                        ✕
+                                    </button>
                                     <div class="sfs-card-header">
                                         <span class={appt.workTypeClass}>
                                             {appt.workTypeName}
@@ -311,6 +324,13 @@
                                                 disabled={appt.disableSave}
                                             >
                                             </lightning-button>
+                                            <lightning-button
+                                                variant="destructive-text"
+                                                label="Request Reschedule w/ Another Tech"
+                                                data-woid={appt.workOrderId}
+                                                onclick={handleRequestReschedule}
+                                            >
+                                            </lightning-button>
                                         </div>
 
                                         <!-- Crew assignment controls shown only in Crew Pool mode -->
@@ -413,14 +433,8 @@
                     </div>
                 </template>
 
-                <template if:true={showDesktopTrayButton}>
-                    <div class="sfs-desktop-tray-button">
-                        <lightning-button
-                            variant="brand"
-                            label="Open schedule tray"
-                            onclick={handleOpenTrayFromButton}
-                        ></lightning-button>
-                    </div>
+                <template if:true={isManager}>
+                    <div class="sfs-viewing-pill">{viewingAsLabel}</div>
                 </template>
 
                 <template if:true={isOffline}>
@@ -504,17 +518,33 @@
                                                                 ontouchstart={handleEventDragStart}
                                                                 onmouseup={handleEventPressEnd}
                                                                 ontouchend={handleEventPressEnd}
-                                                            >
-                                                            <!-- RED CREW WARNING BANNER -->
-                                                            <template if:true={evt.isCrewAssignment}>
-                                                                <div class="sfs-calendar-crew-banner">
-                                                                    Need Eng Assignment
+                                                    >
+                                                        <!-- RED CREW WARNING BANNER -->
+                                                        <template if:true={evt.isCrewAssignment}>
+                                                            <div class="sfs-calendar-crew-banner">
+                                                                Need Eng Assignment
+                                                            </div>
+                                                        </template>
+
+                                                        <button
+                                                            class="sfs-unassign-btn sfs-unassign-btn_calendar"
+                                                            title="Remove me from this work order"
+                                                            data-id={evt.id}
+                                                            onclick={handleUnassignClick}
+                                                            type="button"
+                                                        >
+                                                            ✕
+                                                        </button>
+
+                                                        <div class="sfs-calendar-event-title">
+                                                            {evt.subject}
+                                                        </div>
+
+                                                            <template if:true={evt.workOrderNumber}>
+                                                                <div class="sfs-calendar-event-wo">
+                                                                    {evt.workOrderNumber}
                                                                 </div>
                                                             </template>
-
-                                                            <div class="sfs-calendar-event-title">
-                                                                {evt.subject}
-                                                            </div>
 
                                                             <div class="sfs-calendar-event-time">
                                                                 {evt.timeLabel}
@@ -591,6 +621,22 @@
                                                                 </div>
                                                             </template>
 
+                                                            <button
+                                                                class="sfs-unassign-btn sfs-unassign-btn_calendar"
+                                                                title="Remove me from this work order"
+                                                                data-id={evt.id}
+                                                                onclick={handleUnassignClick}
+                                                                type="button"
+                                                            >
+                                                                ✕
+                                                            </button>
+
+                                                            <template if:true={evt.workOrderNumber}>
+                                                                <div class="sfs-week-event-wo">
+                                                                    {evt.workOrderNumber}
+                                                                </div>
+                                                            </template>
+
                                                             <div class="sfs-week-event-time">
                                                                 {evt.timeLabel}
                                                             </div>
@@ -629,8 +675,6 @@
                         </div>
                     </div>
                 </template>
-            </lightning-tab>
-        </lightning-tabset>
 
                 <!-- PULL-UP TRAY FOR UNSCHEDULED WORK ORDERS (calendar only) -->
                 <template if:true={isCalendarTabActive}>
@@ -671,6 +715,9 @@
                                                     {wo.subject}
                                                 </template>
                                             </div>
+                                            <template if:true={wo.isCrewAppointment}>
+                                                <div class="sfs-tray-card-pill">Crew / Queue</div>
+                                            </template>
                                             <div class="sfs-tray-card-subtitle">
                                                 {wo.accountName}
                                             </div>
@@ -691,7 +738,86 @@
                     </div>
                 </template>
             </lightning-tab>
+
+            <template if:true={isManager}>
+                <lightning-tab
+                    label="Manager Console"
+                    value="manager"
+                    onactive={handleManagerTabActive}
+                >
+                    <div class="sfs-manager-panel">
+                        <h3 class="sfs-manager-title">Manager console</h3>
+                        <p class="sfs-manager-copy">
+                            Select a team member to view their lists and calendar.
+                        </p>
+
+                        <lightning-combobox
+                            name="managerUser"
+                            label="Team member"
+                            options={managerOptions}
+                            value={selectedManagerUserId}
+                            onchange={handleManagerUserChange}
+                        ></lightning-combobox>
+
+                        <div class="sfs-actions sfs-manager-actions">
+                            <lightning-button
+                                variant="brand"
+                                label="View as team member"
+                                onclick={handleManagerApply}
+                                disabled={!selectedManagerUserId}
+                            ></lightning-button>
+                            <lightning-button
+                                variant="neutral"
+                                label="Return to my view"
+                                onclick={handleManagerReset}
+                                disabled={!isViewingAsOther}
+                            ></lightning-button>
+                        </div>
+                    </div>
+                </lightning-tab>
+            </template>
         </lightning-tabset>
+
+        <template if:true={isRescheduleModalOpen}>
+            <div class="sfs-modal-backdrop" onclick={closeRescheduleModal}>
+                <div class="sfs-modal" onclick={handleDetailCardClick}>
+                    <div class="sfs-modal-header">
+                        <h3 class="sfs-modal-title">Request reschedule</h3>
+                        <button
+                            class="sfs-modal-close"
+                            type="button"
+                            onclick={closeRescheduleModal}
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    <p class="sfs-modal-copy">
+                        Choose another technician in the territory to take this work order.
+                    </p>
+                    <lightning-combobox
+                        name="rescheduleTarget"
+                        label="Technician"
+                        options={rescheduleOptions}
+                        value={rescheduleSelection}
+                        onchange={handleRescheduleSelection}
+                        disabled={rescheduleLoading}
+                    ></lightning-combobox>
+                    <div class="sfs-actions sfs-modal-actions">
+                        <lightning-button
+                            variant="brand"
+                            label="Send request"
+                            onclick={submitRescheduleRequest}
+                            disabled={rescheduleLoading || !rescheduleSelection}
+                        ></lightning-button>
+                        <lightning-button
+                            variant="neutral"
+                            label="Cancel"
+                            onclick={closeRescheduleModal}
+                        ></lightning-button>
+                    </div>
+                </div>
+            </div>
+        </template>
 
         <!-- DETAIL OVERLAY / BOTTOM SHEET -->
         <template if:true={hasSelectedAppointment}>
@@ -930,6 +1056,12 @@
                                 disabled={selectedAppointment.disableSave}
                             >
                             </lightning-button>
+                            <lightning-button
+                                variant="destructive-text"
+                                label="Request Reschedule w/ Another Tech"
+                                data-woid={selectedAppointment.workOrderId}
+                                onclick={handleRequestReschedule}
+                            ></lightning-button>
                         </div>
                     </div>
                 </article>
