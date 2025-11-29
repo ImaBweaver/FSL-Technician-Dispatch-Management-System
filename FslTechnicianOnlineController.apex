@@ -649,25 +649,36 @@ public with sharing class FslTechnicianOnlineController {
         }
 
         ServiceAppointment sa = new ServiceAppointment(
-            Work_Order__c    = wo.Id,
-            Subject          = wo.Subject,
-            Street           = wo.Street,
-            City             = wo.City,
-            State            = wo.State,
-            PostalCode       = wo.PostalCode,
-            Country          = wo.Country,
-            ParentRecordId   = wo.Id,
-            SchedStartTime   = startDateTimeIso,
-            SchedEndTime     = Datetime.newInstance(startDateTimeIso.getTime() + durationMs),
-            Status           = 'Scheduled'
+            Work_Order__c  = wo.Id,
+            Subject        = wo.Subject,
+            Street         = wo.Street,
+            City           = wo.City,
+            State          = wo.State,
+            PostalCode     = wo.PostalCode,
+            Country        = wo.Country,
+            ParentRecordId = wo.Id,
+            Status         = 'New'
         );
         insert sa;
+
+        ServiceAppointment saTimeUpdate = new ServiceAppointment(
+            Id              = sa.Id,
+            SchedStartTime  = startDateTimeIso,
+            SchedEndTime    = Datetime.newInstance(startDateTimeIso.getTime() + durationMs)
+        );
+        update saTimeUpdate;
 
         AssignedResource ar = new AssignedResource(
             ServiceAppointmentId = sa.Id,
             ServiceResourceId    = sr.Id
         );
         insert ar;
+
+        ServiceAppointment saStatusUpdate = new ServiceAppointment(
+            Id      = sa.Id,
+            Status  = 'Scheduled'
+        );
+        update saStatusUpdate;
 
         return sa.Id;
     }
