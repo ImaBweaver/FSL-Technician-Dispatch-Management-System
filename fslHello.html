@@ -676,6 +676,46 @@
                     </div>
                 </template>
 
+        <template if:true={isRescheduleModalOpen}>
+            <div class="sfs-modal-backdrop" onclick={closeRescheduleModal}>
+                <div class="sfs-modal" onclick={handleDetailCardClick}>
+                    <div class="sfs-modal-header">
+                        <h3 class="sfs-modal-title">Request reschedule</h3>
+                        <button
+                            class="sfs-modal-close"
+                            type="button"
+                            onclick={closeRescheduleModal}
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    <p class="sfs-modal-copy">
+                        Choose another technician in the territory to take this work order.
+                    </p>
+                    <lightning-combobox
+                        name="rescheduleTarget"
+                        label="Technician"
+                        options={rescheduleOptions}
+                        value={rescheduleSelection}
+                        onchange={handleRescheduleSelection}
+                        disabled={rescheduleLoading}
+                    ></lightning-combobox>
+                    <div class="sfs-actions sfs-modal-actions">
+                        <lightning-button
+                            variant="brand"
+                            label="Send request"
+                            onclick={submitRescheduleRequest}
+                        ></lightning-button>
+                        <lightning-button
+                            variant="neutral"
+                            label="Cancel"
+                            onclick={closeRescheduleModal}
+                        ></lightning-button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
                 <!-- PULL-UP TRAY FOR UNSCHEDULED WORK ORDERS (calendar only) -->
                 <template if:true={isCalendarTabActive}>
                     <div class={trayContainerClass}>
