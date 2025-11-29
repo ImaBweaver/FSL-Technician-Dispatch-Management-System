@@ -409,14 +409,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             : 0;
     }
 
-    get showDesktopTrayButton() {
-        return (
-            this.isCalendarTabActive &&
-            this.isDesktopFormFactor &&
-            !this.pullTrayOpen
-        );
-    }
-
     get hasUnscheduled() {
         return this.unscheduledCount > 0;
     }
@@ -952,6 +944,46 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
 
+    getDayIndexFromClientX(clientX) {
+        const dayEls = Array.from(
+            this.template.querySelectorAll('.sfs-calendar-day')
+        );
+
+        if (!dayEls.length) {
+            return null;
+        }
+
+        let bestIndex = null;
+        let bestDistance = Infinity;
+
+        dayEls.forEach(el => {
+            const idxStr = el.dataset.dayIndex;
+            if (idxStr === undefined) {
+                return;
+            }
+
+            const rect = el.getBoundingClientRect();
+            const center = rect.left + rect.width / 2;
+
+            if (clientX >= rect.left && clientX <= rect.right) {
+                bestIndex = parseInt(idxStr, 10);
+                bestDistance = 0;
+                this.dragDayWidth = rect.width || this.dragDayWidth;
+                return;
+            }
+
+            const distance = Math.abs(clientX - center);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                bestIndex = parseInt(idxStr, 10);
+                this.dragDayWidth = rect.width || this.dragDayWidth;
+            }
+        });
+
+        return bestIndex;
+    }
+
+
 
 
     handleCalendarPointerMove(event) {
@@ -979,11 +1011,14 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             this.dragHasMoved = true;
         }
 
-        const dayOffset =
-            this.dragMode === 'resize'
-                ? 0
-                : Math.round(dx / this.dragDayWidth);
-        let newDayIndex = this.dragStartDayIndex + dayOffset;
+        let newDayIndex = this.getDayIndexFromClientX(clientX);
+        if (newDayIndex == null) {
+            const dayOffset =
+                this.dragMode === 'resize'
+                    ? 0
+                    : Math.round(dx / this.dragDayWidth);
+            newDayIndex = this.dragStartDayIndex + dayOffset;
+        }
         if (newDayIndex < 0) newDayIndex = 0;
         if (newDayIndex >= this.calendarDays.length) {
             newDayIndex = this.calendarDays.length - 1;
@@ -1705,6 +1740,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 id: appt.appointmentId,
                 style: `top:${topPct}%;height:${heightPct}%;`,
                 subject: appt.workOrderSubject,
+                workOrderNumber: appt.workOrderNumber,
                 workTypeName: appt.workTypeName,
                 timeLabel,
                 isCrewAssignment: appt.isCrewAssignment,
@@ -2282,10 +2318,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     toggleTray() {
         this.pullTrayOpen = !this.pullTrayOpen;
-    }
-
-    handleOpenTrayFromButton() {
-        this.pullTrayOpen = true;
     }
 
     handleTrayCardClick(event) {
