@@ -41,12 +41,18 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public String name;
     }
 
+    public class ServiceResourceOption {
+        @AuraEnabled public Id serviceResourceId;
+        @AuraEnabled public String name;
+    }
+
     // Unscheduled Work Orders for tray
     public class UnscheduledWorkOrderDTO {
         @AuraEnabled public Id workOrderId;
         @AuraEnabled public String workOrderNumber;
         @AuraEnabled public String subject;
         @AuraEnabled public String status;
+        @AuraEnabled public Boolean hasCrewAssignment;
         @AuraEnabled public Id accountId;
         @AuraEnabled public String accountName;
         @AuraEnabled public String street;
@@ -72,13 +78,25 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public List<UnscheduledWorkOrderDTO> unscheduledWorkOrders;
         @AuraEnabled public DebugInfo debug;
         @AuraEnabled public String userTimeZoneId;
+        @AuraEnabled public Boolean isManager;
+        @AuraEnabled public List<UserPickerOption> teamMembers;
+        @AuraEnabled public Id viewingUserId;
+    }
+
+    public class UserPickerOption {
+        @AuraEnabled public Id userId;
+        @AuraEnabled public String name;
     }
 
     @AuraEnabled
-    public static AppointmentResult getMyAppointmentsOnline() {
+    public static AppointmentResult getMyAppointmentsOnline(Id targetUserId) {
         AppointmentResult wrapper  = new AppointmentResult();
         DebugInfo dbg              = new DebugInfo();
         wrapper.debug              = dbg;
+
+        Id effectiveUserId = (targetUserId != null)
+            ? targetUserId
+            : UserInfo.getUserId();
 
         wrapper.userTimeZoneId     = UserInfo.getTimeZone().getID();
 
@@ -90,11 +108,28 @@ public with sharing class FslTechnicianOnlineController {
         dbg.workOrderIds           = new List<Id>();
         dbg.note                   = '';
 
+        wrapper.teamMembers = new List<UserPickerOption>();
+
+        for (User u : [
+            SELECT Id, Name
+            FROM User
+            WHERE ManagerId = :UserInfo.getUserId()
+            ORDER BY Name
+        ]) {
+            UserPickerOption opt = new UserPickerOption();
+            opt.userId = u.Id;
+            opt.name   = u.Name;
+            wrapper.teamMembers.add(opt);
+        }
+
+        wrapper.isManager = !wrapper.teamMembers.isEmpty();
+        wrapper.viewingUserId = effectiveUserId;
+
         // 1) ServiceResource for this user
         List<ServiceResource> srs = [
             SELECT Id
             FROM ServiceResource
-            WHERE RelatedRecordId = :UserInfo.getUserId()
+            WHERE RelatedRecordId = :effectiveUserId
         ];
 
         for (ServiceResource sr : srs) {
@@ -165,7 +200,8 @@ public with sharing class FslTechnicianOnlineController {
             wrapper.unscheduledWorkOrders = buildUnscheduledWorkOrders(
                 new Set<Id>(),
                 userSrIds,
-                crewIds
+                crewIds,
+                effectiveUserId
             );
             dbg.length = 0;
             return wrapper;
@@ -365,7 +401,8 @@ public with sharing class FslTechnicianOnlineController {
         wrapper.unscheduledWorkOrders = buildUnscheduledWorkOrders(
             workOrdersWithThisTech,
             userSrIds,
-            crewIds
+            crewIds,
+            effectiveUserId
         );
         dbg.length = results.size();
         if (String.isBlank(dbg.note)) {
@@ -384,7 +421,8 @@ public with sharing class FslTechnicianOnlineController {
     private static List<UnscheduledWorkOrderDTO> buildUnscheduledWorkOrders(
         Set<Id> workOrdersWithThisTech,
         Set<Id> userSrIds,
-        Set<Id> crewIds
+        Set<Id> crewIds,
+        Id ownerUserId
     ) {
         // Work Orders that are effectively "closed" from the technician perspective
         Set<String> closedStatuses = new Set<String>{
@@ -412,7 +450,7 @@ public with sharing class FslTechnicianOnlineController {
                 PostalCode,
                 Country
             FROM WorkOrder
-            WHERE OwnerId = :UserInfo.getUserId()
+            WHERE OwnerId = :ownerUserId
             AND Status NOT IN :closedStatuses
             AND Id NOT IN :workOrdersWithThisTech
             LIMIT 200
@@ -457,17 +495,32 @@ public with sharing class FslTechnicianOnlineController {
         }
 
         // 3) For those ServiceAppointments, see which have any AssignedResource rows
-        Set<Id> workOrdersWithAnyAssignedResource = new Set<Id>();
+        Set<Id> workOrdersWithNonCrewAssignment = new Set<Id>();
+        Set<Id> workOrdersWithCrewAssignment     = new Set<Id>();
 
         if (!saIdToWoId.isEmpty()) {
             for (AssignedResource ar : [
-                SELECT ServiceAppointmentId
+                SELECT ServiceAppointmentId,
+                    ServiceCrewId,
+                    ServiceResource.ResourceType,
+                    ServiceResource.RelatedRecordId
                 FROM AssignedResource
                 WHERE ServiceAppointmentId IN :saIdToWoId.keySet()
             ]) {
                 Id woId = saIdToWoId.get(ar.ServiceAppointmentId);
                 if (woId != null) {
-                    workOrdersWithAnyAssignedResource.add(woId);
+                    Boolean isCrewLike =
+                        ar.ServiceCrewId != null ||
+                        (ar.ServiceResource != null &&
+                            (ar.ServiceResource.ResourceType == 'Crew' ||
+                             ar.ServiceResource.ResourceType == 'ServiceCrew' ||
+                             String.valueOf(ar.ServiceResource.RelatedRecordId).startsWith('00G')));
+
+                    if (isCrewLike) {
+                        workOrdersWithCrewAssignment.add(woId);
+                    } else {
+                        workOrdersWithNonCrewAssignment.add(woId);
+                    }
                 }
             }
         }
@@ -476,9 +529,10 @@ public with sharing class FslTechnicianOnlineController {
         //    - are owned by the user
         //    - are not closed
         //    - are not already on this tech calendar (workOrdersWithThisTech)
-        //    - do not have any open ServiceAppointment with any AssignedResource
+        //    - do not have any open ServiceAppointment with an assigned individual resource
+        //      (but allow ones already placed with a crew/queue so they can be picked up)
         for (WorkOrder wo : candidates) {
-            if (workOrdersWithAnyAssignedResource.contains(wo.Id)) {
+            if (workOrdersWithNonCrewAssignment.contains(wo.Id)) {
                 // Already has an open Service Appointment with assigned resources
                 // so it should not appear as needs scheduling
                 continue;
@@ -489,6 +543,7 @@ public with sharing class FslTechnicianOnlineController {
             dto.workOrderNumber = wo.WorkOrderNumber;
             dto.subject         = wo.Subject;
             dto.status          = wo.Status;
+            dto.hasCrewAssignment = workOrdersWithCrewAssignment.contains(wo.Id);
             dto.accountId       = wo.AccountId;
             dto.accountName     = (wo.Account != null ? wo.Account.Name : null);
             dto.street          = wo.Street;
@@ -615,17 +670,22 @@ public with sharing class FslTechnicianOnlineController {
     public static Id createAppointmentForWorkOrder(
         Id workOrderId,
         Datetime startDateTimeIso,
-        Datetime endDateTimeIso
+        Datetime endDateTimeIso,
+        Id targetUserId
     ) {
         if (workOrderId == null || startDateTimeIso == null) {
             throw new AuraHandledException('Work Order and start date/time are required.');
         }
 
+        Id owningUserId = (targetUserId != null)
+            ? targetUserId
+            : UserInfo.getUserId();
+
         // Current user's ServiceResource
         ServiceResource sr = [
             SELECT Id
             FROM ServiceResource
-            WHERE RelatedRecordId = :UserInfo.getUserId()
+            WHERE RelatedRecordId = :owningUserId
             LIMIT 1
         ];
 
@@ -681,5 +741,152 @@ public with sharing class FslTechnicianOnlineController {
         update saStatusUpdate;
 
         return sa.Id;
+    }
+
+    @AuraEnabled
+    public static void unassignAppointment(Id appointmentId) {
+        if (appointmentId == null) {
+            throw new AuraHandledException('Appointment ID is required.');
+        }
+
+        ServiceAppointment sa = [
+            SELECT Id
+            FROM ServiceAppointment
+            WHERE Id = :appointmentId
+            LIMIT 1
+            FOR UPDATE
+        ];
+
+        List<AssignedResource> ars = [
+            SELECT Id
+            FROM AssignedResource
+            WHERE ServiceAppointmentId = :appointmentId
+            FOR UPDATE
+        ];
+
+        if (!ars.isEmpty()) {
+            delete ars;
+        }
+
+        sa = new ServiceAppointment(
+            Id = appointmentId,
+            Status = 'New',
+            SchedStartTime = null,
+            SchedEndTime = null
+        );
+
+        update sa;
+    }
+
+    @AuraEnabled
+    public static List<ServiceResourceOption> getTerritoryResources(Id workOrderId) {
+        if (workOrderId == null) {
+            throw new AuraHandledException('Work Order Id is required.');
+        }
+
+        WorkOrder wo = [
+            SELECT Id, ServiceTerritoryId
+            FROM WorkOrder
+            WHERE Id = :workOrderId
+            LIMIT 1
+        ];
+
+        if (wo.ServiceTerritoryId == null) {
+            return new List<ServiceResourceOption>();
+        }
+
+        List<ServiceResourceOption> options = new List<ServiceResourceOption>();
+        for (ServiceTerritoryMember stm : [
+            SELECT Id, ServiceResourceId, ServiceResource.Name
+            FROM ServiceTerritoryMember
+            WHERE ServiceTerritoryId = :wo.ServiceTerritoryId
+            AND IsActive = true
+            ORDER BY ServiceResource.Name
+        ]) {
+            if (stm.ServiceResourceId == null) continue;
+
+            ServiceResourceOption opt = new ServiceResourceOption();
+            opt.serviceResourceId = stm.ServiceResourceId;
+            opt.name = (stm.ServiceResource != null) ? stm.ServiceResource.Name : null;
+            options.add(opt);
+        }
+
+        return options;
+    }
+
+    @AuraEnabled
+    public static void requestRescheduleToResource(
+        Id workOrderId,
+        Id serviceResourceId
+    ) {
+        if (workOrderId == null || serviceResourceId == null) {
+            throw new AuraHandledException(
+                'Work Order and Service Resource are required to request a reschedule.'
+            );
+        }
+
+        ServiceResource sr = [
+            SELECT Id, RelatedRecordId
+            FROM ServiceResource
+            WHERE Id = :serviceResourceId
+            LIMIT 1
+        ];
+
+        WorkOrder wo = [
+            SELECT Id, OwnerId
+            FROM WorkOrder
+            WHERE Id = :workOrderId
+            LIMIT 1
+            FOR UPDATE
+        ];
+
+        if (sr.RelatedRecordId != null) {
+            wo.OwnerId = sr.RelatedRecordId;
+            update wo;
+        }
+
+        Set<String> closedStatuses = new Set<String>{
+            'Completed',
+            'Completed WO',
+            'Closed',
+            'Cannot Complete',
+            'Canceled',
+            'Closed - Submitted'
+        };
+
+        List<ServiceAppointment> openAppointments = [
+            SELECT Id
+            FROM ServiceAppointment
+            WHERE Work_Order__c = :workOrderId
+            AND Status NOT IN :closedStatuses
+            FOR UPDATE
+        ];
+
+        if (openAppointments.isEmpty()) {
+            return;
+        }
+
+        Set<Id> openApptIds = new Set<Id>();
+        for (ServiceAppointment sa : openAppointments) {
+            openApptIds.add(sa.Id);
+        }
+
+        List<AssignedResource> ars = [
+            SELECT Id
+            FROM AssignedResource
+            WHERE ServiceAppointmentId IN :openApptIds
+        ];
+
+        if (!ars.isEmpty()) {
+            delete ars;
+        }
+
+        for (ServiceAppointment sa : openAppointments) {
+            sa.Status = 'Canceled';
+            sa.SchedStartTime = null;
+            sa.SchedEndTime = null;
+        }
+
+        update openAppointments;
     }
 }
