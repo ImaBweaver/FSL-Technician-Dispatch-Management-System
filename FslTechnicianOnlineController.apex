@@ -536,6 +536,31 @@ public with sharing class FslTechnicianOnlineController {
     }
 
     @AuraEnabled
+    public static void updateAppointmentEnd(Id appointmentId, Datetime newEnd) {
+        if (appointmentId == null || newEnd == null) {
+            throw new AuraHandledException('Appointment ID and new end time are required.');
+        }
+
+        ServiceAppointment sa = [
+            SELECT Id, SchedStartTime
+            FROM ServiceAppointment
+            WHERE Id = :appointmentId
+            LIMIT 1
+            FOR UPDATE
+        ];
+
+        Datetime startTime = sa.SchedStartTime;
+
+        if (startTime != null && newEnd.getTime() <= startTime.getTime()) {
+            // Enforce a minimum 15-minute duration
+            newEnd = Datetime.newInstance(startTime.getTime() + (15 * 60 * 1000));
+        }
+
+        sa.SchedEndTime = newEnd;
+        update sa;
+    }
+
+    @AuraEnabled
     public static void assignCrewAppointment(Id serviceAppointmentId, Id serviceResourceId) {
         if (serviceAppointmentId == null || serviceResourceId == null) {
             throw new AuraHandledException('Service Appointment and Service Resource are required.');
@@ -587,7 +612,11 @@ public with sharing class FslTechnicianOnlineController {
      * and assign it to the current user's ServiceResource.
      */
     @AuraEnabled
-    public static Id createAppointmentForWorkOrder(Id workOrderId, Datetime startDateTimeIso) {
+    public static Id createAppointmentForWorkOrder(
+        Id workOrderId,
+        Datetime startDateTimeIso,
+        Datetime endDateTimeIso
+    ) {
         if (workOrderId == null || startDateTimeIso == null) {
             throw new AuraHandledException('Work Order and start date/time are required.');
         }
@@ -615,6 +644,9 @@ public with sharing class FslTechnicianOnlineController {
         ];
 
         Long durationMs = 6L * 60L * 60L * 1000L; // 6 hour default
+        if (endDateTimeIso != null && endDateTimeIso.getTime() > startDateTimeIso.getTime()) {
+            durationMs = endDateTimeIso.getTime() - startDateTimeIso.getTime();
+        }
 
         ServiceAppointment sa = new ServiceAppointment(
             Work_Order__c    = wo.Id,
