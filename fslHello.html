@@ -675,46 +675,6 @@
                         </div>
                     </div>
                 </template>
-            </lightning-tab>
-
-            <template if:true={isManager}>
-                <lightning-tab
-                    label="Manager Console"
-                    value="manager"
-                    onactive={handleManagerTabActive}
-                >
-                    <div class="sfs-manager-panel">
-                        <h3 class="sfs-manager-title">Manager console</h3>
-                        <p class="sfs-manager-copy">
-                            Select a team member to view their lists and calendar.
-                        </p>
-
-                        <lightning-combobox
-                            name="managerUser"
-                            label="Team member"
-                            options={managerOptions}
-                            value={selectedManagerUserId}
-                            onchange={handleManagerUserChange}
-                        ></lightning-combobox>
-
-                        <div class="sfs-actions sfs-manager-actions">
-                            <lightning-button
-                                variant="brand"
-                                label="View as team member"
-                                onclick={handleManagerApply}
-                                disabled={selectedManagerUserId}
-                            ></lightning-button>
-                            <lightning-button
-                                variant="neutral"
-                                label="Return to my view"
-                                onclick={handleManagerReset}
-                                disabled={isViewingAsOther}
-                            ></lightning-button>
-                        </div>
-                    </div>
-                </lightning-tab>
-            </template>
-        </lightning-tabset>
 
         <template if:true={isRescheduleModalOpen}>
             <div class="sfs-modal-backdrop" onclick={closeRescheduleModal}>
@@ -818,7 +778,86 @@
                     </div>
                 </template>
             </lightning-tab>
+
+            <template if:true={isManager}>
+                <lightning-tab
+                    label="Manager Console"
+                    value="manager"
+                    onactive={handleManagerTabActive}
+                >
+                    <div class="sfs-manager-panel">
+                        <h3 class="sfs-manager-title">Manager console</h3>
+                        <p class="sfs-manager-copy">
+                            Select a team member to view their lists and calendar.
+                        </p>
+
+                        <lightning-combobox
+                            name="managerUser"
+                            label="Team member"
+                            options={managerOptions}
+                            value={selectedManagerUserId}
+                            onchange={handleManagerUserChange}
+                        ></lightning-combobox>
+
+                        <div class="sfs-actions sfs-manager-actions">
+                            <lightning-button
+                                variant="brand"
+                                label="View as team member"
+                                onclick={handleManagerApply}
+                                disabled={!selectedManagerUserId}
+                            ></lightning-button>
+                            <lightning-button
+                                variant="neutral"
+                                label="Return to my view"
+                                onclick={handleManagerReset}
+                                disabled={!isViewingAsOther}
+                            ></lightning-button>
+                        </div>
+                    </div>
+                </lightning-tab>
+            </template>
         </lightning-tabset>
+
+        <template if:true={isRescheduleModalOpen}>
+            <div class="sfs-modal-backdrop" onclick={closeRescheduleModal}>
+                <div class="sfs-modal" onclick={handleDetailCardClick}>
+                    <div class="sfs-modal-header">
+                        <h3 class="sfs-modal-title">Request reschedule</h3>
+                        <button
+                            class="sfs-modal-close"
+                            type="button"
+                            onclick={closeRescheduleModal}
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    <p class="sfs-modal-copy">
+                        Choose another technician in the territory to take this work order.
+                    </p>
+                    <lightning-combobox
+                        name="rescheduleTarget"
+                        label="Technician"
+                        options={rescheduleOptions}
+                        value={rescheduleSelection}
+                        onchange={handleRescheduleSelection}
+                        disabled={rescheduleLoading}
+                    ></lightning-combobox>
+                    <div class="sfs-actions sfs-modal-actions">
+                        <lightning-button
+                            variant="brand"
+                            label="Send request"
+                            onclick={submitRescheduleRequest}
+                            disabled={rescheduleLoading || !rescheduleSelection}
+                        ></lightning-button>
+                        <lightning-button
+                            variant="neutral"
+                            label="Cancel"
+                            onclick={closeRescheduleModal}
+                        ></lightning-button>
+                    </div>
+                </div>
+            </div>
+        </template>
 
         <!-- DETAIL OVERLAY / BOTTOM SHEET -->
         <template if:true={hasSelectedAppointment}>
