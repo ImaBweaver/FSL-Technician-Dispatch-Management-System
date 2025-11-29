@@ -509,6 +509,14 @@
                                                             <div class="sfs-calendar-event-time">
                                                                 {evt.timeLabel}
                                                             </div>
+
+                                                            <div
+                                                                class="sfs-calendar-event-resize"
+                                                                data-id={evt.id}
+                                                                data-day-index={dayIndex}
+                                                                onmousedown={handleEventResizeStart}
+                                                                ontouchstart={handleEventResizeStart}
+                                                            ></div>
                                                         </div>
                                                     </template>
                                                 </div>
