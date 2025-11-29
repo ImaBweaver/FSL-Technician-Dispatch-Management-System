@@ -579,6 +579,14 @@
     width: 92.5%;
 }
 
+.sfs-request-reschedule-btn {
+    --slds-c-button-font-size: 0.75rem;
+    --slds-c-button-line-height: 1.25rem;
+    --slds-c-button-spacing-inline-start: 0.65rem;
+    --slds-c-button-spacing-inline-end: 0.65rem;
+    align-self: flex-start;
+}
+
 .sfs-detail-section {
     margin-top: 0.35rem;
     padding-top: 0.25rem;
