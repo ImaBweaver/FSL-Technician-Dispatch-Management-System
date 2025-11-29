@@ -2813,6 +2813,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.rejectReason = event.target.value;
     }
 
+    get rejectSubmitDisabled() {
+        return this.isLoading || !this.rejectReason;
+    }
+
     submitRejectRequest() {
         if (!this.rejectRequestId || !this.rejectReason) {
             return;
