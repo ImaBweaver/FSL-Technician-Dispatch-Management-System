@@ -815,12 +815,12 @@
                         maxlength="1000"
                     ></lightning-textarea>
                     <div class="sfs-actions sfs-modal-actions">
-                        <lightning-button
-                            variant="brand"
-                            label="Submit rejection"
-                            onclick={submitRejectRequest}
-                            disabled={isLoading || !rejectReason}
-                        ></lightning-button>
+                          <lightning-button
+                              variant="brand"
+                              label="Submit rejection"
+                              onclick={submitRejectRequest}
+                              disabled={rejectSubmitDisabled}
+                          ></lightning-button>
                         <lightning-button
                             variant="neutral"
                             label="Cancel"
