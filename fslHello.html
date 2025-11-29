@@ -2,7 +2,7 @@
     <section class="sfs-container">
         <lightning-tabset variant="scoped">
             <!-- LIST TAB (default) -->
-            <lightning-tab label="List" value="list">
+            <lightning-tab label="List" value="list" onactive={handleListTabActive}>
                 <div class="sfs-header">
                     <h2 class="sfs-title">My Service Appointments</h2>
                     <lightning-button
@@ -622,65 +622,66 @@
             </lightning-tab>
         </lightning-tabset>
 
-        <!-- PULL-UP TRAY FOR UNSCHEDULED WORK ORDERS (shown across tabs) -->
-        <div class={trayContainerClass}>
-            <div class="sfs-tray-handle" onclick={toggleTray}>
-                <div class="sfs-tray-grip"></div>
-                <div class="sfs-tray-title">
-                    <div class="sfs-tray-title-main">
-                        {unscheduledLabel}
-                    </div>
-                    <div class="sfs-tray-title-sub">
-                        <span class="sfs-tray-arrow">▲</span>
-                        Pull up to schedule
-                    </div>
-                </div>
-            </div>
+                <!-- PULL-UP TRAY FOR UNSCHEDULED WORK ORDERS (calendar only) -->
+                <template if:true={isCalendarTabActive}>
+                    <div class={trayContainerClass}>
+                        <div class="sfs-tray-handle" onclick={toggleTray}>
+                            <div class="sfs-tray-grip"></div>
+                            <div class="sfs-tray-title">
+                                <div class="sfs-tray-title-main">
+                                    {unscheduledLabel}
+                                </div>
+                                <div class="sfs-tray-title-sub">
+                                    <span class="sfs-tray-arrow">▲</span>
+                                    Pull up to schedule
+                                </div>
+                            </div>
+                        </div>
 
-            <template if:true={pullTrayOpen}>
-                <div class="sfs-tray-body">
-                    <template if:true={hasUnscheduled}>
-                        <template for:each={unscheduledWorkOrders} for:item="wo">
-                            <article
-                                key={wo.workOrderId}
-                                class="sfs-tray-card"
-                                data-woid={wo.workOrderId}
-                                ontouchstart={handleTrayCardDragStart}
-                                onmousedown={handleTrayCardDragStart}
-                                onclick={handleTrayCardClick}
-                            >
-                                <div class="sfs-tray-card-title">
-                                    <template if:true={wo.workOrderNumber}>
-                                        {wo.workOrderNumber} — {wo.subject}
+                        <template if:true={pullTrayOpen}>
+                            <div class="sfs-tray-body">
+                                <template if:true={hasUnscheduled}>
+                                    <template
+                                        for:each={unscheduledWorkOrders}
+                                        for:item="wo"
+                                    >
+                                        <article
+                                            key={wo.workOrderId}
+                                            class="sfs-tray-card"
+                                            data-woid={wo.workOrderId}
+                                            ontouchstart={handleTrayCardDragStart}
+                                            onmousedown={handleTrayCardDragStart}
+                                            onclick={handleTrayCardClick}
+                                        >
+                                            <div class="sfs-tray-card-title">
+                                                <template if:true={wo.workOrderNumber}>
+                                                    {wo.workOrderNumber} — {wo.subject}
+                                                </template>
+                                                <template if:false={wo.workOrderNumber}>
+                                                    {wo.subject}
+                                                </template>
+                                            </div>
+                                            <div class="sfs-tray-card-subtitle">
+                                                {wo.accountName}
+                                            </div>
+                                            <div class="sfs-tray-card-status">
+                                                {wo.status}
+                                            </div>
+                                        </article>
                                     </template>
-                                    <template if:false={wo.workOrderNumber}>
-                                        {wo.subject}
-                                    </template>
-                                </div>
-                                <div class="sfs-tray-card-subtitle">
-                                    {wo.accountName}
-                                </div>
-                                <div class="sfs-tray-card-status">
-                                    {wo.status}
-                                </div>
-                            </article>
+                                </template>
+
+                                <template if:false={hasUnscheduled}>
+                                    <p class="sfs-tray-empty">
+                                        No work orders currently need scheduling.
+                                    </p>
+                                </template>
+                            </div>
                         </template>
-                    </template>
-
-                    <template if:false={hasUnscheduled}>
-                        <p class="sfs-tray-empty">
-                            No work orders currently need scheduling.
-                        </p>
-                    </template>
-                </div>
-            </template>
-
-            <template if:false={hasUnscheduled}>
-                <p class="sfs-tray-empty">
-                    No work orders currently need scheduling.
-                </p>
-            </template>
-        </div>
+                    </div>
+                </template>
+            </lightning-tab>
+        </lightning-tabset>
 
         <!-- DETAIL OVERLAY / BOTTOM SHEET -->
         <template if:true={hasSelectedAppointment}>

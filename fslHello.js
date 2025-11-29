@@ -16,6 +16,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     // Unscheduled work orders (tray)
     @track unscheduledWorkOrders = [];
     pullTrayOpen = false;
+    isCalendarTabActive = false;
 
     // Global "now" line state
     showNowLine = false;
@@ -400,33 +401,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return this.pullTrayOpen ? 'sfs-tray sfs-tray_open' : 'sfs-tray';
     }
 
-        get unscheduledCount() {
-            return this.unscheduledWorkOrders
-                ? this.unscheduledWorkOrders.length
-                : 0;
-        }
-
-        get hasUnscheduled() {
-            return this.unscheduledCount > 0;
-        }
-
-        /**
-         * Friendly text for the tray handle
-         * e.g. "3 work orders need scheduling" or "No work orders need scheduling"
-         */
-        get unscheduledLabel() {
-            const count = this.unscheduledCount;
-
-            if (count === 0) {
-                return 'No work orders need scheduling';
-            }
-            if (count === 1) {
-                return '1 work order needs scheduling';
-            }
-            return `${count} work orders need scheduling`;
-        }
-
-
     get unscheduledCount() {
         return this.unscheduledWorkOrders
             ? this.unscheduledWorkOrders.length
@@ -435,6 +409,22 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     get hasUnscheduled() {
         return this.unscheduledCount > 0;
+    }
+
+    /**
+     * Friendly text for the tray handle
+     * e.g. "3 work orders need scheduling" or "No work orders need scheduling"
+     */
+    get unscheduledLabel() {
+        const count = this.unscheduledCount;
+
+        if (count === 0) {
+            return 'No work orders need scheduling';
+        }
+        if (count === 1) {
+            return '1 work order needs scheduling';
+        }
+        return `${count} work orders need scheduling`;
     }
 
     // ======= LIFECYCLE =======
@@ -2230,7 +2220,13 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     // ======= CALENDAR TAB HANDLERS =======
 
     handleCalendarTabActive() {
+        this.isCalendarTabActive = true;
         this.handleCalendarToday();
+    }
+
+    handleListTabActive() {
+        this.isCalendarTabActive = false;
+        this.pullTrayOpen = false;
     }
 
     handleCalendarPrev() {
