@@ -1293,7 +1293,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             const roundedMinutes = Math.round(minutes / 15) * 15;
             newLocal.setMinutes(roundedMinutes, 0, 0);
 
-            const isoString = newLocal.toISOString();
+            const isoString = this.toUserIsoString(newLocal);
 
             this.appointments = this.appointments.map(a => {
                 if (a.appointmentId === id) {
@@ -1341,7 +1341,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     Math.round(newEnd.getMinutes() / 15) * 15;
                 newEnd.setMinutes(roundedMinutes, 0, 0);
 
-                this.updateAppointmentEndTime(id, newEnd.toISOString());
+                this.updateAppointmentEndTime(id, this.toUserIsoString(newEnd));
             }
         } else if (this.dragMode === 'wo') {
             const workOrderId = this.draggingWorkOrderId;
@@ -1371,8 +1371,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
                 this.createAppointmentFromWorkOrder(
                     workOrderId,
-                    dropLocal.toISOString(),
-                    dropEnd.toISOString()
+                    this.toUserIsoString(dropLocal),
+                    this.toUserIsoString(dropEnd)
                 );
             }
         }
@@ -1624,6 +1624,44 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const minute = parseInt(lookup.minute, 10);
 
         return new Date(year, month - 1, day, hour, minute, 0, 0);
+    }
+
+    getTimeZoneOffsetMinutes(date) {
+        try {
+            const formatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: this.userTimeZoneId,
+                timeZoneName: 'short'
+            });
+            const parts = formatter.formatToParts(date);
+            const tzPart = parts.find(p => p.type === 'timeZoneName');
+            const match = tzPart
+                ? tzPart.value.match(/GMT([+-]\d{2}):(\d{2})/)
+                : null;
+
+            if (match) {
+                const sign = match[1].startsWith('-') ? -1 : 1;
+                const hours = parseInt(match[1].slice(1), 10);
+                const minutes = parseInt(match[2], 10);
+                return sign * (hours * 60 + minutes);
+            }
+        } catch (e) {
+            // Fallback to browser offset below
+        }
+
+        // Default to the browser's current offset when we cannot parse the timezone
+        return -date.getTimezoneOffset();
+    }
+
+    toUserIsoString(dateLike) {
+        const local = new Date(dateLike);
+
+        if (!this.userTimeZoneId) {
+            return local.toISOString();
+        }
+
+        const offsetMinutes = this.getTimeZoneOffsetMinutes(local);
+        const utcMs = local.getTime() - offsetMinutes * 60 * 1000;
+        return new Date(utcMs).toISOString();
     }
 
     computeDurationHours(startDate, endDate) {
