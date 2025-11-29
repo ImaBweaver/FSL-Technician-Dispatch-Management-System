@@ -800,7 +800,9 @@ public with sharing class FslTechnicianOnlineController {
             SELECT Id, ServiceResourceId, ServiceResource.Name
             FROM ServiceTerritoryMember
             WHERE ServiceTerritoryId = :wo.ServiceTerritoryId
-            AND IsActive = true
+            AND EffectiveStartDate != null
+            AND EffectiveStartDate <= :Date.today()
+            AND (EffectiveEndDate = null OR EffectiveEndDate >= :Date.today())
             ORDER BY ServiceResource.Name
         ]) {
             if (stm.ServiceResourceId == null) continue;
