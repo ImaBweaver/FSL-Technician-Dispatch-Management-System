@@ -75,6 +75,10 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public String postalCode;
         @AuraEnabled public String country;
         @AuraEnabled public String requestedByName;
+        @AuraEnabled public String targetName;
+        @AuraEnabled public Datetime acceptedOn;
+        @AuraEnabled public Datetime rejectedOn;
+        @AuraEnabled public String rejectionReason;
     }
 
     public class DebugInfo {
@@ -92,6 +96,7 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public List<AppointmentDTO> appointments;
         @AuraEnabled public List<UnscheduledWorkOrderDTO> unscheduledWorkOrders;
         @AuraEnabled public List<TransferRequestDTO> transferRequests;
+        @AuraEnabled public List<TransferRequestDTO> submittedTransferRequests;
         @AuraEnabled public DebugInfo debug;
         @AuraEnabled public String userTimeZoneId;
         @AuraEnabled public Boolean isManager;
@@ -157,6 +162,8 @@ public with sharing class FslTechnicianOnlineController {
             wrapper.appointments = new List<AppointmentDTO>();
             wrapper.unscheduledWorkOrders = new List<UnscheduledWorkOrderDTO>();
             wrapper.transferRequests = buildTransferRequests(effectiveUserId);
+            wrapper.submittedTransferRequests =
+                buildSubmittedTransferRequests(effectiveUserId);
             dbg.length = 0;
             return wrapper;
         }
@@ -225,6 +232,8 @@ public with sharing class FslTechnicianOnlineController {
                 pendingTransferWoIds
             );
             wrapper.transferRequests = buildTransferRequests(pendingRequests);
+            wrapper.submittedTransferRequests =
+                buildSubmittedTransferRequests(effectiveUserId);
             dbg.length = 0;
             return wrapper;
         }
@@ -432,6 +441,8 @@ public with sharing class FslTechnicianOnlineController {
             pendingTransferWoIds
         );
         wrapper.transferRequests = buildTransferRequests(pendingRequests);
+        wrapper.submittedTransferRequests =
+            buildSubmittedTransferRequests(effectiveUserId);
         dbg.length = results.size();
         if (String.isBlank(dbg.note)) {
             dbg.note = 'Online fetch succeeded.';
@@ -458,7 +469,11 @@ public with sharing class FslTechnicianOnlineController {
                 Work_Order_to_Transfer__r.State,
                 Work_Order_to_Transfer__r.PostalCode,
                 Work_Order_to_Transfer__r.Country,
-                CreatedBy.Name
+                CreatedBy.Name,
+                Transfer_Work_Order_To_Engineer__r.Name,
+                Accepted_on__c,
+                Date_Rejected_On__c,
+                Rejected_Reason__c
             FROM Engineer_Transfer_Request__c
             WHERE Transfer_Work_Order_To_Engineer__c = :targetUserId
             AND Accepted_on__c = null
@@ -501,10 +516,55 @@ public with sharing class FslTechnicianOnlineController {
                 ? req.Work_Order_to_Transfer__r.Country
                 : null;
             dto.requestedByName = req.CreatedBy != null ? req.CreatedBy.Name : null;
+            dto.targetName = req.Transfer_Work_Order_To_Engineer__r != null
+                ? req.Transfer_Work_Order_To_Engineer__r.Name
+                : null;
+            dto.acceptedOn = req.Accepted_on__c;
+            dto.rejectedOn = req.Date_Rejected_On__c;
+            dto.rejectionReason = req.Rejected_Reason__c;
             dtos.add(dto);
         }
 
         return dtos;
+    }
+
+    private static List<Engineer_Transfer_Request__c> getSubmittedTransferRequests(
+        Id requesterUserId
+    ) {
+        if (requesterUserId == null) {
+            return new List<Engineer_Transfer_Request__c>();
+        }
+
+        return [
+            SELECT Id,
+                Work_Order_to_Transfer__c,
+                Work_Order_to_Transfer__r.WorkOrderNumber,
+                Work_Order_to_Transfer__r.Subject,
+                Work_Order_to_Transfer__r.Account.Name,
+                Work_Order_to_Transfer__r.Street,
+                Work_Order_to_Transfer__r.City,
+                Work_Order_to_Transfer__r.State,
+                Work_Order_to_Transfer__r.PostalCode,
+                Work_Order_to_Transfer__r.Country,
+                Transfer_Work_Order_To_Engineer__r.Name,
+                Transfer_Work_Order_To_Engineer__r.RelatedRecordId,
+                Accepted_on__c,
+                Date_Rejected_On__c,
+                Rejected_Reason__c,
+                CreatedDate,
+                CreatedBy.Name
+            FROM Engineer_Transfer_Request__c
+            WHERE CreatedById = :requesterUserId
+            ORDER BY CreatedDate DESC
+        ];
+    }
+
+    private static List<TransferRequestDTO> buildSubmittedTransferRequests(
+        Id requesterUserId
+    ) {
+        List<Engineer_Transfer_Request__c> requests =
+            getSubmittedTransferRequests(requesterUserId);
+        return buildTransferRequests(requests);
     }
 
     private static Set<Id> extractWorkOrderIds(
@@ -1076,11 +1136,19 @@ public with sharing class FslTechnicianOnlineController {
             ? req.Transfer_Work_Order_To_Engineer__r.RelatedRecordId
             : null;
 
-        if (
-            currentUserId != targetUserId &&
-            currentUserId != targetRelatedUserId
-        ) {
-            throw new AuraHandledException('You are not authorized to accept this request.');
+        if (currentUserId != targetUserId && currentUserId != targetRelatedUserId) {
+            User targetUser = targetRelatedUserId != null
+                ? [SELECT Id, ManagerId FROM User WHERE Id = :targetRelatedUserId LIMIT 1]
+                : null;
+
+            Boolean isManagerActingForTarget =
+                targetUser != null && targetUser.ManagerId == currentUserId;
+
+            if (!isManagerActingForTarget) {
+                throw new AuraHandledException(
+                    'You are not authorized to accept this request.'
+                );
+            }
         }
 
         req.Accepted_on__c = Datetime.now();
@@ -1177,11 +1245,19 @@ public with sharing class FslTechnicianOnlineController {
             ? req.Transfer_Work_Order_To_Engineer__r.RelatedRecordId
             : null;
 
-        if (
-            currentUserId != targetUserId &&
-            currentUserId != targetRelatedUserId
-        ) {
-            throw new AuraHandledException('You are not authorized to reject this request.');
+        if (currentUserId != targetUserId && currentUserId != targetRelatedUserId) {
+            User targetUser = targetRelatedUserId != null
+                ? [SELECT Id, ManagerId FROM User WHERE Id = :targetRelatedUserId LIMIT 1]
+                : null;
+
+            Boolean isManagerActingForTarget =
+                targetUser != null && targetUser.ManagerId == currentUserId;
+
+            if (!isManagerActingForTarget) {
+                throw new AuraHandledException(
+                    'You are not authorized to reject this request.'
+                );
+            }
         }
 
         req.Date_Rejected_On__c = Datetime.now();
