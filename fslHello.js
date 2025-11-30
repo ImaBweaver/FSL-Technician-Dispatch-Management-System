@@ -139,6 +139,16 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return this.dragGhostVisible;
     }
 
+    get isDragging() {
+        return !!(this.dragMode || this.isPressingForDrag);
+    }
+
+    get calendarDaysWrapperClass() {
+        return this.isDragging
+            ? 'sfs-calendar-days-wrapper sfs-calendar-days-wrapper_dragging'
+            : 'sfs-calendar-days-wrapper';
+    }
+
     get isViewingAsOther() {
         return (
             this.activeUserId &&
