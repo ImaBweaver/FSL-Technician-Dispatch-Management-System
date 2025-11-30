@@ -1696,14 +1696,32 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     getTimeZoneOffsetMinutes(date) {
         try {
-            const utcDate = new Date(
-                date.toLocaleString('en-US', { timeZone: 'UTC' })
-            );
-            const tzDate = new Date(
-                date.toLocaleString('en-US', { timeZone: this.userTimeZoneId })
+            const formatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: this.userTimeZoneId,
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+
+            const parts = formatter.formatToParts(date).reduce((acc, part) => {
+                acc[part.type] = part.value;
+                return acc;
+            }, {});
+
+            const tzAsUtc = Date.UTC(
+                Number(parts.year),
+                Number(parts.month) - 1,
+                Number(parts.day),
+                Number(parts.hour),
+                Number(parts.minute),
+                Number(parts.second)
             );
 
-            return (tzDate.getTime() - utcDate.getTime()) / (60 * 1000);
+            return (tzAsUtc - date.getTime()) / (60 * 1000);
         } catch (e) {
             // Default to the browser's current offset when we cannot parse the timezone
             return -date.getTimezoneOffset();
