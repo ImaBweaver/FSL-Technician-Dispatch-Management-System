@@ -1698,26 +1698,34 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         try {
             const formatter = new Intl.DateTimeFormat('en-US', {
                 timeZone: this.userTimeZoneId,
-                timeZoneName: 'short'
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
             });
-            const parts = formatter.formatToParts(date);
-            const tzPart = parts.find(p => p.type === 'timeZoneName');
-            const match = tzPart
-                ? tzPart.value.match(/GMT([+-]\d{2}):(\d{2})/)
-                : null;
 
-            if (match) {
-                const sign = match[1].startsWith('-') ? -1 : 1;
-                const hours = parseInt(match[1].slice(1), 10);
-                const minutes = parseInt(match[2], 10);
-                return sign * (hours * 60 + minutes);
-            }
+            const parts = formatter.formatToParts(date).reduce((acc, part) => {
+                acc[part.type] = part.value;
+                return acc;
+            }, {});
+
+            const tzAsUtc = Date.UTC(
+                Number(parts.year),
+                Number(parts.month) - 1,
+                Number(parts.day),
+                Number(parts.hour),
+                Number(parts.minute),
+                Number(parts.second)
+            );
+
+            return (tzAsUtc - date.getTime()) / (60 * 1000);
         } catch (e) {
-            // Fallback to browser offset below
+            // Default to the browser's current offset when we cannot parse the timezone
+            return -date.getTimezoneOffset();
         }
-
-        // Default to the browser's current offset when we cannot parse the timezone
-        return -date.getTimezoneOffset();
     }
 
     toUserIsoString(dateLike) {
