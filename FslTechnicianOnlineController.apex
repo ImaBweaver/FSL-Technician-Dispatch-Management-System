@@ -896,7 +896,7 @@ public with sharing class FslTechnicianOnlineController {
         );
         insert sa;
 
-        Datetime endDateTime = startDateTimeIso.addMilliseconds(durationMs);
+        Datetime endDateTime = startDateTimeIso.addMilliseconds(Integer.valueOf(durationMs));
 
         ServiceAppointment saTimeUpdate = new ServiceAppointment(
             Id              = sa.Id,
