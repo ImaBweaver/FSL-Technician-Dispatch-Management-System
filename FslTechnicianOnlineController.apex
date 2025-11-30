@@ -547,7 +547,6 @@ public with sharing class FslTechnicianOnlineController {
                 Work_Order_to_Transfer__r.PostalCode,
                 Work_Order_to_Transfer__r.Country,
                 Transfer_Work_Order_To_Engineer__r.Name,
-                Transfer_Work_Order_To_Engineer__r.RelatedRecordId,
                 Accepted_on__c,
                 Date_Rejected_On__c,
                 Rejected_Reason__c,
@@ -1122,8 +1121,7 @@ public with sharing class FslTechnicianOnlineController {
         Engineer_Transfer_Request__c req = [
             SELECT Id,
                 Work_Order_to_Transfer__c,
-                Transfer_Work_Order_To_Engineer__c,
-                Transfer_Work_Order_To_Engineer__r.RelatedRecordId
+                Transfer_Work_Order_To_Engineer__c
             FROM Engineer_Transfer_Request__c
             WHERE Id = :transferRequestId
             LIMIT 1
@@ -1132,13 +1130,10 @@ public with sharing class FslTechnicianOnlineController {
 
         Id currentUserId = UserInfo.getUserId();
         Id targetUserId = req.Transfer_Work_Order_To_Engineer__c;
-        Id targetRelatedUserId = req.Transfer_Work_Order_To_Engineer__r != null
-            ? req.Transfer_Work_Order_To_Engineer__r.RelatedRecordId
-            : null;
 
-        if (currentUserId != targetUserId && currentUserId != targetRelatedUserId) {
-            User targetUser = targetRelatedUserId != null
-                ? [SELECT Id, ManagerId FROM User WHERE Id = :targetRelatedUserId LIMIT 1]
+        if (currentUserId != targetUserId) {
+            User targetUser = targetUserId != null
+                ? [SELECT Id, ManagerId FROM User WHERE Id = :targetUserId LIMIT 1]
                 : null;
 
             Boolean isManagerActingForTarget =
@@ -1231,8 +1226,7 @@ public with sharing class FslTechnicianOnlineController {
 
         Engineer_Transfer_Request__c req = [
             SELECT Id,
-                Transfer_Work_Order_To_Engineer__c,
-                Transfer_Work_Order_To_Engineer__r.RelatedRecordId
+                Transfer_Work_Order_To_Engineer__c
             FROM Engineer_Transfer_Request__c
             WHERE Id = :transferRequestId
             LIMIT 1
@@ -1241,13 +1235,10 @@ public with sharing class FslTechnicianOnlineController {
 
         Id currentUserId = UserInfo.getUserId();
         Id targetUserId = req.Transfer_Work_Order_To_Engineer__c;
-        Id targetRelatedUserId = req.Transfer_Work_Order_To_Engineer__r != null
-            ? req.Transfer_Work_Order_To_Engineer__r.RelatedRecordId
-            : null;
 
-        if (currentUserId != targetUserId && currentUserId != targetRelatedUserId) {
-            User targetUser = targetRelatedUserId != null
-                ? [SELECT Id, ManagerId FROM User WHERE Id = :targetRelatedUserId LIMIT 1]
+        if (currentUserId != targetUserId) {
+            User targetUser = targetUserId != null
+                ? [SELECT Id, ManagerId FROM User WHERE Id = :targetUserId LIMIT 1]
                 : null;
 
             Boolean isManagerActingForTarget =
