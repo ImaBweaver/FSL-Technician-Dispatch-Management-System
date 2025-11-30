@@ -1745,6 +1745,44 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return new Date(utcMs).toISOString();
     }
 
+    getUserNow() {
+        if (!this.userTimeZoneId) {
+            return new Date();
+        }
+
+        try {
+            const formatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: this.userTimeZoneId,
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+
+            const parts = formatter.formatToParts(new Date()).reduce(
+                (acc, part) => {
+                    acc[part.type] = part.value;
+                    return acc;
+                },
+                {}
+            );
+
+            return new Date(
+                Number(parts.year),
+                Number(parts.month) - 1,
+                Number(parts.day),
+                Number(parts.hour),
+                Number(parts.minute),
+                Number(parts.second)
+            );
+        } catch (e) {
+            return new Date();
+        }
+    }
+
     computeDurationHours(startDate, endDate) {
         if (!startDate || !endDate) {
             return 1;
@@ -1874,7 +1912,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         const totalHours = this.calendarEndHour - this.calendarStartHour;
 
-        const nowLocal = this.convertUtcToUserLocal(new Date());
+        const nowLocal = this.getUserNow();
 
         for (let i = 0; i < daysToShow; i++) {
             const d = new Date(startBase);
@@ -2033,7 +2071,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const bodyRect = dayBodyEl.getBoundingClientRect();
 
         const totalHours = this.calendarEndHour - this.calendarStartHour;
-        const nowLocal = this.convertUtcToUserLocal(new Date());
+        const nowLocal = this.getUserNow();
         const nowHourFraction =
             nowLocal.getHours() + nowLocal.getMinutes() / 60;
 
