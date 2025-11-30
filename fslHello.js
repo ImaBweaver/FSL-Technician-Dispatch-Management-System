@@ -1689,29 +1689,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return d;
         }
 
-        const formatter = new Intl.DateTimeFormat('en-US', {
-            timeZone: this.userTimeZoneId,
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-        });
-
-        const parts = formatter.formatToParts(d);
-        const lookup = {};
-        parts.forEach(p => {
-            lookup[p.type] = p.value;
-        });
-
-        const year = parseInt(lookup.year, 10);
-        const month = parseInt(lookup.month, 10);
-        const day = parseInt(lookup.day, 10);
-        const hour = parseInt(lookup.hour, 10);
-        const minute = parseInt(lookup.minute, 10);
-
-        return new Date(year, month - 1, day, hour, minute, 0, 0);
+        const offsetMinutes = this.getTimeZoneOffsetMinutes(d);
+        const localMs = d.getTime() + offsetMinutes * 60 * 1000;
+        return new Date(localMs);
     }
 
     getTimeZoneOffsetMinutes(date) {
