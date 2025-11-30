@@ -878,9 +878,9 @@ public with sharing class FslTechnicianOnlineController {
             LIMIT 1
         ];
 
-        Long durationMs = 6L * 60L * 60L * 1000L; // 6 hour default
+        Integer durationMs = 6 * 60 * 60 * 1000; // 6 hour default
         if (endDateTimeIso != null && endDateTimeIso.getTime() > startDateTimeIso.getTime()) {
-            durationMs = endDateTimeIso.getTime() - startDateTimeIso.getTime();
+            durationMs = Integer.valueOf(endDateTimeIso.getTime() - startDateTimeIso.getTime());
         }
 
         ServiceAppointment sa = new ServiceAppointment(
@@ -896,7 +896,7 @@ public with sharing class FslTechnicianOnlineController {
         );
         insert sa;
 
-        Datetime endDateTime = startDateTimeIso.addMilliseconds(Integer.valueOf(durationMs));
+        Datetime endDateTime = startDateTimeIso.addMilliseconds(durationMs);
 
         ServiceAppointment saTimeUpdate = new ServiceAppointment(
             Id              = sa.Id,
