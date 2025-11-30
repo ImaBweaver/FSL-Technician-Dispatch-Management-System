@@ -2891,7 +2891,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         this.isLoading = true;
 
-        acceptEngineerTransferRequest({ transferRequestId: requestId })
+        acceptEngineerTransferRequest({
+            transferRequestId: requestId,
+            targetOwnerId: this.activeUserId
+        })
             .then(() => {
                 this.showToast(
                     'Transfer accepted',
