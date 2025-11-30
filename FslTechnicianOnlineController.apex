@@ -1115,7 +1115,10 @@ public with sharing class FslTechnicianOnlineController {
     }
 
     @AuraEnabled
-    public static void acceptEngineerTransferRequest(Id transferRequestId) {
+    public static void acceptEngineerTransferRequest(
+        Id transferRequestId,
+        Id targetOwnerId
+    ) {
         if (transferRequestId == null) {
             throw new AuraHandledException('Transfer Request Id is required to accept.');
         }
@@ -1165,7 +1168,15 @@ public with sharing class FslTechnicianOnlineController {
             FOR UPDATE
         ];
 
-        wo.OwnerId = UserInfo.getUserId();
+        Id effectiveOwnerId = req.Transfer_Work_Order_To_Engineer__c != null
+            ? req.Transfer_Work_Order_To_Engineer__c
+            : currentUserId;
+
+        if (targetOwnerId != null && targetOwnerId == req.Transfer_Work_Order_To_Engineer__c) {
+            effectiveOwnerId = targetOwnerId;
+        }
+
+        wo.OwnerId = effectiveOwnerId;
         update wo;
 
         Set<String> closedStatuses = new Set<String>{
