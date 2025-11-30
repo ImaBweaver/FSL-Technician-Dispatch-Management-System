@@ -837,10 +837,12 @@ public with sharing class FslTechnicianOnlineController {
         );
         insert sa;
 
+        Datetime endDateTime = startDateTimeIso.addMilliseconds(durationMs);
+
         ServiceAppointment saTimeUpdate = new ServiceAppointment(
             Id              = sa.Id,
             SchedStartTime  = startDateTimeIso,
-            SchedEndTime    = Datetime.newInstance(startDateTimeIso.getTime() + durationMs)
+            SchedEndTime    = endDateTime
         );
         update saTimeUpdate;
 
@@ -1060,14 +1062,24 @@ public with sharing class FslTechnicianOnlineController {
         Engineer_Transfer_Request__c req = [
             SELECT Id,
                 Work_Order_to_Transfer__c,
-                Transfer_Work_Order_To_Engineer__c
+                Transfer_Work_Order_To_Engineer__c,
+                Transfer_Work_Order_To_Engineer__r.RelatedRecordId
             FROM Engineer_Transfer_Request__c
             WHERE Id = :transferRequestId
             LIMIT 1
             FOR UPDATE
         ];
 
-        if (req.Transfer_Work_Order_To_Engineer__c != UserInfo.getUserId()) {
+        Id currentUserId = UserInfo.getUserId();
+        Id targetUserId = req.Transfer_Work_Order_To_Engineer__c;
+        Id targetRelatedUserId = req.Transfer_Work_Order_To_Engineer__r != null
+            ? req.Transfer_Work_Order_To_Engineer__r.RelatedRecordId
+            : null;
+
+        if (
+            currentUserId != targetUserId &&
+            currentUserId != targetRelatedUserId
+        ) {
             throw new AuraHandledException('You are not authorized to accept this request.');
         }
 
@@ -1151,14 +1163,24 @@ public with sharing class FslTechnicianOnlineController {
 
         Engineer_Transfer_Request__c req = [
             SELECT Id,
-                Transfer_Work_Order_To_Engineer__c
+                Transfer_Work_Order_To_Engineer__c,
+                Transfer_Work_Order_To_Engineer__r.RelatedRecordId
             FROM Engineer_Transfer_Request__c
             WHERE Id = :transferRequestId
             LIMIT 1
             FOR UPDATE
         ];
 
-        if (req.Transfer_Work_Order_To_Engineer__c != UserInfo.getUserId()) {
+        Id currentUserId = UserInfo.getUserId();
+        Id targetUserId = req.Transfer_Work_Order_To_Engineer__c;
+        Id targetRelatedUserId = req.Transfer_Work_Order_To_Engineer__r != null
+            ? req.Transfer_Work_Order_To_Engineer__r.RelatedRecordId
+            : null;
+
+        if (
+            currentUserId != targetUserId &&
+            currentUserId != targetRelatedUserId
+        ) {
             throw new AuraHandledException('You are not authorized to reject this request.');
         }
 

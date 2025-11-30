@@ -406,6 +406,7 @@
                                                     variant="destructive-text"
                                                     label="Request transfer to new technician"
                                                     data-woid={appt.workOrderId}
+                                                    data-id={appt.appointmentId}
                                                     onclick={handleRequestReschedule}
                                                 >
                                                 </lightning-button>
@@ -1177,6 +1178,7 @@
                                 label="Request Reschedule w/ Another Tech"
                                 class="sfs-request-reschedule-btn"
                                 data-woid={selectedAppointment.workOrderId}
+                                data-id={selectedAppointment.appointmentId}
                                 onclick={handleRequestReschedule}
                             ></lightning-button>
                         </div>
