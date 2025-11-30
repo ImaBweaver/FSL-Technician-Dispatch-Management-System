@@ -38,6 +38,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     showNowLine = false;
     nowLineStyle = '';
 
+    // requestAnimationFrame handle for positioning the "now" line
+    _nowLineFrame = null;
+
     isLoading = false;
     isOffline = false;
 
@@ -534,6 +537,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         ) {
             this.centerTimelineOnTodayColumn();
         }
+
+        this.scheduleNowLinePositionUpdate();
     }
 
     // ======= ONLINE CHECK =======
@@ -1556,9 +1561,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 this.transferRequests = transferRequests.map(req =>
                     this.normalizeTransferRequest(req)
                 );
-                this.submittedTransferRequests = submittedTransferRequests.map(req =>
-                    this.normalizeTransferRequest(req)
-                );
+                this.submittedTransferRequests = submittedTransferRequests
+                    .filter(req => !req.acceptedOn && !req.rejectedOn)
+                    .map(req => this.normalizeTransferRequest(req));
 
                 this.appointments = appts.map(appt => {
                     const clone = { ...appt };
@@ -1991,25 +1996,64 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         });
 
         if (this.isTimelineMode) {
-            const nowHourFraction =
-                nowLocal.getHours() + nowLocal.getMinutes() / 60;
-
-            const clampedHour = Math.min(
-                Math.max(nowHourFraction, this.calendarStartHour),
-                this.calendarEndHour
-            );
-
-            const nowTopPct =
-                ((clampedHour - this.calendarStartHour) /
-                    (this.calendarEndHour - this.calendarStartHour)) *
-                100;
-
             this.showNowLine = true;
-            this.nowLineStyle = `top:${nowTopPct}%;`;
         }
 
         this.calendarDays = days;
         this.updateSelectedEventStyles();
+        this.scheduleNowLinePositionUpdate();
+    }
+
+    scheduleNowLinePositionUpdate() {
+        if (this._nowLineFrame) {
+            cancelAnimationFrame(this._nowLineFrame);
+        }
+
+        this._nowLineFrame = requestAnimationFrame(() => {
+            this._nowLineFrame = null;
+            this.updateNowLinePosition();
+        });
+    }
+
+    updateNowLinePosition() {
+        if (!this.isTimelineMode) {
+            this.showNowLine = false;
+            this.nowLineStyle = '';
+            return;
+        }
+
+        const calendarEl = this.template.querySelector('.sfs-calendar');
+        const dayBodyEl = this.template.querySelector('.sfs-calendar-day-body');
+
+        if (!calendarEl || !dayBodyEl) {
+            return;
+        }
+
+        const calendarRect = calendarEl.getBoundingClientRect();
+        const bodyRect = dayBodyEl.getBoundingClientRect();
+
+        const totalHours = this.calendarEndHour - this.calendarStartHour;
+        const nowLocal = this.convertUtcToUserLocal(new Date());
+        const nowHourFraction =
+            nowLocal.getHours() + nowLocal.getMinutes() / 60;
+
+        const clampedHour = Math.min(
+            Math.max(nowHourFraction, this.calendarStartHour),
+            this.calendarEndHour
+        );
+
+        const relativePct =
+            (clampedHour - this.calendarStartHour) / totalHours;
+
+        const offsetTop = bodyRect.top - calendarRect.top;
+        const topPx = offsetTop + relativePct * bodyRect.height;
+
+        const style = `top:${topPx}px;`;
+
+        if (!this.showNowLine || this.nowLineStyle !== style) {
+            this.showNowLine = true;
+            this.nowLineStyle = style;
+        }
     }
 
     updateSelectedEventStyles() {
