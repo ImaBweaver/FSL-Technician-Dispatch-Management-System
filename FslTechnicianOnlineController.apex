@@ -161,7 +161,9 @@ public with sharing class FslTechnicianOnlineController {
             dbg.note   = 'No ServiceResource found for user.';
             wrapper.appointments = new List<AppointmentDTO>();
             wrapper.unscheduledWorkOrders = new List<UnscheduledWorkOrderDTO>();
-            wrapper.transferRequests = buildTransferRequests(effectiveUserId);
+            List<Engineer_Transfer_Request__c> pendingRequests =
+                getPendingTransferRequests(effectiveUserId);
+            wrapper.transferRequests = buildTransferRequests(pendingRequests);
             wrapper.submittedTransferRequests =
                 buildSubmittedTransferRequests(effectiveUserId);
             dbg.length = 0;
@@ -896,7 +898,7 @@ public with sharing class FslTechnicianOnlineController {
         );
         insert sa;
 
-        Datetime endDateTime = startDateTimeIso.addMilliseconds(durationMs);
+        Datetime endDateTime = startDateTimeIso.addSeconds(durationMs / 1000);
 
         ServiceAppointment saTimeUpdate = new ServiceAppointment(
             Id              = sa.Id,
