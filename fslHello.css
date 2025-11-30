@@ -345,6 +345,11 @@
     scroll-snap-type: x mandatory;
 }
 
+.sfs-calendar-days-wrapper_dragging {
+    touch-action: none;
+    overscroll-behavior: contain;
+}
+
 .sfs-calendar-days {
     display: flex;
     min-height: 720px; /* match day-body height */
