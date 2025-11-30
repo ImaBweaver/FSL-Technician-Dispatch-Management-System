@@ -98,6 +98,68 @@
     padding-left: 0.4rem;
 }
 
+.sfs-transfer-subsection {
+    margin-top: 1.5rem;
+    border-top: 1px solid #ddd;
+    padding-top: 1.25rem;
+}
+
+.sfs-transfer-subsection-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.sfs-transfer-subsection-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.sfs-transfer-count {
+    color: #555;
+    font-size: 0.9rem;
+}
+
+.sfs-transfer-pill_submitted {
+    background: #eef4ff;
+    color: #1b4f9c;
+}
+
+.sfs-transfer-status {
+    padding: 0.75rem 1rem 1rem;
+}
+
+.sfs-status {
+    display: inline-block;
+    padding: 0.2rem 0.65rem;
+    border-radius: 1rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.sfs-status_pending {
+    background: #fff7e6;
+    color: #8a5400;
+}
+
+.sfs-status_success {
+    background: #e6ffed;
+    color: #1b6b2a;
+}
+
+.sfs-status_error {
+    background: #ffe9e9;
+    color: #8a002a;
+}
+
+.sfs-transfer-status-reason {
+    margin: 0.45rem 0 0;
+    color: #5d5d5d;
+    font-size: 0.9rem;
+}
+
 .sfs-makemodel-pill {
     display: inline-block;
     padding: 0.15rem 0.45rem;

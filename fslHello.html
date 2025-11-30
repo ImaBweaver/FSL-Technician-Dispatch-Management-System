@@ -92,11 +92,11 @@
                 </template>
 
                 <template if:false={isLoading}>
-                    <template if:true={isTransferMode}>
-                        <template if:true={transferRequestCount}>
-                            <div class="sfs-list">
-                                <template for:each={transferRequests} for:item="req">
-                                    <article key={req.transferRequestId} class="sfs-card sfs-transfer-card">
+                        <template if:true={isTransferMode}>
+                            <template if:true={transferRequestCount}>
+                                <div class="sfs-list">
+                                    <template for:each={transferRequests} for:item="req">
+                                        <article key={req.transferRequestId} class="sfs-card sfs-transfer-card">
                                         <div class="sfs-card-header sfs-transfer-header">
                                             <span class="sfs-transfer-pill">Transfer Request</span>
                                             <template if:true={req.requestedByName}>
@@ -149,17 +149,98 @@
                                                 data-id={req.transferRequestId}
                                                 onclick={openRejectModal}
                                             ></lightning-button>
-                                        </div>
-                                    </article>
+                                            </div>
+                                        </article>
+                                    </template>
+                                </div>
+                            </template>
+                            <template if:false={transferRequestCount}>
+                                <div class="sfs-empty">
+                                    <p>No transfer requests are waiting for you.</p>
+                                </div>
+                            </template>
+
+                            <div class="sfs-transfer-subsection">
+                                <div class="sfs-transfer-subsection-heading">
+                                    <h3 class="sfs-transfer-subsection-title">Pending Requests</h3>
+                                    <span class="sfs-transfer-count">
+                                        ({submittedTransferRequestCount})
+                                    </span>
+                                </div>
+
+                                <template if:true={submittedTransferRequestCount}>
+                                    <div class="sfs-list">
+                                        <template
+                                            for:each={submittedTransferRequests}
+                                            for:item="req"
+                                        >
+                                            <article
+                                                key={req.transferRequestId}
+                                                class="sfs-card sfs-transfer-card"
+                                            >
+                                                <div class="sfs-card-header sfs-transfer-header">
+                                                    <span class="sfs-transfer-pill sfs-transfer-pill_submitted">
+                                                        Requested Transfer
+                                                    </span>
+                                                    <template if:true={req.targetName}>
+                                                        <span class="sfs-transfer-requester">
+                                                            To {req.targetName}
+                                                        </span>
+                                                    </template>
+                                                </div>
+
+                                                <div class="sfs-card-body">
+                                                    <div class="sfs-line">
+                                                        <span class="sfs-label">WO #</span>
+                                                        <span class="sfs-value">
+                                                            <template if:true={req.workOrderNumber}>
+                                                                {req.workOrderNumber}
+                                                            </template>
+                                                            <template if:false={req.workOrderNumber}>
+                                                                —
+                                                            </template>
+                                                        </span>
+                                                    </div>
+
+                                                    <p class="sfs-line">
+                                                        <span class="sfs-label">Subject</span>
+                                                        <span class="sfs-value sfs-value_left">{req.workOrderSubject}</span>
+                                                    </p>
+
+                                                    <p class="sfs-line">
+                                                        <span class="sfs-label">Account</span>
+                                                        <span class="sfs-value sfs-value_left">{req.accountName}</span>
+                                                    </p>
+
+                                                    <template if:true={req.fullAddress}>
+                                                        <p class="sfs-line sfs-line_address">
+                                                            <span class="sfs-label">Address</span>
+                                                            <span class="sfs-value sfs-value_address">
+                                                                {req.fullAddress}
+                                                            </span>
+                                                        </p>
+                                                    </template>
+                                                </div>
+
+                                                <div class="sfs-transfer-status">
+                                                    <span class={req.statusClass}>{req.statusLabel}</span>
+                                                    <template if:true={req.rejectionReason}>
+                                                        <p class="sfs-transfer-status-reason">
+                                                            Reason: {req.rejectionReason}
+                                                        </p>
+                                                    </template>
+                                                </div>
+                                            </article>
+                                        </template>
+                                    </div>
+                                </template>
+                                <template if:false={submittedTransferRequestCount}>
+                                    <div class="sfs-empty">
+                                        <p>You have not sent any transfer requests yet.</p>
+                                    </div>
                                 </template>
                             </div>
                         </template>
-                        <template if:false={transferRequestCount}>
-                            <div class="sfs-empty">
-                                <p>No transfer requests are waiting for you.</p>
-                            </div>
-                        </template>
-                    </template>
 
                     <template if:false={isTransferMode}>
                         <template if:true={hasAppointments}>
@@ -756,82 +837,6 @@
                     </div>
                 </template>
 
-        <template if:true={isRescheduleModalOpen}>
-            <div class="sfs-modal-backdrop" onclick={closeRescheduleModal}>
-                <div class="sfs-modal" onclick={handleDetailCardClick}>
-                    <div class="sfs-modal-header">
-                        <h3 class="sfs-modal-title">Request transfer</h3>
-                        <button
-                            class="sfs-modal-close"
-                            type="button"
-                            onclick={closeRescheduleModal}
-                        >
-                            ✕
-                        </button>
-                    </div>
-                    <p class="sfs-modal-copy">
-                        Choose another technician in the territory to take this work order.
-                    </p>
-                    <lightning-combobox
-                        name="rescheduleTarget"
-                        label="Technician"
-                        options={rescheduleOptions}
-                        value={rescheduleSelection}
-                        onchange={handleRescheduleSelection}
-                        disabled={rescheduleLoading}
-                    ></lightning-combobox>
-                    <div class="sfs-actions sfs-modal-actions">
-                        <lightning-button
-                            variant="brand"
-                            label="Send request"
-                            onclick={submitRescheduleRequest}
-                            disabled={rescheduleSubmitDisabled}
-                        ></lightning-button>
-                    </div>
-                </div>
-            </div>
-        </template>
-
-        <template if:true={isRejectModalOpen}>
-            <div class="sfs-modal-backdrop" onclick={closeRejectModal}>
-                <div class="sfs-modal" onclick={handleDetailCardClick}>
-                    <div class="sfs-modal-header">
-                        <h3 class="sfs-modal-title">Reject transfer request</h3>
-                        <button
-                            class="sfs-modal-close"
-                            type="button"
-                            onclick={closeRejectModal}
-                        >
-                            ✕
-                        </button>
-                    </div>
-                    <p class="sfs-modal-copy">
-                        Please provide a reason so the requester understands why the transfer was declined.
-                    </p>
-                    <lightning-textarea
-                        name="rejectReason"
-                        label="Rejection reason"
-                        value={rejectReason}
-                        onchange={handleRejectReasonChange}
-                        maxlength="1000"
-                    ></lightning-textarea>
-                    <div class="sfs-actions sfs-modal-actions">
-                          <lightning-button
-                              variant="brand"
-                              label="Submit rejection"
-                              onclick={submitRejectRequest}
-                              disabled={rejectSubmitDisabled}
-                          ></lightning-button>
-                        <lightning-button
-                            variant="neutral"
-                            label="Cancel"
-                            onclick={closeRejectModal}
-                        ></lightning-button>
-                    </div>
-                </div>
-            </div>
-        </template>
-
                 <!-- PULL-UP TRAY FOR UNSCHEDULED WORK ORDERS (calendar only) -->
                 <template if:true={isCalendarTabActive}>
                     <div class={trayContainerClass}>
@@ -1184,6 +1189,82 @@
                         </div>
                     </div>
                 </article>
+            </div>
+        </template>
+
+        <template if:true={isRescheduleModalOpen}>
+            <div class="sfs-modal-backdrop" onclick={closeRescheduleModal}>
+                <div class="sfs-modal" onclick={handleDetailCardClick}>
+                    <div class="sfs-modal-header">
+                        <h3 class="sfs-modal-title">Request transfer</h3>
+                        <button
+                            class="sfs-modal-close"
+                            type="button"
+                            onclick={closeRescheduleModal}
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    <p class="sfs-modal-copy">
+                        Choose another technician in the territory to take this work order.
+                    </p>
+                    <lightning-combobox
+                        name="rescheduleTarget"
+                        label="Technician"
+                        options={rescheduleOptions}
+                        value={rescheduleSelection}
+                        onchange={handleRescheduleSelection}
+                        disabled={rescheduleLoading}
+                    ></lightning-combobox>
+                    <div class="sfs-actions sfs-modal-actions">
+                        <lightning-button
+                            variant="brand"
+                            label="Send request"
+                            onclick={submitRescheduleRequest}
+                            disabled={rescheduleSubmitDisabled}
+                        ></lightning-button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <template if:true={isRejectModalOpen}>
+            <div class="sfs-modal-backdrop" onclick={closeRejectModal}>
+                <div class="sfs-modal" onclick={handleDetailCardClick}>
+                    <div class="sfs-modal-header">
+                        <h3 class="sfs-modal-title">Reject transfer request</h3>
+                        <button
+                            class="sfs-modal-close"
+                            type="button"
+                            onclick={closeRejectModal}
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    <p class="sfs-modal-copy">
+                        Please provide a reason so the requester understands why the transfer was declined.
+                    </p>
+                    <lightning-textarea
+                        name="rejectReason"
+                        label="Rejection reason"
+                        value={rejectReason}
+                        onchange={handleRejectReasonChange}
+                        maxlength="1000"
+                    ></lightning-textarea>
+                    <div class="sfs-actions sfs-modal-actions">
+                        <lightning-button
+                            variant="brand"
+                            label="Submit rejection"
+                            onclick={submitRejectRequest}
+                            disabled={rejectSubmitDisabled}
+                        ></lightning-button>
+                        <lightning-button
+                            variant="neutral"
+                            label="Cancel"
+                            onclick={closeRejectModal}
+                        ></lightning-button>
+                    </div>
+                </div>
             </div>
         </template>
     </section>

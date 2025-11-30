@@ -29,6 +29,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     // Unscheduled work orders (tray)
     @track unscheduledWorkOrders = [];
     @track transferRequests = [];
+    @track submittedTransferRequests = [];
     pullTrayOpen = false;
     isDesktopFormFactor = FORM_FACTOR === 'Large';
     isCalendarTabActive = false;
@@ -225,6 +226,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return (this.transferRequests && Array.isArray(this.transferRequests))
             ? this.transferRequests.length
             : 0;
+    }
+
+    get submittedTransferRequestCount() {
+        return this.submittedTransferRequests.length;
     }
 
     get partsReadyCount() {
@@ -1543,19 +1548,17 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     result && result.transferRequests
                         ? result.transferRequests
                         : [];
+                const submittedTransferRequests =
+                    result && result.submittedTransferRequests
+                        ? result.submittedTransferRequests
+                        : [];
 
-                this.transferRequests = transferRequests.map(req => {
-                    const clone = { ...req };
-                    const parts = [
-                        req.street,
-                        req.city,
-                        req.state,
-                        req.postalCode,
-                        req.country
-                    ].filter(Boolean);
-                    clone.fullAddress = parts.join(', ');
-                    return clone;
-                });
+                this.transferRequests = transferRequests.map(req =>
+                    this.normalizeTransferRequest(req)
+                );
+                this.submittedTransferRequests = submittedTransferRequests.map(req =>
+                    this.normalizeTransferRequest(req)
+                );
 
                 this.appointments = appts.map(appt => {
                     const clone = { ...appt };
@@ -2891,6 +2894,47 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             .finally(() => {
                 this.isLoading = false;
             });
+    }
+
+    normalizeTransferRequest(req) {
+        const clone = { ...req };
+        const parts = [
+            req.street,
+            req.city,
+            req.state,
+            req.postalCode,
+            req.country
+        ].filter(Boolean);
+
+        clone.fullAddress = parts.join(', ');
+
+        const statusMeta = this.getTransferStatusMeta(req);
+        clone.statusLabel = statusMeta.statusLabel;
+        clone.statusClass = statusMeta.statusClass;
+        clone.rejectionReason = req.rejectionReason;
+
+        return clone;
+    }
+
+    getTransferStatusMeta(req) {
+        if (req.acceptedOn) {
+            return {
+                statusLabel: 'Accepted',
+                statusClass: 'sfs-status sfs-status_success'
+            };
+        }
+
+        if (req.rejectedOn) {
+            return {
+                statusLabel: 'Rejected',
+                statusClass: 'sfs-status sfs-status_error'
+            };
+        }
+
+        return {
+            statusLabel: 'Pending',
+            statusClass: 'sfs-status sfs-status_pending'
+        };
     }
 
     getEventTypeClass(workTypeName) {
