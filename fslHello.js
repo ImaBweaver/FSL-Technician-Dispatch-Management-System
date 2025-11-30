@@ -1378,16 +1378,51 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         } else if (this.dragMode === 'wo') {
             const workOrderId = this.draggingWorkOrderId;
             if (workOrderId) {
-                const dropLocal =
+                const dayEl = this.template.querySelector(
+                    `.sfs-calendar-day[data-day-index="${finalDayIndex}"]`
+                );
+                const dayBodyEl = dayEl
+                    ? dayEl.querySelector('.sfs-calendar-day-body')
+                    : null;
+                const bodyRect = dayBodyEl
+                    ? dayBodyEl.getBoundingClientRect()
+                    : null;
+
+                let dropLocal =
                     this.dragPreviewLocal != null
                         ? new Date(this.dragPreviewLocal)
-                        : (() => {
-                              const fallback = new Date(baseDay);
-                              fallback.setHours(9, 0, 0, 0);
-                              const millisDelta = hoursDelta * 60 * 60 * 1000;
-                              fallback.setTime(fallback.getTime() + millisDelta);
-                              return fallback;
-                          })();
+                        : null;
+
+                if (bodyRect) {
+                    const usableHeight =
+                        bodyRect.height || this.dragDayBodyHeight || 1;
+                    const startHour = this.calendarStartHour;
+                    const totalHours =
+                        this.calendarEndHour - this.calendarStartHour;
+
+                    const relativeY = Math.max(
+                        0,
+                        Math.min(
+                            usableHeight,
+                            clientY - (bodyRect.top || 0)
+                        )
+                    );
+
+                    const hourFraction =
+                        startHour + (relativeY / usableHeight) * totalHours;
+                    const hours = Math.floor(hourFraction);
+                    const minutes = Math.round((hourFraction - hours) * 60);
+
+                    dropLocal = new Date(baseDay);
+                    dropLocal.setHours(hours, minutes, 0, 0);
+                }
+
+                if (!dropLocal) {
+                    dropLocal = new Date(baseDay);
+                    dropLocal.setHours(9, 0, 0, 0);
+                    const millisDelta = hoursDelta * 60 * 60 * 1000;
+                    dropLocal.setTime(dropLocal.getTime() + millisDelta);
+                }
 
                 const minutes = dropLocal.getMinutes();
                 const roundedMinutes = Math.round(minutes / 15) * 15;
@@ -2679,7 +2714,16 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     handleRequestReschedule(event) {
-        const workOrderId = event.currentTarget.dataset.woid;
+        let workOrderId = event.currentTarget.dataset.woid;
+
+        // Fallback to appointment lookup when only the appointment id is present
+        if (!workOrderId && event.currentTarget.dataset.id) {
+            const appt = this.appointments.find(
+                a => a.appointmentId === event.currentTarget.dataset.id
+            );
+            workOrderId = appt ? appt.workOrderId : null;
+        }
+
         if (!workOrderId) {
             return;
         }
@@ -2833,6 +2877,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     'Transfer rejected',
                     'The requester will be notified of the rejection reason.',
                     'success'
+                );
+                this.transferRequests = (this.transferRequests || []).filter(
+                    req => req.transferRequestId !== this.rejectRequestId
                 );
                 this.closeRejectModal();
                 return this.loadAppointments();
