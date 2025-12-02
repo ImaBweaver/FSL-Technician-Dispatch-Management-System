@@ -308,33 +308,54 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     get quotesCount() {
-        return this.ownedAppointments.filter(appt =>
-            this.isQuoteStatus(appt.workOrderStatus)
-        ).length;
+        return (
+            this.ownedAppointments.filter(appt =>
+                this.isQuoteStatus(appt.workOrderStatus)
+            ).length + this.quoteWorkOrders.length
+        );
     }
 
     get needQuoteCount() {
-        return this.ownedAppointments.filter(appt =>
-            appt.workOrderStatus === 'Need Quote'
-        ).length;
+        return (
+            this.ownedAppointments.filter(appt =>
+                appt.workOrderStatus === 'Need Quote'
+            ).length +
+            this.quoteWorkOrders.filter(wo => wo.workOrderStatus === 'Need Quote')
+                .length
+        );
     }
 
     get poRequestedCount() {
-        return this.ownedAppointments.filter(appt =>
-            appt.workOrderStatus === 'PO Requested'
-        ).length;
+        return (
+            this.ownedAppointments.filter(appt =>
+                appt.workOrderStatus === 'PO Requested'
+            ).length +
+            this.quoteWorkOrders.filter(
+                wo => wo.workOrderStatus === 'PO Requested'
+            ).length
+        );
     }
 
     get quoteSentCount() {
-        return this.ownedAppointments.filter(appt =>
-            appt.workOrderStatus === 'Quote Sent'
-        ).length;
+        return (
+            this.ownedAppointments.filter(appt =>
+                appt.workOrderStatus === 'Quote Sent'
+            ).length +
+            this.quoteWorkOrders.filter(
+                wo => wo.workOrderStatus === 'Quote Sent'
+            ).length
+        );
     }
 
     get quoteAttachedCount() {
-        return this.ownedAppointments.filter(appt =>
-            this.isQuoteAttachedAppointment(appt)
-        ).length;
+        return (
+            this.ownedAppointments.filter(appt =>
+                this.isQuoteAttachedAppointment(appt)
+            ).length +
+            this.quoteWorkOrders.filter(wo =>
+                this.isQuoteAttachedAppointment(wo)
+            ).length
+        );
     }
 
     get visibleAppointments() {
@@ -452,6 +473,17 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 workOrderSubject: wo.subject,
                 accountName: wo.accountName,
                 fullAddress: wo.fullAddress,
+                opportunityRecordType: wo.opportunityRecordType,
+                quoteAttachmentUrl: wo.quoteAttachmentDownloadUrl || null,
+                quoteAttachmentDocumentId:
+                    wo.quoteAttachmentDocumentId || null,
+                hasQuoteAttachment: Boolean(
+                    wo.hasQuoteAttachment || wo.quoteAttachmentDocumentId
+                ),
+                showQuoteActions:
+                    wo.status === 'Quote Sent' ||
+                    this.isQuoteAttachedAppointment(wo),
+                showMarkQuoteSentAction: this.isQuoteAttachedAppointment(wo),
                 isExpanded: false,
                 workTypeName: 'Work Order',
                 workTypeClass: 'sfs-worktype'
@@ -466,6 +498,28 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         return status.startsWith('quote attached') ||
             (status === 'need quote' && hasAttachment);
+    }
+
+    findAppointmentByCardId(cardId) {
+        if (!cardId) {
+            return null;
+        }
+
+        const visible = (this.visibleAppointments || []).find(
+            a => a.cardId === cardId
+        );
+        if (visible) {
+            return visible;
+        }
+
+        const apptMatch = (this.appointments || []).find(
+            a => a.cardId === cardId || a.appointmentId === cardId
+        );
+        if (apptMatch) {
+            return apptMatch;
+        }
+
+        return (this.quoteWorkOrders || []).find(wo => wo.cardId === cardId);
     }
 
     get hasSelectedAppointment() {
@@ -2361,14 +2415,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     handleQuoteAttachmentClick(event) {
         event.preventDefault();
 
-        const appointmentId = event.currentTarget.dataset.id;
-        if (!appointmentId) {
+        const cardId = event.currentTarget.dataset.id;
+        if (!cardId) {
             return;
         }
 
-        const appt = (this.appointments || []).find(
-            a => a.appointmentId === appointmentId
-        );
+        const appt = this.findAppointmentByCardId(cardId);
 
         if (!appt) {
             return;
@@ -2766,7 +2818,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         if (!id) {
             return;
         }
-        const appt = this.appointments.find(a => a.appointmentId === id);
+        const appt = this.findAppointmentByCardId(id);
 
         window.clearTimeout(this._closeTimeout);
         this.isDetailClosing = false;
