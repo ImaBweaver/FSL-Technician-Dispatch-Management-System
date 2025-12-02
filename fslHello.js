@@ -478,7 +478,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 quoteAttachmentDocumentId:
                     wo.quoteAttachmentDocumentId || null,
                 hasQuoteAttachment: Boolean(
-                    wo.hasQuoteAttachment || wo.quoteAttachmentDocumentId
+                    wo.hasQuoteAttachment ||
+                        wo.quoteAttachmentDownloadUrl ||
+                        wo.quoteAttachmentDocumentId
                 ),
                 showQuoteActions:
                     wo.status === 'Quote Sent' ||
@@ -491,9 +493,15 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     isQuoteAttachedAppointment(appt) {
-        const status = (appt.workOrderStatus || '').toLowerCase();
+        const status = (
+            appt.workOrderStatus ||
+            appt.status ||
+            ''
+        ).toLowerCase();
         const hasAttachment = appt.hasQuoteAttachment || Boolean(
-            appt.quoteAttachmentUrl || appt.quoteAttachmentDocumentId
+            appt.quoteAttachmentUrl ||
+                appt.quoteAttachmentDownloadUrl ||
+                appt.quoteAttachmentDocumentId
         );
 
         return status.startsWith('quote attached') ||
