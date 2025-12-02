@@ -33,6 +33,7 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public Boolean somePartsEnRoute;
         @AuraEnabled public Boolean hasQuoteAttachment;
         @AuraEnabled public String quoteAttachmentDownloadUrl;
+        @AuraEnabled public Id quoteAttachmentDocumentId;
         @AuraEnabled public String opportunityRecordType;
 
         @AuraEnabled public Id serviceCrewId;
@@ -315,9 +316,11 @@ public with sharing class FslTechnicianOnlineController {
         // Track Work Orders with an attachment (for quote tracking)
         Set<Id> workOrdersWithAttachment = new Set<Id>();
         Map<Id, String> quoteDownloadByWo = new Map<Id, String>();
+        Map<Id, Id> quoteDocIdByWo = new Map<Id, Id>();
         if (!workOrderIds.isEmpty()) {
             for (ContentDocumentLink cdl : [
                 SELECT LinkedEntityId,
+                    ContentDocumentId,
                     ContentDocument.FileExtension,
                     ContentDocument.LatestPublishedVersionId
                 FROM ContentDocumentLink
@@ -333,8 +336,15 @@ public with sharing class FslTechnicianOnlineController {
                         quoteDownloadByWo.put(
                             cdl.LinkedEntityId,
                             '/sfc/servlet.shepherd/document/download/' +
-                                cdl.ContentDocument.LatestPublishedVersionId
+                                cdl.ContentDocumentId
                         );
+
+                        if (cdl.ContentDocumentId != null) {
+                            quoteDocIdByWo.put(
+                                cdl.LinkedEntityId,
+                                cdl.ContentDocumentId
+                            );
+                        }
                     }
                 }
             }
@@ -343,6 +353,7 @@ public with sharing class FslTechnicianOnlineController {
         if (!opportunityIds.isEmpty()) {
             for (ContentDocumentLink cdl : [
                 SELECT LinkedEntityId,
+                    ContentDocumentId,
                     ContentDocument.FileExtension,
                     ContentDocument.LatestPublishedVersionId
                 FROM ContentDocumentLink
@@ -361,8 +372,15 @@ public with sharing class FslTechnicianOnlineController {
                             quoteDownloadByWo.put(
                                 woId,
                                 '/sfc/servlet.shepherd/document/download/' +
-                                    cdl.ContentDocument.LatestPublishedVersionId
+                                    cdl.ContentDocumentId
                             );
+
+                            if (cdl.ContentDocumentId != null) {
+                                quoteDocIdByWo.put(
+                                    woId,
+                                    cdl.ContentDocumentId
+                                );
+                            }
                         }
                     }
                 }
@@ -520,6 +538,10 @@ public with sharing class FslTechnicianOnlineController {
             dto.quoteAttachmentDownloadUrl = (sa.Work_Order__c != null &&
                 quoteDownloadByWo.containsKey(sa.Work_Order__c))
                     ? quoteDownloadByWo.get(sa.Work_Order__c)
+                    : null;
+            dto.quoteAttachmentDocumentId = (sa.Work_Order__c != null &&
+                quoteDocIdByWo.containsKey(sa.Work_Order__c))
+                    ? quoteDocIdByWo.get(sa.Work_Order__c)
                     : null;
 
             dto.hasQuoteAttachment = hasAttachment ||
