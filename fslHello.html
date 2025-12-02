@@ -353,6 +353,16 @@
                                                 <span class="sfs-value">{appt.accountName}</span>
                                             </p>
 
+                                            <!-- Opportunity Record Type -->
+                                            <template if:true={appt.opportunityRecordType}>
+                                                <p class="sfs-line">
+                                                    <span class="sfs-label">Opportunity</span>
+                                                    <span class="sfs-value">
+                                                        {appt.opportunityRecordType}
+                                                    </span>
+                                                </p>
+                                            </template>
+
                                             <!-- Address -->
                                             <template if:true={appt.fullAddress}>
                                                 <p class="sfs-line sfs-line_address">

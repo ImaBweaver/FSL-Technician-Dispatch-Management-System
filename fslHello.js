@@ -1775,10 +1775,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     clone.quoteAttachmentUrl = appt.quoteAttachmentDownloadUrl || null;
                     clone.hasQuoteAttachment = Boolean(
                         appt.hasQuoteAttachment ||
-                            appt.workOrderStatus === 'Quote Attached')
-                    clone.hasQuoteAttachment = Boolean(
-                        appt.hasQuoteAttachment
+                            appt.workOrderStatus === 'Quote Attached'
                     );
+                    clone.opportunityRecordType = appt.opportunityRecordType || null;
 
                     return clone;
                 });
