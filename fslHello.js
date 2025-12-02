@@ -2441,26 +2441,69 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         if (docId) {
             // Use the native file previewer so the experience matches opening the
-            // attachment from the Files related list in the mobile app.
-            this[NavigationMixin.Navigate]({
-                type: 'standard__namedPage',
-                attributes: {
-                    pageName: 'filePreview'
-                },
-                state: {
-                    recordIds: docId,
-                    selectedRecordId: docId
+            // attachment from the Files related list in the mobile app. If
+            // navigation fails (e.g. invalid record id for preview), fall back
+            // to the raw download URL so the tech can still access the file.
+            try {
+                const navPromise = this[NavigationMixin.Navigate]({
+                    type: 'standard__namedPage',
+                    attributes: {
+                        pageName: 'filePreview'
+                    },
+                    state: {
+                        recordIds: docId,
+                        selectedRecordId: docId
+                    }
+                });
+
+                if (navPromise && typeof navPromise.catch === 'function') {
+                    navPromise.catch(() => this.navigateToDownload(downloadUrl));
                 }
-            });
+            } catch (err) {
+                this.navigateToDownload(downloadUrl);
+            }
+
             return;
         }
 
-        if (downloadUrl) {
-            this[NavigationMixin.Navigate]({
-                type: 'standard__webPage',
-                attributes: { url: downloadUrl }
-            });
+        this.navigateToDownload(downloadUrl);
+    }
+
+    navigateToDownload(downloadUrl) {
+        if (!downloadUrl) {
+            return;
         }
+
+        this[NavigationMixin.Navigate]({
+            type: 'standard__webPage',
+            attributes: { url: downloadUrl }
+        });
+    }
+
+    normalizeDownloadUrl(url) {
+        if (!url) {
+            return null;
+        }
+
+        // Mobile apps require absolute URLs; the server returns a relative path
+        // (e.g. "/sfc/servlet.shepherd/document/download/<docId>"). Prefix with
+        // the current origin so the in-app browser can resolve it.
+        if (url.startsWith('/')) {
+            return `${window.location.origin}${url}`;
+        }
+
+        return url;
+    }
+
+    extractContentDocumentId(url) {
+        if (!url) {
+            return null;
+        }
+
+        // Extract the 15 or 18 character ContentDocumentId from a shepherd
+        // download or view URL so we can open the native file preview.
+        const match = url.match(/\/document\/(?:download|view)\/([a-zA-Z0-9]{15,18})/);
+        return match ? match[1] : null;
     }
 
     normalizeDownloadUrl(url) {
