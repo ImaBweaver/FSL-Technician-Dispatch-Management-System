@@ -2437,6 +2437,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const docId =
             appt.quoteAttachmentDocumentId ||
             this.extractContentDocumentId(appt.quoteAttachmentUrl);
+        const quoteDownloadUrl =
         const downloadUrl =
             this.normalizeDownloadUrl(appt.quoteAttachmentUrl) ||
             this.buildDownloadUrlFromDocId(docId);
@@ -2460,6 +2461,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
                 if (navPromise && typeof navPromise.catch === 'function') {
                     navPromise.catch(error =>
+                        this.handleNavigationError(quoteDownloadUrl, error)
+                    );
+                }
+            } catch (err) {
+                this.handleNavigationError(quoteDownloadUrl, err);
                         this.handleNavigationError(downloadUrl, error)
                     );
                 }
@@ -2470,6 +2476,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
+        this.navigateToDownload(quoteDownloadUrl);
         this.navigateToDownload(downloadUrl);
     }
 
@@ -2517,6 +2524,16 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     buildDownloadUrlFromDocId(docId) {
         if (!docId) {
             return null;
+        }
+
+        return `${window.location.origin}/sfc/servlet.shepherd/document/download/${docId}`;
+    }
+
+    extractContentDocumentId(url) {
+        if (!url) {
+            return null;
+        }
+
         }
 
         return `${window.location.origin}/sfc/servlet.shepherd/document/download/${docId}`;
