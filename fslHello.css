@@ -175,6 +175,21 @@
     text-overflow: ellipsis;
 }
 
+.sfs-opportunity-pill {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    border-radius: 999px;
+    background: #f2f7ff;
+    border: 1px solid #cfdaf5;
+    color: #2c4b8f;
+    max-width: 60%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 
 .sfs-worktype {
     display: inline-block;
@@ -247,10 +262,54 @@
     margin: 0 auto;
 }
 
+.sfs-quote-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    margin: 0.6rem 0;
+}
+
+.sfs-quote-download {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.65rem;
+    border-radius: 0.5rem;
+    border: 1px solid #d0d7e3;
+    background: #f6f8fb;
+    text-decoration: none;
+    color: #1b5297;
+    font-weight: 600;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.sfs-quote-download:hover {
+    background: #eaf1ff;
+}
+
+.sfs-quote-download__icon {
+    --sds-c-icon-color-foreground: #1b5297;
+}
+
+.sfs-quote-action-button {
+    --slds-c-button-brand-font-size: 0.85rem;
+    --slds-c-button-brand-line-height: 1.8rem;
+    --slds-c-button-brand-spacing-inline-start: 0.75rem;
+    --slds-c-button-brand-spacing-inline-end: 0.75rem;
+}
+
 .sfs-actions {
     display: flex;
     justify-content: flex-end;
     margin-top: 0.5rem;
+}
+
+.sfs-transfer-request-btn {
+    --slds-c-button-destructive-text-font-size: 0.85rem;
+    --slds-c-button-destructive-text-line-height: 1.6rem;
+    --slds-c-button-destructive-text-spacing-inline-start: 0.35rem;
+    --slds-c-button-destructive-text-spacing-inline-end: 0.35rem;
 }
 
 .sfs-transfer-actions {

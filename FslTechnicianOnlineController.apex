@@ -1186,6 +1186,24 @@ public with sharing class FslTechnicianOnlineController {
     }
 
     @AuraEnabled
+    public static void markWorkOrderQuoteSent(Id workOrderId) {
+        if (workOrderId == null) {
+            throw new AuraHandledException('Work Order Id is required.');
+        }
+
+        WorkOrder wo = [
+            SELECT Id, Status
+            FROM WorkOrder
+            WHERE Id = :workOrderId
+            LIMIT 1
+            FOR UPDATE
+        ];
+
+        wo.Status = 'Quote Sent';
+        update wo;
+    }
+
+    @AuraEnabled
     public static void createEngineerTransferRequest(
         Id workOrderId,
         Id targetUserId

@@ -293,6 +293,12 @@
                                                 {appt.workTypeName}
                                             </span>
 
+                                            <template if:true={appt.opportunityRecordType}>
+                                                <span class="sfs-opportunity-pill">
+                                                    {appt.opportunityRecordType}
+                                                </span>
+                                            </template>
+
                                             <template if:true={appt.makeModel}>
                                                 <span class="sfs-makemodel-pill">
                                                     {appt.makeModel}
@@ -338,6 +344,38 @@
                                                 {appt.workOrderSubject}
                                             </button>
 
+                                            <template if:true={showQuoteActions}>
+                                                <div class="sfs-quote-bar">
+                                                    <template if:true={appt.quoteAttachmentUrl}>
+                                                        <a
+                                                            href={appt.quoteAttachmentUrl}
+                                                            target="_blank"
+                                                            rel="noopener"
+                                                            class="sfs-quote-download"
+                                                        >
+                                                            <lightning-icon
+                                                                icon-name="utility:download"
+                                                                size="x-small"
+                                                                class="sfs-quote-download__icon"
+                                                            ></lightning-icon>
+                                                            <span class="sfs-quote-download__label">
+                                                                Download Quote
+                                                            </span>
+                                                        </a>
+                                                    </template>
+
+                                                    <template if:true={showMarkQuoteSentAction}>
+                                                        <lightning-button
+                                                            variant="brand"
+                                                            label="Mark Quote Sent"
+                                                            data-woid={appt.workOrderId}
+                                                            onclick={handleMarkQuoteSent}
+                                                            class="sfs-quote-action-button"
+                                                        ></lightning-button>
+                                                    </template>
+                                                </div>
+                                            </template>
+
 
                                             <!-- Make / Model row -->
                                             <template if:true={appt.makeModel}>
@@ -352,16 +390,6 @@
                                                 <span class="sfs-label">Account</span>
                                                 <span class="sfs-value">{appt.accountName}</span>
                                             </p>
-
-                                            <!-- Opportunity Record Type -->
-                                            <template if:true={appt.opportunityRecordType}>
-                                                <p class="sfs-line">
-                                                    <span class="sfs-label">Opportunity</span>
-                                                    <span class="sfs-value">
-                                                        {appt.opportunityRecordType}
-                                                    </span>
-                                                </p>
-                                            </template>
 
                                             <!-- Address -->
                                             <template if:true={appt.fullAddress}>
@@ -546,6 +574,7 @@
                                                     data-woid={appt.workOrderId}
                                                     data-id={appt.appointmentId}
                                                     onclick={handleRequestReschedule}
+                                                    class="sfs-transfer-request-btn"
                                                 >
                                                 </lightning-button>
                                             </div>
