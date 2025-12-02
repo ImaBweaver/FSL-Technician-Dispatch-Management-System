@@ -11,6 +11,7 @@ import getTerritoryResources from '@salesforce/apex/FslTechnicianOnlineControlle
 import createEngineerTransferRequest from '@salesforce/apex/FslTechnicianOnlineController.createEngineerTransferRequest';
 import acceptEngineerTransferRequest from '@salesforce/apex/FslTechnicianOnlineController.acceptEngineerTransferRequest';
 import rejectEngineerTransferRequest from '@salesforce/apex/FslTechnicianOnlineController.rejectEngineerTransferRequest';
+import markWorkOrderQuoteSent from '@salesforce/apex/FslTechnicianOnlineController.markWorkOrderQuoteSent';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
 export default class FslHello extends NavigationMixin(LightningElement) {
@@ -488,6 +489,14 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return this.isQuoteAttachedMode
             ? 'sfs-mode-btn sfs-mode-btn_active'
             : 'sfs-mode-btn';
+    }
+
+    get showQuoteActions() {
+        return this.isQuoteAttachedMode || this.isQuoteSentMode;
+    }
+
+    get showMarkQuoteSentAction() {
+        return this.isQuoteAttachedMode;
     }
 
     get isCrewMode() {
@@ -2295,6 +2304,46 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
         this.listMode = mode;
+    }
+
+    handleMarkQuoteSent(event) {
+        const workOrderId = event.target.dataset.woid;
+        if (!workOrderId) {
+            return;
+        }
+
+        this.checkOnline();
+        if (this.isOffline) {
+            this.showToast(
+                'Offline',
+                'You must be online to update the work order status.',
+                'warning'
+            );
+            return;
+        }
+
+        this.isLoading = true;
+
+        markWorkOrderQuoteSent({ workOrderId })
+            .then(() => {
+                this.showToast(
+                    'Status updated',
+                    'Work order marked as Quote Sent.',
+                    'success'
+                );
+                return this.loadAppointments();
+            })
+            .catch(error => {
+                const message = this.reduceError(error);
+                this.debugInfo = {
+                    note: 'Error calling markWorkOrderQuoteSent',
+                    errorMessage: message
+                };
+                this.showToast('Error updating status', message, 'error');
+            })
+            .finally(() => {
+                this.isLoading = false;
+            });
     }
 
     handleMyStatusChange(event) {
