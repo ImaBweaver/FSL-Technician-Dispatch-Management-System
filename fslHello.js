@@ -2458,7 +2458,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         if (downloadUrl) {
-            window.open(downloadUrl, '_blank');
+            this[NavigationMixin.Navigate]({
+                type: 'standard__webPage',
+                attributes: { url: downloadUrl }
+            });
         }
     }
 
