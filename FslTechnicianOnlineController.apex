@@ -32,6 +32,7 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public Boolean allPartsEnRoute;
         @AuraEnabled public Boolean somePartsEnRoute;
         @AuraEnabled public Boolean hasQuoteAttachment;
+        @AuraEnabled public String quoteAttachmentDownloadUrl;
 
         @AuraEnabled public Id serviceCrewId;
         @AuraEnabled public List<CrewMemberDTO> crewMembers;
@@ -285,6 +286,12 @@ public with sharing class FslTechnicianOnlineController {
 
         // Track Work Orders with a PDF attachment (for quote tracking)
         Set<Id> workOrdersWithPdf = new Set<Id>();
+        Map<Id, String> quoteDownloadByWo = new Map<Id, String>();
+        if (!workOrderIds.isEmpty()) {
+            for (ContentDocumentLink cdl : [
+                SELECT LinkedEntityId,
+                    ContentDocument.FileExtension,
+                    ContentDocument.LatestPublishedVersionId
         if (!workOrderIds.isEmpty()) {
             for (ContentDocumentLink cdl : [
                 SELECT LinkedEntityId, ContentDocument.FileExtension
@@ -294,6 +301,17 @@ public with sharing class FslTechnicianOnlineController {
             ]) {
                 if (cdl.LinkedEntityId != null) {
                     workOrdersWithPdf.add(cdl.LinkedEntityId);
+
+                    if (cdl.ContentDocument != null &&
+                        String.isNotBlank(cdl.ContentDocument.LatestPublishedVersionId) &&
+                        !quoteDownloadByWo.containsKey(cdl.LinkedEntityId)) {
+
+                        quoteDownloadByWo.put(
+                            cdl.LinkedEntityId,
+                            '/sfc/servlet.shepherd/document/download/' +
+                                cdl.ContentDocument.LatestPublishedVersionId
+                        );
+                    }
                 }
             }
         }
@@ -442,6 +460,17 @@ public with sharing class FslTechnicianOnlineController {
                 dto.allPartsEnRoute  = false;
                 dto.somePartsEnRoute = false;
             }
+
+            Boolean hasPdfAttachment =
+                (sa.Work_Order__c != null && workOrdersWithPdf.contains(sa.Work_Order__c));
+
+            dto.quoteAttachmentDownloadUrl = (sa.Work_Order__c != null &&
+                quoteDownloadByWo.containsKey(sa.Work_Order__c))
+                    ? quoteDownloadByWo.get(sa.Work_Order__c)
+                    : null;
+
+            dto.hasQuoteAttachment = hasPdfAttachment ||
+                (dto.workOrderStatus == 'Quote Attached');
 
             dto.hasQuoteAttachment =
                 (sa.Work_Order__c != null && workOrdersWithPdf.contains(sa.Work_Order__c));

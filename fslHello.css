@@ -204,6 +204,26 @@
     margin: 0.1rem 0;
 }
 
+.sfs-wo-line {
+    align-items: center;
+}
+
+.sfs-attachment-link {
+    display: flex;
+    align-items: center;
+    color: var(--lwc-colorTextIconDefault, #1b5297);
+}
+
+.sfs-attachment-link:hover,
+.sfs-attachment-link:focus {
+    color: var(--lwc-colorTextIconDefault, #1b5297);
+    text-decoration: none;
+}
+
+.sfs-attachment-icon {
+    --sds-c-icon-color-foreground-default: currentColor;
+}
+
 .sfs-label {
     font-weight: 600;
 }
@@ -299,11 +319,13 @@
 
 .sfs-list-mode {
     margin-bottom: 0.4rem;
-    display: inline-flex;
+    display: flex;
+    flex-wrap: wrap;
     padding: 0.1rem;
     border-radius: 999px;
     background: #e5e5e5;
     gap: 0.1rem;
+    overflow-x: auto;
 }
 
 
