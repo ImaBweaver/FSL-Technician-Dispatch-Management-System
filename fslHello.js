@@ -111,6 +111,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     listMode = 'my';
 
     quoteStatuses = ['Need Quote', 'PO Requested', 'Quote Sent', 'Quote Attached'];
+    quoteStatuses = ['Need Quote', 'PO Requested', 'Quote Sent'];
 
     // My-tab status filter (WorkOrder.Status)
     selectedMyStatus = 'all';
@@ -330,6 +331,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     get quoteAttachedCount() {
         return this.ownedAppointments.filter(appt =>
             this.isQuoteAttachedAppointment(appt)
+    get quoteAttachedCount() {
+        return this.ownedAppointments.filter(
+            appt =>
+                appt.workOrderStatus === 'Need Quote' && appt.hasQuoteAttachment
         ).length;
     }
 
@@ -380,6 +385,14 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             case 'quoteAttached':
                 baseList = this.ownedAppointments.filter(appt =>
                     this.isQuoteAttachedAppointment(appt)
+                );
+                break;
+
+            case 'quoteAttached':
+                baseList = this.ownedAppointments.filter(
+                    appt =>
+                        appt.workOrderStatus === 'Need Quote' &&
+                        appt.hasQuoteAttachment
                 );
                 break;
 
@@ -1776,6 +1789,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     clone.hasQuoteAttachment = Boolean(
                         appt.hasQuoteAttachment ||
                             appt.workOrderStatus === 'Quote Attached'
+                    clone.hasQuoteAttachment = Boolean(
+                        appt.hasQuoteAttachment
                     );
 
                     return clone;

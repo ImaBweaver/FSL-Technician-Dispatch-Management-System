@@ -292,6 +292,9 @@ public with sharing class FslTechnicianOnlineController {
                 SELECT LinkedEntityId,
                     ContentDocument.FileExtension,
                     ContentDocument.LatestPublishedVersionId
+        if (!workOrderIds.isEmpty()) {
+            for (ContentDocumentLink cdl : [
+                SELECT LinkedEntityId, ContentDocument.FileExtension
                 FROM ContentDocumentLink
                 WHERE LinkedEntityId IN :workOrderIds
                     AND ContentDocument.FileExtension = 'pdf'
@@ -468,6 +471,9 @@ public with sharing class FslTechnicianOnlineController {
 
             dto.hasQuoteAttachment = hasPdfAttachment ||
                 (dto.workOrderStatus == 'Quote Attached');
+
+            dto.hasQuoteAttachment =
+                (sa.Work_Order__c != null && workOrdersWithPdf.contains(sa.Work_Order__c));
 
             results.add(dto);
         }
