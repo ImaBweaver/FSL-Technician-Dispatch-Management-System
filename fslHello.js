@@ -409,13 +409,13 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     isQuoteAttachedAppointment(appt) {
-        const status = appt.workOrderStatus;
+        const status = (appt.workOrderStatus || '').toLowerCase();
         const hasAttachment = appt.hasQuoteAttachment || Boolean(
             appt.quoteAttachmentUrl
         );
 
-        return status === 'Quote Attached' ||
-            (status === 'Need Quote' && hasAttachment);
+        return status.startsWith('quote attached') ||
+            (status === 'need quote' && hasAttachment);
     }
 
     get hasSelectedAppointment() {
