@@ -110,6 +110,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     // list sub-modes: 'my', 'crew', 'partsReady', 'fulfilling'
     listMode = 'my';
 
+    quoteStatuses = ['Need Quote', 'PO Requested', 'Quote Sent', 'Quote Attached'];
+
     // My-tab status filter (WorkOrder.Status)
     selectedMyStatus = 'all';
 
@@ -285,6 +287,34 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return [{ label: 'All', value: 'all' }, ...options];
     }
 
+    get ownedAppointments() {
+        if (!this.appointments) return [];
+
+        const anyFlagged = this.appointments.some(
+            a => a.isMyAssignment || a.isCrewAssignment
+        );
+
+        if (anyFlagged) {
+            return this.appointments.filter(
+                a => a.isMyAssignment && !a.isCrewAssignment
+            );
+        }
+
+        return this.appointments;
+    }
+
+    get quotesCount() {
+        return this.ownedAppointments.filter(appt =>
+            this.isQuoteStatus(appt.workOrderStatus)
+        ).length;
+    }
+
+    get quoteAttachedCount() {
+        return this.ownedAppointments.filter(appt =>
+            this.isQuoteAttachedAppointment(appt)
+        ).length;
+    }
+
     get visibleAppointments() {
         if (!this.appointments) return [];
 
@@ -305,19 +335,21 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 );
                 break;
 
+            case 'quotes':
+                baseList = this.ownedAppointments.filter(appt =>
+                    this.isQuoteStatus(appt.workOrderStatus)
+                );
+                break;
+
+            case 'quoteAttached':
+                baseList = this.ownedAppointments.filter(appt =>
+                    this.isQuoteAttachedAppointment(appt)
+                );
+                break;
+
             case 'my':
             default: {
-                const anyFlagged = this.appointments.some(
-                    a => a.isMyAssignment || a.isCrewAssignment
-                );
-
-                if (anyFlagged) {
-                    baseList = this.appointments.filter(
-                        a => a.isMyAssignment && !a.isCrewAssignment
-                    );
-                } else {
-                    baseList = this.appointments;
-                }
+                baseList = this.ownedAppointments;
                 break;
             }
         }
@@ -333,6 +365,20 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         return baseList;
+    }
+
+    isQuoteStatus(status) {
+        return this.quoteStatuses.includes(status);
+    }
+
+    isQuoteAttachedAppointment(appt) {
+        const status = appt.workOrderStatus;
+        const hasAttachment = appt.hasQuoteAttachment || Boolean(
+            appt.quoteAttachmentUrl
+        );
+
+        return status === 'Quote Attached' ||
+            (status === 'Need Quote' && hasAttachment);
     }
 
     get hasSelectedAppointment() {
@@ -354,6 +400,26 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     get listMyModeClass() {
         return this.listMode === 'my'
+            ? 'sfs-mode-btn sfs-mode-btn_active'
+            : 'sfs-mode-btn';
+    }
+
+    get isQuotesMode() {
+        return this.listMode === 'quotes';
+    }
+
+    get listQuotesModeClass() {
+        return this.isQuotesMode
+            ? 'sfs-mode-btn sfs-mode-btn_active'
+            : 'sfs-mode-btn';
+    }
+
+    get isQuoteAttachedMode() {
+        return this.listMode === 'quoteAttached';
+    }
+
+    get listQuoteAttachedModeClass() {
+        return this.isQuoteAttachedMode
             ? 'sfs-mode-btn sfs-mode-btn_active'
             : 'sfs-mode-btn';
     }
@@ -1639,6 +1705,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     }));
                     clone.selectedCrewMemberId = null;
                     clone.disableAssignTech = true;
+
+                    clone.quoteAttachmentUrl = appt.quoteAttachmentDownloadUrl || null;
+                    clone.hasQuoteAttachment = Boolean(
+                        appt.hasQuoteAttachment ||
+                            appt.workOrderStatus === 'Quote Attached'
+                    );
 
                     return clone;
                 });
