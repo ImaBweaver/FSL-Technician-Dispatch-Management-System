@@ -110,7 +110,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     // list sub-modes: 'my', 'crew', 'partsReady', 'fulfilling'
     listMode = 'my';
 
-    quoteStatuses = ['Need Quote', 'PO Requested', 'Quote Sent'];
+    quoteStatuses = ['Need Quote', 'PO Requested', 'Quote Sent', 'Quote Attached'];
 
     // My-tab status filter (WorkOrder.Status)
     selectedMyStatus = 'all';
@@ -310,9 +310,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     get quoteAttachedCount() {
-        return this.ownedAppointments.filter(
-            appt =>
-                appt.workOrderStatus === 'Need Quote' && appt.hasQuoteAttachment
+        return this.ownedAppointments.filter(appt =>
+            this.isQuoteAttachedAppointment(appt)
         ).length;
     }
 
@@ -343,10 +342,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 break;
 
             case 'quoteAttached':
-                baseList = this.ownedAppointments.filter(
-                    appt =>
-                        appt.workOrderStatus === 'Need Quote' &&
-                        appt.hasQuoteAttachment
+                baseList = this.ownedAppointments.filter(appt =>
+                    this.isQuoteAttachedAppointment(appt)
                 );
                 break;
 
@@ -372,6 +369,16 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     isQuoteStatus(status) {
         return this.quoteStatuses.includes(status);
+    }
+
+    isQuoteAttachedAppointment(appt) {
+        const status = appt.workOrderStatus;
+        const hasAttachment = appt.hasQuoteAttachment || Boolean(
+            appt.quoteAttachmentUrl
+        );
+
+        return status === 'Quote Attached' ||
+            (status === 'Need Quote' && hasAttachment);
     }
 
     get hasSelectedAppointment() {
@@ -1699,8 +1706,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     clone.selectedCrewMemberId = null;
                     clone.disableAssignTech = true;
 
+                    clone.quoteAttachmentUrl = appt.quoteAttachmentDownloadUrl || null;
                     clone.hasQuoteAttachment = Boolean(
-                        appt.hasQuoteAttachment
+                        appt.hasQuoteAttachment ||
+                            appt.workOrderStatus === 'Quote Attached'
                     );
 
                     return clone;

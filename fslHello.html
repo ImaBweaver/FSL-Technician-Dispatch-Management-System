@@ -286,7 +286,7 @@
 
                                         <div class="sfs-card-body">
                                             <!-- Subject opens the bottom sheet -->
-                                            <div class="sfs-line">
+                                            <div class="sfs-line sfs-wo-line">
                                                 <span class="sfs-label">WO #</span>
                                                 <span class="sfs-value">
                                                     <template if:true={appt.workOrderNumber}>
@@ -296,6 +296,21 @@
                                                         —
                                                     </template>
                                                 </span>
+                                                <template if:true={appt.quoteAttachmentUrl}>
+                                                    <a
+                                                        href={appt.quoteAttachmentUrl}
+                                                        target="_blank"
+                                                        rel="noopener"
+                                                        class="sfs-attachment-link"
+                                                        title="Download quote PDF"
+                                                    >
+                                                        <lightning-icon
+                                                            icon-name="utility:paperclip"
+                                                            size="x-small"
+                                                            class="sfs-attachment-icon"
+                                                        ></lightning-icon>
+                                                    </a>
+                                                </template>
                                             </div>
 
                                             <button
