@@ -228,6 +228,12 @@ public with sharing class FslTechnicianOnlineController {
 
         dbg.serviceAppointmentIds.addAll(saIds);
 
+        Map<Id, String> opportunityRecordTypeByWo = new Map<Id, String>();
+        Map<Id, Id> quoteDocIdByWo = new Map<Id, Id>();
+        Set<Id> workOrdersWithAttachment = new Set<Id>();
+        Map<Id, String> quoteDownloadByWo = new Map<Id, String>();
+        Set<Id> workOrdersWithThisTech = new Set<Id>();
+
         if (saIds.isEmpty()) {
             dbg.note   = 'No AssignedResource / ServiceAppointment rows for these resources / crews.';
             List<Engineer_Transfer_Request__c> pendingRequests =
@@ -235,11 +241,15 @@ public with sharing class FslTechnicianOnlineController {
             Set<Id> pendingTransferWoIds = extractWorkOrderIds(pendingRequests);
             wrapper.appointments = new List<AppointmentDTO>();
             wrapper.unscheduledWorkOrders = buildUnscheduledWorkOrders(
-                new Set<Id>(),
+                workOrdersWithThisTech,
                 userSrIds,
                 crewIds,
                 effectiveUserId,
-                pendingTransferWoIds
+                pendingTransferWoIds,
+                workOrdersWithAttachment,
+                quoteDownloadByWo,
+                quoteDocIdByWo,
+                opportunityRecordTypeByWo
             );
             wrapper.transferRequests = buildTransferRequests(pendingRequests);
             wrapper.submittedTransferRequests =
@@ -287,7 +297,7 @@ public with sharing class FslTechnicianOnlineController {
         Set<Id> workOrderIds = new Set<Id>();
         Set<Id> opportunityIds = new Set<Id>();
         Map<Id, List<Id>> workOrdersByOpportunity = new Map<Id, List<Id>>();
-        Map<Id, String> opportunityRecordTypeByWo = new Map<Id, String>();
+
 
         for (ServiceAppointment sa : appts) {
             if (sa.Work_Order__c != null) {
@@ -318,9 +328,8 @@ public with sharing class FslTechnicianOnlineController {
         dbg.workOrderIds.addAll(workOrderIds);
 
         // Track Work Orders with an attachment (for quote tracking)
-        Set<Id> workOrdersWithAttachment = new Set<Id>();
-        Map<Id, String> quoteDownloadByWo = new Map<Id, String>();
-        Map<Id, Id> quoteDocIdByWo = new Map<Id, Id>();
+
+
         if (!workOrderIds.isEmpty()) {
             for (ContentDocumentLink cdl : [
                 SELECT LinkedEntityId,
@@ -450,7 +459,7 @@ public with sharing class FslTechnicianOnlineController {
 
         // 6) Build Appointment DTOs
         List<AppointmentDTO> results = new List<AppointmentDTO>();
-        Set<Id> workOrdersWithThisTech = new Set<Id>();
+
 
         for (ServiceAppointment sa : appts) {
             AppointmentDTO dto        = new AppointmentDTO();
