@@ -2437,6 +2437,66 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const docId =
             appt.quoteAttachmentDocumentId ||
             this.extractContentDocumentId(appt.quoteAttachmentUrl);
+        const downloadUrl =
+            this.normalizeDownloadUrl(appt.quoteAttachmentUrl) ||
+            this.buildDownloadUrlFromDocId(docId);
+
+        if (docId) {
+            // Use the native file previewer so the experience matches opening the
+            // attachment from the Files related list in the mobile app. If
+            // navigation fails (e.g. invalid record id for preview), fall back
+            // to the raw download URL so the tech can still access the file.
+            try {
+                const navPromise = this[NavigationMixin.Navigate]({
+                    type: 'standard__namedPage',
+                    attributes: {
+                        pageName: 'filePreview'
+                    },
+                    state: {
+                        recordIds: docId,
+                        selectedRecordId: docId
+                    }
+                });
+
+                if (navPromise && typeof navPromise.catch === 'function') {
+                    navPromise.catch(error =>
+                        this.handleNavigationError(downloadUrl, error)
+                    );
+                }
+            } catch (err) {
+                this.handleNavigationError(downloadUrl, err);
+            }
+
+            return;
+        }
+
+        this.navigateToDownload(downloadUrl);
+    }
+
+    handleNavigationError(downloadUrl, error) {
+        // If we have a direct download URL, use it as a fallback so the tech
+        // can still view the quote file. Otherwise, surface a toast so the user
+        // knows navigation failed instead of seeing a generic routing error.
+        if (downloadUrl) {
+            this.navigateToDownload(downloadUrl);
+            return;
+        }
+
+        const message =
+            (error && (error.message || error.body?.message)) ||
+            'Unable to open the quote attachment.';
+        this.showToast('Navigation failed', message, 'error');
+    }
+
+    navigateToDownload(downloadUrl) {
+        if (!downloadUrl) {
+            return;
+        }
+
+        this[NavigationMixin.Navigate]({
+            type: 'standard__webPage',
+            attributes: { url: downloadUrl }
+        });
         const downloadUrl = this.normalizeDownloadUrl(appt.quoteAttachmentUrl);
 
         if (docId) {
@@ -2516,6 +2576,17 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         // the current origin so the in-app browser can resolve it.
         if (url.startsWith('/')) {
             return `${window.location.origin}${url}`;
+        }
+
+        return url;
+    }
+
+    buildDownloadUrlFromDocId(docId) {
+        if (!docId) {
+            return null;
+        }
+
+        return `${window.location.origin}/sfc/servlet.shepherd/document/download/${docId}`;
         }
 
         return url;
