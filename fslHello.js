@@ -491,14 +491,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             : 'sfs-mode-btn';
     }
 
-    get showQuoteActions() {
-        return this.isQuoteAttachedMode || this.isQuoteSentMode;
-    }
-
-    get showMarkQuoteSentAction() {
-        return this.isQuoteAttachedMode;
-    }
-
     get isCrewMode() {
         return this.listMode === 'crew';
     }
@@ -1785,6 +1777,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     clone.hasQuoteAttachment = Boolean(
                         appt.hasQuoteAttachment ||
                             appt.workOrderStatus === 'Quote Attached'
+                    );
+                    clone.showQuoteActions =
+                        clone.workOrderStatus === 'Quote Sent' ||
+                        this.isQuoteAttachedAppointment(clone);
+                    clone.showMarkQuoteSentAction = this.isQuoteAttachedAppointment(
+                        clone
                     );
                     clone.opportunityRecordType = appt.opportunityRecordType || null;
 

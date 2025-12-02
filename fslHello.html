@@ -344,7 +344,7 @@
                                                 {appt.workOrderSubject}
                                             </button>
 
-                                            <template if:true={showQuoteActions}>
+                                            <template if:true={appt.showQuoteActions}>
                                                 <div class="sfs-quote-bar">
                                                     <template if:true={appt.quoteAttachmentUrl}>
                                                         <a
@@ -364,7 +364,7 @@
                                                         </a>
                                                     </template>
 
-                                                    <template if:true={showMarkQuoteSentAction}>
+                                                    <template if:true={appt.showMarkQuoteSentAction}>
                                                         <lightning-button
                                                             variant="brand"
                                                             label="Mark Quote Sent"
