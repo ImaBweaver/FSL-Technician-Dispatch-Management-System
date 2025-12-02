@@ -28,6 +28,46 @@
                     </button>
                     <button
                         type="button"
+                        class={listQuotesModeClass}
+                        data-mode="quotes"
+                        onclick={handleListModeChange}
+                    >
+                        Quotes ({quotesCount})
+                    </button>
+                    <button
+                        type="button"
+                        class={listQuoteAttachedModeClass}
+                        data-mode="quoteAttached"
+                        onclick={handleListModeChange}
+                    >
+                        Quote Attached ({quoteAttachedCount})
+                    </button>
+                    <button
+                        type="button"
+                        class={listNeedQuoteModeClass}
+                        data-mode="needQuote"
+                        onclick={handleListModeChange}
+                    >
+                        Need Quote ({needQuoteCount})
+                    </button>
+                    <button
+                        type="button"
+                        class={listPoRequestedModeClass}
+                        data-mode="poRequested"
+                        onclick={handleListModeChange}
+                    >
+                        PO Requested ({poRequestedCount})
+                    </button>
+                    <button
+                        type="button"
+                        class={listQuoteSentModeClass}
+                        data-mode="quoteSent"
+                        onclick={handleListModeChange}
+                    >
+                        Quote Sent ({quoteSentCount})
+                    </button>
+                    <button
+                        type="button"
                         class={listCrewModeClass}
                         data-mode="crew"
                         onclick={handleListModeChange}
@@ -270,7 +310,7 @@
 
                                         <div class="sfs-card-body">
                                             <!-- Subject opens the bottom sheet -->
-                                            <div class="sfs-line">
+                                            <div class="sfs-line sfs-wo-line">
                                                 <span class="sfs-label">WO #</span>
                                                 <span class="sfs-value">
                                                     <template if:true={appt.workOrderNumber}>
@@ -280,6 +320,21 @@
                                                         —
                                                     </template>
                                                 </span>
+                                                <template if:true={appt.quoteAttachmentUrl}>
+                                                    <a
+                                                        href={appt.quoteAttachmentUrl}
+                                                        target="_blank"
+                                                        rel="noopener"
+                                                        class="sfs-attachment-link"
+                                                        title="Download quote PDF"
+                                                    >
+                                                        <lightning-icon
+                                                            icon-name="utility:paperclip"
+                                                            size="x-small"
+                                                            class="sfs-attachment-icon"
+                                                        ></lightning-icon>
+                                                    </a>
+                                                </template>
                                             </div>
 
                                             <button
