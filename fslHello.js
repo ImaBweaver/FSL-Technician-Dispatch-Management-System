@@ -2445,19 +2445,17 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         if (docId) {
+            // Use the native file previewer so the experience matches opening the
+            // attachment from the Files related list in the mobile app.
             this[NavigationMixin.Navigate]({
-                type: this.isDesktopFormFactor
-                    ? 'standard__recordPage'
-                    : 'standard__webPage',
-                attributes: this.isDesktopFormFactor
-                    ? {
-                          recordId: docId,
-                          objectApiName: 'ContentDocument',
-                          actionName: 'view'
-                      }
-                    : {
-                          url: `com.salesforce.fieldservice://v1/sObject/${docId}`
-                      }
+                type: 'standard__namedPage',
+                attributes: {
+                    pageName: 'filePreview'
+                },
+                state: {
+                    recordIds: docId,
+                    selectedRecordId: docId
+                }
             });
             return;
         }
