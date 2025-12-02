@@ -305,11 +305,30 @@
     margin-top: 0.5rem;
 }
 
+.sfs-reschedule-actions {
+    gap: 0.35rem;
+    align-items: center;
+}
+
 .sfs-transfer-request-btn {
     --slds-c-button-destructive-text-font-size: 0.85rem;
     --slds-c-button-destructive-text-line-height: 1.6rem;
     --slds-c-button-destructive-text-spacing-inline-start: 0.35rem;
     --slds-c-button-destructive-text-spacing-inline-end: 0.35rem;
+}
+
+@media (max-width: 540px) {
+    .sfs-reschedule-actions {
+        flex-direction: column;
+        align-items: flex-end;
+    }
+
+    .sfs-reschedule-actions .sfs-transfer-request-btn {
+        --slds-c-button-destructive-text-font-size: 0.78rem;
+        --slds-c-button-destructive-text-line-height: 1.25rem;
+        --slds-c-button-destructive-text-spacing-inline-start: 0.25rem;
+        --slds-c-button-destructive-text-spacing-inline-end: 0.25rem;
+    }
 }
 
 .sfs-transfer-actions {
