@@ -28,6 +28,22 @@
                     </button>
                     <button
                         type="button"
+                        class={listQuotesModeClass}
+                        data-mode="quotes"
+                        onclick={handleListModeChange}
+                    >
+                        Quotes ({quotesCount})
+                    </button>
+                    <button
+                        type="button"
+                        class={listQuoteAttachedModeClass}
+                        data-mode="quoteAttached"
+                        onclick={handleListModeChange}
+                    >
+                        Quote Attached ({quoteAttachedCount})
+                    </button>
+                    <button
+                        type="button"
                         class={listCrewModeClass}
                         data-mode="crew"
                         onclick={handleListModeChange}
