@@ -19,6 +19,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     @track debugInfo = {};
     @track calendarDays = [];
     @track selectedAppointment = null;
+    get hasVisibleAppointments() {
+        return this.visibleAppointments.length > 0;
+    }
     currentUserId = null;
     activeUserId = null;
     viewingUserName = 'Me';
@@ -339,54 +342,78 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         let baseList = [];
 
+        const ownedAppointments = this.ownedAppointments.map(appt => ({
+            ...appt,
+            cardId: appt.appointmentId,
+            hasAppointment: true
+        }));
+
+        const quoteWorkOrders = this.quoteWorkOrders;
+
         switch (this.listMode) {
             case 'crew':
-                baseList = this.appointments.filter(a => a.isCrewAssignment);
+                baseList = ownedAppointments.filter(a => a.isCrewAssignment);
                 break;
 
             case 'partsReady':
-                baseList = this.appointments.filter(a => a.allPartsEnRoute);
+                baseList = ownedAppointments.filter(a => a.allPartsEnRoute);
                 break;
 
             case 'fulfilling':
-                baseList = this.appointments.filter(
+                baseList = ownedAppointments.filter(
                     a => a.somePartsEnRoute && !a.allPartsEnRoute
                 );
                 break;
 
             case 'quotes':
-                baseList = this.ownedAppointments.filter(appt =>
-                    this.isQuoteStatus(appt.workOrderStatus)
-                );
+                baseList = ownedAppointments
+                    .filter(appt => this.isQuoteStatus(appt.workOrderStatus))
+                    .concat(quoteWorkOrders);
                 break;
 
             case 'needQuote':
-                baseList = this.ownedAppointments.filter(
-                    appt => appt.workOrderStatus === 'Need Quote'
-                );
+                baseList = ownedAppointments
+                    .filter(appt => appt.workOrderStatus === 'Need Quote')
+                    .concat(
+                        quoteWorkOrders.filter(
+                            wo => wo.workOrderStatus === 'Need Quote'
+                        )
+                    );
                 break;
 
             case 'poRequested':
-                baseList = this.ownedAppointments.filter(
-                    appt => appt.workOrderStatus === 'PO Requested'
-                );
+                baseList = ownedAppointments
+                    .filter(appt => appt.workOrderStatus === 'PO Requested')
+                    .concat(
+                        quoteWorkOrders.filter(
+                            wo => wo.workOrderStatus === 'PO Requested'
+                        )
+                    );
                 break;
 
             case 'quoteSent':
-                baseList = this.ownedAppointments.filter(
-                    appt => appt.workOrderStatus === 'Quote Sent'
-                );
+                baseList = ownedAppointments
+                    .filter(appt => appt.workOrderStatus === 'Quote Sent')
+                    .concat(
+                        quoteWorkOrders.filter(
+                            wo => wo.workOrderStatus === 'Quote Sent'
+                        )
+                    );
                 break;
 
             case 'quoteAttached':
-                baseList = this.ownedAppointments.filter(appt =>
-                    this.isQuoteAttachedAppointment(appt)
-                );
+                baseList = ownedAppointments
+                    .filter(appt => this.isQuoteAttachedAppointment(appt))
+                    .concat(
+                        quoteWorkOrders.filter(
+                            wo => this.isQuoteAttachedAppointment(wo)
+                        )
+                    );
                 break;
 
             case 'my':
             default: {
-                baseList = this.ownedAppointments;
+                baseList = ownedAppointments;
                 break;
             }
         }
@@ -406,6 +433,29 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     isQuoteStatus(status) {
         return this.quoteStatuses.includes(status);
+    }
+
+    get quoteWorkOrders() {
+        if (!this.unscheduledWorkOrders) {
+            return [];
+        }
+
+        return this.unscheduledWorkOrders
+            .filter(wo => this.isQuoteStatus(wo.status))
+            .map(wo => ({
+                cardId: `wo-${wo.workOrderId}`,
+                appointmentId: null,
+                hasAppointment: false,
+                workOrderId: wo.workOrderId,
+                workOrderStatus: wo.status,
+                workOrderNumber: wo.workOrderNumber,
+                workOrderSubject: wo.subject,
+                accountName: wo.accountName,
+                fullAddress: wo.fullAddress,
+                isExpanded: false,
+                workTypeName: 'Work Order',
+                workTypeClass: 'sfs-worktype'
+            }));
     }
 
     isQuoteAttachedAppointment(appt) {
@@ -1787,6 +1837,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                         clone
                     );
                     clone.opportunityRecordType = appt.opportunityRecordType || null;
+                    clone.cardId = appt.appointmentId;
+                    clone.hasAppointment = true;
 
                     return clone;
                 });

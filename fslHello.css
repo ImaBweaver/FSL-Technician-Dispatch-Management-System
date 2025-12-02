@@ -851,6 +851,10 @@
     cursor: pointer;
 }
 
+.sfs-subject-btn_static {
+    cursor: default;
+}
+
 .sfs-calendar-event_dragging,
 .sfs-week-event-box_dragging {
     opacity: 0; /* hide the original while the ghost is moving */

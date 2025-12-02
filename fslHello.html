@@ -275,19 +275,21 @@
                         </template>
 
                     <template if:false={isTransferMode}>
-                        <template if:true={hasAppointments}>
+                        <template if:true={hasVisibleAppointments}>
                             <div class="sfs-list">
                                 <template for:each={visibleAppointments} for:item="appt">
-                                    <article key={appt.appointmentId} class="sfs-card">
-                                        <button
-                                            class="sfs-unassign-btn"
-                                            title="Remove me from this work order"
-                                            data-id={appt.appointmentId}
-                                            onclick={handleUnassignClick}
-                                            type="button"
-                                        >
-                                            ✕
-                                        </button>
+                                    <article key={appt.cardId} class="sfs-card">
+                                        <template if:true={appt.hasAppointment}>
+                                            <button
+                                                class="sfs-unassign-btn"
+                                                title="Remove me from this work order"
+                                                data-id={appt.appointmentId}
+                                                onclick={handleUnassignClick}
+                                                type="button"
+                                            >
+                                                ✕
+                                            </button>
+                                        </template>
                                         <div class="sfs-card-header">
                                             <span class={appt.workTypeClass}>
                                                 {appt.workTypeName}
@@ -335,14 +337,21 @@
                                                 </template>
                                             </div>
 
-                                            <button
-                                                type="button"
-                                                class="sfs-subject-btn"
-                                                data-id={appt.appointmentId}
-                                                onclick={handleListSubjectClick}
-                                            >
-                                                {appt.workOrderSubject}
-                                            </button>
+                                            <template if:true={appt.hasAppointment}>
+                                                <button
+                                                    type="button"
+                                                    class="sfs-subject-btn"
+                                                    data-id={appt.appointmentId}
+                                                    onclick={handleListSubjectClick}
+                                                >
+                                                    {appt.workOrderSubject}
+                                                </button>
+                                            </template>
+                                            <template if:false={appt.hasAppointment}>
+                                                <div class="sfs-subject-btn sfs-subject-btn_static">
+                                                    {appt.workOrderSubject}
+                                                </div>
+                                            </template>
 
                                             <template if:true={appt.showQuoteActions}>
                                                 <div class="sfs-quote-bar">
@@ -410,30 +419,32 @@
                                             </template>
 
                                             <!-- Expand / collapse toggle -->
-                                            <div class="sfs-list-toggle-row">
-                                                <template if:true={appt.isExpanded}>
-                                                    <button
-                                                        type="button"
-                                                        class="sfs-list-toggle-btn sfs-list-toggle-btn_open"
-                                                        data-id={appt.appointmentId}
-                                                        onclick={handleToggleListDetails}
-                                                    >
-                                                        <span class="sfs-list-toggle-chevron">▸</span>
-                                                        <span>Details</span>
-                                                    </button>
-                                                </template>
-                                                <template if:false={appt.isExpanded}>
-                                                    <button
-                                                        type="button"
-                                                        class="sfs-list-toggle-btn"
-                                                        data-id={appt.appointmentId}
-                                                        onclick={handleToggleListDetails}
-                                                    >
-                                                        <span class="sfs-list-toggle-chevron">▸</span>
-                                                        <span>Details</span>
-                                                    </button>
-                                                </template>
-                                            </div>
+                                            <template if:true={appt.hasAppointment}>
+                                                <div class="sfs-list-toggle-row">
+                                                    <template if:true={appt.isExpanded}>
+                                                        <button
+                                                            type="button"
+                                                            class="sfs-list-toggle-btn sfs-list-toggle-btn_open"
+                                                            data-id={appt.appointmentId}
+                                                            onclick={handleToggleListDetails}
+                                                        >
+                                                            <span class="sfs-list-toggle-chevron">▸</span>
+                                                            <span>Details</span>
+                                                        </button>
+                                                    </template>
+                                                    <template if:false={appt.isExpanded}>
+                                                        <button
+                                                            type="button"
+                                                            class="sfs-list-toggle-btn"
+                                                            data-id={appt.appointmentId}
+                                                            onclick={handleToggleListDetails}
+                                                        >
+                                                            <span class="sfs-list-toggle-chevron">▸</span>
+                                                            <span>Details</span>
+                                                        </button>
+                                                    </template>
+                                                </div>
+                                            </template>
 
                                             <!-- Expanded details -->
                                             <template if:true={appt.isExpanded}>
@@ -547,37 +558,39 @@
                                             </template>
 
                                             <!-- Start Date/Time + Reschedule -->
-                                            <div class="sfs-input-block">
-                                                <lightning-input
-                                                    type="datetime"
-                                                    name="startDateTime"
-                                                    label="Start Date/Time"
-                                                    value={appt.newStart}
-                                                    onchange={handleDateChange}
-                                                    data-id={appt.appointmentId}
-                                                >
-                                                </lightning-input>
-                                            </div>
+                                            <template if:true={appt.hasAppointment}>
+                                                <div class="sfs-input-block">
+                                                    <lightning-input
+                                                        type="datetime"
+                                                        name="startDateTime"
+                                                        label="Start Date/Time"
+                                                        value={appt.newStart}
+                                                        onchange={handleDateChange}
+                                                        data-id={appt.appointmentId}
+                                                    >
+                                                    </lightning-input>
+                                                </div>
 
-                                            <div class="sfs-actions">
-                                                <lightning-button
-                                                    variant="brand"
-                                                    label="Reschedule"
-                                                    data-id={appt.appointmentId}
-                                                    onclick={handleReschedule}
-                                                    disabled={appt.disableSave}
-                                                >
-                                                </lightning-button>
-                                                <lightning-button
-                                                    variant="destructive-text"
-                                                    label="Request transfer to new technician"
-                                                    data-woid={appt.workOrderId}
-                                                    data-id={appt.appointmentId}
-                                                    onclick={handleRequestReschedule}
-                                                    class="sfs-transfer-request-btn"
-                                                >
-                                                </lightning-button>
-                                            </div>
+                                                <div class="sfs-actions">
+                                                    <lightning-button
+                                                        variant="brand"
+                                                        label="Reschedule"
+                                                        data-id={appt.appointmentId}
+                                                        onclick={handleReschedule}
+                                                        disabled={appt.disableSave}
+                                                    >
+                                                    </lightning-button>
+                                                    <lightning-button
+                                                        variant="destructive-text"
+                                                        label="Request transfer to new technician"
+                                                        data-woid={appt.workOrderId}
+                                                        data-id={appt.appointmentId}
+                                                        onclick={handleRequestReschedule}
+                                                        class="sfs-transfer-request-btn"
+                                                    >
+                                                    </lightning-button>
+                                                </div>
+                                            </template>
 
                                             <!-- Crew assignment controls shown only in Crew Pool mode -->
                                             <template if:true={isCrewMode}>
