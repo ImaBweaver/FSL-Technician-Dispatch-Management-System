@@ -60,6 +60,10 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public Boolean hasCrewAssignment;
         @AuraEnabled public Id accountId;
         @AuraEnabled public String accountName;
+        @AuraEnabled public String opportunityRecordType;
+        @AuraEnabled public Boolean hasQuoteAttachment;
+        @AuraEnabled public String quoteAttachmentDownloadUrl;
+        @AuraEnabled public Id quoteAttachmentDocumentId;
         @AuraEnabled public String street;
         @AuraEnabled public String city;
         @AuraEnabled public String state;
@@ -565,7 +569,11 @@ public with sharing class FslTechnicianOnlineController {
             userSrIds,
             crewIds,
             effectiveUserId,
-            pendingTransferWoIds
+            pendingTransferWoIds,
+            workOrdersWithAttachment,
+            quoteDownloadByWo,
+            quoteDocIdByWo,
+            opportunityRecordTypeByWo
         );
         wrapper.transferRequests = buildTransferRequests(pendingRequests);
         wrapper.submittedTransferRequests =
@@ -718,7 +726,11 @@ public with sharing class FslTechnicianOnlineController {
         Set<Id> userSrIds,
         Set<Id> crewIds,
         Id ownerUserId,
-        Set<Id> pendingTransferWorkOrderIds
+        Set<Id> pendingTransferWorkOrderIds,
+        Set<Id> workOrdersWithAttachment,
+        Map<Id, String> quoteDownloadByWo,
+        Map<Id, Id> quoteDocIdByWo,
+        Map<Id, String> opportunityRecordTypeByWo
     ) {
         // Work Orders that are effectively "closed" from the technician perspective
         Set<String> closedStatuses = new Set<String>{
@@ -740,6 +752,8 @@ public with sharing class FslTechnicianOnlineController {
                 Status,
                 AccountId,
                 Account.Name,
+                Opportunity__c,
+                Opportunity__r.RecordType.Name,
                 Street,
                 City,
                 State,
@@ -758,6 +772,8 @@ public with sharing class FslTechnicianOnlineController {
 
         // Collect candidate Work Order Ids
         Set<Id> candidateWoIds = new Set<Id>();
+        Set<Id> candidateOppIds = new Set<Id>();
+        Map<Id, List<Id>> candidateWoByOpp = new Map<Id, List<Id>>();
         for (WorkOrder wo : candidates) {
             if (pendingTransferWorkOrderIds != null
                 && pendingTransferWorkOrderIds.contains(wo.Id)) {
@@ -766,6 +782,25 @@ public with sharing class FslTechnicianOnlineController {
                 continue;
             }
             candidateWoIds.add(wo.Id);
+
+            if (wo.Opportunity__c != null) {
+                candidateOppIds.add(wo.Opportunity__c);
+
+                List<Id> related = candidateWoByOpp.containsKey(wo.Opportunity__c)
+                    ? candidateWoByOpp.get(wo.Opportunity__c)
+                    : new List<Id>();
+                if (!related.contains(wo.Id)) {
+                    related.add(wo.Id);
+                }
+                candidateWoByOpp.put(wo.Opportunity__c, related);
+
+                if (wo.Opportunity__r != null && wo.Opportunity__r.RecordType != null) {
+                    opportunityRecordTypeByWo.put(
+                        wo.Id,
+                        wo.Opportunity__r.RecordType.Name
+                    );
+                }
+            }
         }
 
         // Treat these Service Appointment statuses as closed for scheduling
@@ -793,6 +828,75 @@ public with sharing class FslTechnicianOnlineController {
         for (ServiceAppointment sa : candidateSAs) {
             if (sa.Work_Order__c != null) {
                 saIdToWoId.put(sa.Id, sa.Work_Order__c);
+            }
+        }
+
+        if (!candidateWoIds.isEmpty()) {
+            for (ContentDocumentLink cdl : [
+                SELECT LinkedEntityId,
+                    ContentDocumentId,
+                    ContentDocument.LatestPublishedVersionId
+                FROM ContentDocumentLink
+                WHERE LinkedEntityId IN :candidateWoIds
+            ]) {
+                if (cdl.LinkedEntityId == null) continue;
+
+                workOrdersWithAttachment.add(cdl.LinkedEntityId);
+
+                if (cdl.ContentDocument != null &&
+                    String.isNotBlank(cdl.ContentDocument.LatestPublishedVersionId) &&
+                    !quoteDownloadByWo.containsKey(cdl.LinkedEntityId)) {
+
+                    quoteDownloadByWo.put(
+                        cdl.LinkedEntityId,
+                        '/sfc/servlet.shepherd/document/download/' +
+                            cdl.ContentDocumentId
+                    );
+
+                    if (cdl.ContentDocumentId != null) {
+                        quoteDocIdByWo.put(
+                            cdl.LinkedEntityId,
+                            cdl.ContentDocumentId
+                        );
+                    }
+                }
+            }
+        }
+
+        if (!candidateOppIds.isEmpty()) {
+            for (ContentDocumentLink cdl : [
+                SELECT LinkedEntityId,
+                    ContentDocumentId,
+                    ContentDocument.LatestPublishedVersionId
+                FROM ContentDocumentLink
+                WHERE LinkedEntityId IN :candidateOppIds
+            ]) {
+                if (cdl.LinkedEntityId == null ||
+                    !candidateWoByOpp.containsKey(cdl.LinkedEntityId)) {
+                    continue;
+                }
+
+                for (Id woId : candidateWoByOpp.get(cdl.LinkedEntityId)) {
+                    workOrdersWithAttachment.add(woId);
+
+                    if (cdl.ContentDocument != null &&
+                        String.isNotBlank(cdl.ContentDocument.LatestPublishedVersionId) &&
+                        !quoteDownloadByWo.containsKey(woId)) {
+
+                        quoteDownloadByWo.put(
+                            woId,
+                            '/sfc/servlet.shepherd/document/download/' +
+                                cdl.ContentDocumentId
+                        );
+
+                        if (cdl.ContentDocumentId != null) {
+                            quoteDocIdByWo.put(
+                                woId,
+                                cdl.ContentDocumentId
+                            );
+                        }
+                    }
+                }
             }
         }
 
@@ -848,6 +952,21 @@ public with sharing class FslTechnicianOnlineController {
             dto.hasCrewAssignment = workOrdersWithCrewAssignment.contains(wo.Id);
             dto.accountId       = wo.AccountId;
             dto.accountName     = (wo.Account != null ? wo.Account.Name : null);
+            dto.opportunityRecordType = (wo.Opportunity__c != null &&
+                opportunityRecordTypeByWo.containsKey(wo.Id))
+                    ? opportunityRecordTypeByWo.get(wo.Id)
+                    : null;
+            dto.hasQuoteAttachment =
+                workOrdersWithAttachment != null &&
+                workOrdersWithAttachment.contains(wo.Id);
+            dto.quoteAttachmentDownloadUrl = (wo.Id != null &&
+                quoteDownloadByWo != null && quoteDownloadByWo.containsKey(wo.Id))
+                    ? quoteDownloadByWo.get(wo.Id)
+                    : null;
+            dto.quoteAttachmentDocumentId = (wo.Id != null &&
+                quoteDocIdByWo != null && quoteDocIdByWo.containsKey(wo.Id))
+                    ? quoteDocIdByWo.get(wo.Id)
+                    : null;
             dto.street          = wo.Street;
             dto.city            = wo.City;
             dto.state           = wo.State;

@@ -325,7 +325,7 @@
                                                         type="button"
                                                         class="sfs-attachment-link"
                                                         title="Open quote PDF"
-                                                        data-id={appt.appointmentId}
+                                                        data-id={appt.cardId}
                                                         onclick={handleQuoteAttachmentClick}
                                                     >
                                                         <lightning-icon
@@ -337,21 +337,14 @@
                                                 </template>
                                             </div>
 
-                                            <template if:true={appt.hasAppointment}>
-                                                <button
-                                                    type="button"
-                                                    class="sfs-subject-btn"
-                                                    data-id={appt.appointmentId}
-                                                    onclick={handleListSubjectClick}
-                                                >
-                                                    {appt.workOrderSubject}
-                                                </button>
-                                            </template>
-                                            <template if:false={appt.hasAppointment}>
-                                                <div class="sfs-subject-btn sfs-subject-btn_static">
-                                                    {appt.workOrderSubject}
-                                                </div>
-                                            </template>
+                                            <button
+                                                type="button"
+                                                class="sfs-subject-btn"
+                                                data-id={appt.cardId}
+                                                onclick={handleListSubjectClick}
+                                            >
+                                                {appt.workOrderSubject}
+                                            </button>
 
                                             <template if:true={appt.showQuoteActions}>
                                                 <div class="sfs-quote-bar">
@@ -359,7 +352,7 @@
                                                         <button
                                                             type="button"
                                                             class="sfs-quote-download"
-                                                            data-id={appt.appointmentId}
+                                                            data-id={appt.cardId}
                                                             onclick={handleQuoteAttachmentClick}
                                                         >
                                                             <lightning-icon
