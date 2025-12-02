@@ -2506,6 +2506,32 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return match ? match[1] : null;
     }
 
+    normalizeDownloadUrl(url) {
+        if (!url) {
+            return null;
+        }
+
+        // Mobile apps require absolute URLs; the server returns a relative path
+        // (e.g. "/sfc/servlet.shepherd/document/download/<docId>"). Prefix with
+        // the current origin so the in-app browser can resolve it.
+        if (url.startsWith('/')) {
+            return `${window.location.origin}${url}`;
+        }
+
+        return url;
+    }
+
+    extractContentDocumentId(url) {
+        if (!url) {
+            return null;
+        }
+
+        // Extract the 15 or 18 character ContentDocumentId from a shepherd
+        // download or view URL so we can open the native file preview.
+        const match = url.match(/\/document\/(?:download|view)\/([a-zA-Z0-9]{15,18})/);
+        return match ? match[1] : null;
+    }
+
     handleMarkQuoteSent(event) {
         const workOrderId = event.target.dataset.woid;
         if (!workOrderId) {
