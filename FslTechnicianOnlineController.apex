@@ -33,6 +33,7 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public Boolean somePartsEnRoute;
         @AuraEnabled public Boolean hasQuoteAttachment;
         @AuraEnabled public String quoteAttachmentDownloadUrl;
+        @AuraEnabled public String opportunityRecordType;
 
         @AuraEnabled public Id serviceCrewId;
         @AuraEnabled public List<CrewMemberDTO> crewMembers;
@@ -258,6 +259,8 @@ public with sharing class FslTechnicianOnlineController {
             Work_Order__r.Contact.Name,
             Work_Order__r.Contact.Phone,
             Work_Order__r.Contact.Email,
+            Work_Order__r.Opportunity__c,
+            Work_Order__r.Opportunity__r.RecordType.Name,
             Work_Order__r.Make_Model__c,
             Work_Order__r.Reporter_Contact_Info__c,
             Work_Order__r.WorkOrderNumber,
@@ -277,9 +280,34 @@ public with sharing class FslTechnicianOnlineController {
 
         // 5) Work Orders referenced by these appointments
         Set<Id> workOrderIds = new Set<Id>();
+        Set<Id> opportunityIds = new Set<Id>();
+        Map<Id, List<Id>> workOrdersByOpportunity = new Map<Id, List<Id>>();
+        Map<Id, String> opportunityRecordTypeByWo = new Map<Id, String>();
+
         for (ServiceAppointment sa : appts) {
             if (sa.Work_Order__c != null) {
                 workOrderIds.add(sa.Work_Order__c);
+
+                if (sa.Work_Order__r != null && sa.Work_Order__r.Opportunity__c != null) {
+                    Id oppId = sa.Work_Order__r.Opportunity__c;
+                    opportunityIds.add(oppId);
+
+                    List<Id> relatedWorkOrders = workOrdersByOpportunity.containsKey(oppId)
+                        ? workOrdersByOpportunity.get(oppId)
+                        : new List<Id>();
+                    if (!relatedWorkOrders.contains(sa.Work_Order__c)) {
+                        relatedWorkOrders.add(sa.Work_Order__c);
+                    }
+                    workOrdersByOpportunity.put(oppId, relatedWorkOrders);
+
+                    if (sa.Work_Order__r.Opportunity__r != null &&
+                        sa.Work_Order__r.Opportunity__r.RecordType != null) {
+                        opportunityRecordTypeByWo.put(
+                            sa.Work_Order__c,
+                            sa.Work_Order__r.Opportunity__r.RecordType.Name
+                        );
+                    }
+                }
             }
         }
         dbg.workOrderIds.addAll(workOrderIds);
@@ -311,6 +339,36 @@ public with sharing class FslTechnicianOnlineController {
                             '/sfc/servlet.shepherd/document/download/' +
                                 cdl.ContentDocument.LatestPublishedVersionId
                         );
+                    }
+                }
+            }
+        }
+
+        if (!opportunityIds.isEmpty()) {
+            for (ContentDocumentLink cdl : [
+                SELECT LinkedEntityId,
+                    ContentDocument.FileExtension,
+                    ContentDocument.LatestPublishedVersionId
+                FROM ContentDocumentLink
+                WHERE LinkedEntityId IN :opportunityIds
+                    AND ContentDocument.FileExtension = 'pdf'
+            ]) {
+                if (cdl.LinkedEntityId != null &&
+                    workOrdersByOpportunity.containsKey(cdl.LinkedEntityId)) {
+
+                    for (Id woId : workOrdersByOpportunity.get(cdl.LinkedEntityId)) {
+                        workOrdersWithPdf.add(woId);
+
+                        if (cdl.ContentDocument != null &&
+                            String.isNotBlank(cdl.ContentDocument.LatestPublishedVersionId) &&
+                            !quoteDownloadByWo.containsKey(woId)) {
+
+                            quoteDownloadByWo.put(
+                                woId,
+                                '/sfc/servlet.shepherd/document/download/' +
+                                    cdl.ContentDocument.LatestPublishedVersionId
+                            );
+                        }
                     }
                 }
             }
@@ -472,8 +530,10 @@ public with sharing class FslTechnicianOnlineController {
             dto.hasQuoteAttachment = hasPdfAttachment ||
                 (dto.workOrderStatus == 'Quote Attached');
 
-            dto.hasQuoteAttachment =
-                (sa.Work_Order__c != null && workOrdersWithPdf.contains(sa.Work_Order__c));
+            dto.opportunityRecordType = (sa.Work_Order__c != null &&
+                opportunityRecordTypeByWo.containsKey(sa.Work_Order__c))
+                    ? opportunityRecordTypeByWo.get(sa.Work_Order__c)
+                    : null;
 
             results.add(dto);
         }
