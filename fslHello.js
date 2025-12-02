@@ -2434,15 +2434,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
-        const docId = appt.quoteAttachmentDocumentId;
-        let downloadUrl = appt.quoteAttachmentUrl;
-
-        // Mobile apps require absolute URLs; the server returns a relative path
-        // (e.g. "/sfc/servlet.shepherd/document/download/<docId>"). Prefix with
-        // the current origin so the in-app browser can resolve it.
-        if (downloadUrl && downloadUrl.startsWith('/')) {
-            downloadUrl = `${window.location.origin}${downloadUrl}`;
-        }
+        const docId =
+            appt.quoteAttachmentDocumentId ||
+            this.extractContentDocumentId(appt.quoteAttachmentUrl);
+        const downloadUrl = this.normalizeDownloadUrl(appt.quoteAttachmentUrl);
 
         if (docId) {
             // Use the native file previewer so the experience matches opening the
@@ -2466,6 +2461,32 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 attributes: { url: downloadUrl }
             });
         }
+    }
+
+    normalizeDownloadUrl(url) {
+        if (!url) {
+            return null;
+        }
+
+        // Mobile apps require absolute URLs; the server returns a relative path
+        // (e.g. "/sfc/servlet.shepherd/document/download/<docId>"). Prefix with
+        // the current origin so the in-app browser can resolve it.
+        if (url.startsWith('/')) {
+            return `${window.location.origin}${url}`;
+        }
+
+        return url;
+    }
+
+    extractContentDocumentId(url) {
+        if (!url) {
+            return null;
+        }
+
+        // Extract the 15 or 18 character ContentDocumentId from a shepherd
+        // download or view URL so we can open the native file preview.
+        const match = url.match(/\/document\/(?:download|view)\/([a-zA-Z0-9]{15,18})/);
+        return match ? match[1] : null;
     }
 
     handleMarkQuoteSent(event) {
