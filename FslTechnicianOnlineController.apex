@@ -31,6 +31,7 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public Boolean isCrewAssignment;
         @AuraEnabled public Boolean allPartsEnRoute;
         @AuraEnabled public Boolean somePartsEnRoute;
+        @AuraEnabled public Boolean hasQuoteAttachment;
 
         @AuraEnabled public Id serviceCrewId;
         @AuraEnabled public List<CrewMemberDTO> crewMembers;
@@ -282,6 +283,21 @@ public with sharing class FslTechnicianOnlineController {
         }
         dbg.workOrderIds.addAll(workOrderIds);
 
+        // Track Work Orders with a PDF attachment (for quote tracking)
+        Set<Id> workOrdersWithPdf = new Set<Id>();
+        if (!workOrderIds.isEmpty()) {
+            for (ContentDocumentLink cdl : [
+                SELECT LinkedEntityId, ContentDocument.FileExtension
+                FROM ContentDocumentLink
+                WHERE LinkedEntityId IN :workOrderIds
+                    AND ContentDocument.FileExtension = 'pdf'
+            ]) {
+                if (cdl.LinkedEntityId != null) {
+                    workOrdersWithPdf.add(cdl.LinkedEntityId);
+                }
+            }
+        }
+
         // Parts info
         Map<Id, Integer> totalLinesByWo   = new Map<Id, Integer>();
         Map<Id, Integer> enRouteByWo      = new Map<Id, Integer>();
@@ -426,6 +442,9 @@ public with sharing class FslTechnicianOnlineController {
                 dto.allPartsEnRoute  = false;
                 dto.somePartsEnRoute = false;
             }
+
+            dto.hasQuoteAttachment =
+                (sa.Work_Order__c != null && workOrdersWithPdf.contains(sa.Work_Order__c));
 
             results.add(dto);
         }
