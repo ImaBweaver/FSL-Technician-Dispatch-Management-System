@@ -36,11 +36,19 @@
                     </button>
                     <button
                         type="button"
-                        class={listQuoteAttachedModeClass}
-                        data-mode="quoteAttached"
+                        class={listCrewModeClass}
+                        data-mode="crew"
                         onclick={handleListModeChange}
                     >
-                        Quote Attached ({quoteAttachedCount})
+                        Crew Pool ({crewCount})
+                    </button>
+                    <button
+                        type="button"
+                        class={listFulfillingModeClass}
+                        data-mode="fulfilling"
+                        onclick={handleListModeChange}
+                    >
+                        Currently Fulfilling ({fulfillingCount})
                     </button>
                     <button
                         type="button"
@@ -48,7 +56,7 @@
                         data-mode="needQuote"
                         onclick={handleListModeChange}
                     >
-                        Need Quote ({needQuoteCount})
+                        Quote Needed ({needQuoteCount})
                     </button>
                     <button
                         type="button"
@@ -60,19 +68,19 @@
                     </button>
                     <button
                         type="button"
+                        class={listQuoteAttachedModeClass}
+                        data-mode="quoteAttached"
+                        onclick={handleListModeChange}
+                    >
+                        Quote Attached ({quoteAttachedCount})
+                    </button>
+                    <button
+                        type="button"
                         class={listQuoteSentModeClass}
                         data-mode="quoteSent"
                         onclick={handleListModeChange}
                     >
                         Quote Sent ({quoteSentCount})
-                    </button>
-                    <button
-                        type="button"
-                        class={listCrewModeClass}
-                        data-mode="crew"
-                        onclick={handleListModeChange}
-                    >
-                        Crew Pool ({crewCount})
                     </button>
                     <button
                         type="button"
@@ -89,14 +97,6 @@
                         onclick={handleListModeChange}
                     >
                         Parts Ready ({partsReadyCount})
-                    </button>
-                    <button
-                        type="button"
-                        class={listFulfillingModeClass}
-                        data-mode="fulfilling"
-                        onclick={handleListModeChange}
-                    >
-                        Currently Fulfilling ({fulfillingCount})
                     </button>
                 </div>
 
