@@ -312,23 +312,19 @@ public with sharing class FslTechnicianOnlineController {
         }
         dbg.workOrderIds.addAll(workOrderIds);
 
-        // Track Work Orders with a PDF attachment (for quote tracking)
-        Set<Id> workOrdersWithPdf = new Set<Id>();
+        // Track Work Orders with an attachment (for quote tracking)
+        Set<Id> workOrdersWithAttachment = new Set<Id>();
         Map<Id, String> quoteDownloadByWo = new Map<Id, String>();
         if (!workOrderIds.isEmpty()) {
             for (ContentDocumentLink cdl : [
                 SELECT LinkedEntityId,
                     ContentDocument.FileExtension,
                     ContentDocument.LatestPublishedVersionId
-        if (!workOrderIds.isEmpty()) {
-            for (ContentDocumentLink cdl : [
-                SELECT LinkedEntityId, ContentDocument.FileExtension
                 FROM ContentDocumentLink
                 WHERE LinkedEntityId IN :workOrderIds
-                    AND ContentDocument.FileExtension = 'pdf'
             ]) {
                 if (cdl.LinkedEntityId != null) {
-                    workOrdersWithPdf.add(cdl.LinkedEntityId);
+                    workOrdersWithAttachment.add(cdl.LinkedEntityId);
 
                     if (cdl.ContentDocument != null &&
                         String.isNotBlank(cdl.ContentDocument.LatestPublishedVersionId) &&
@@ -351,13 +347,12 @@ public with sharing class FslTechnicianOnlineController {
                     ContentDocument.LatestPublishedVersionId
                 FROM ContentDocumentLink
                 WHERE LinkedEntityId IN :opportunityIds
-                    AND ContentDocument.FileExtension = 'pdf'
             ]) {
                 if (cdl.LinkedEntityId != null &&
                     workOrdersByOpportunity.containsKey(cdl.LinkedEntityId)) {
 
                     for (Id woId : workOrdersByOpportunity.get(cdl.LinkedEntityId)) {
-                        workOrdersWithPdf.add(woId);
+                        workOrdersWithAttachment.add(woId);
 
                         if (cdl.ContentDocument != null &&
                             String.isNotBlank(cdl.ContentDocument.LatestPublishedVersionId) &&
@@ -519,15 +514,15 @@ public with sharing class FslTechnicianOnlineController {
                 dto.somePartsEnRoute = false;
             }
 
-            Boolean hasPdfAttachment =
-                (sa.Work_Order__c != null && workOrdersWithPdf.contains(sa.Work_Order__c));
+            Boolean hasAttachment =
+                (sa.Work_Order__c != null && workOrdersWithAttachment.contains(sa.Work_Order__c));
 
             dto.quoteAttachmentDownloadUrl = (sa.Work_Order__c != null &&
                 quoteDownloadByWo.containsKey(sa.Work_Order__c))
                     ? quoteDownloadByWo.get(sa.Work_Order__c)
                     : null;
 
-            dto.hasQuoteAttachment = hasPdfAttachment ||
+            dto.hasQuoteAttachment = hasAttachment ||
                 (dto.workOrderStatus == 'Quote Attached');
 
             dto.opportunityRecordType = (sa.Work_Order__c != null &&
