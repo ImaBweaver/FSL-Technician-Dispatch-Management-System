@@ -24,15 +24,15 @@
                         data-mode="my"
                         onclick={handleListModeChange}
                     >
-                        My ({myCount})
+                        Scheduled ({myCount})
                     </button>
                     <button
                         type="button"
-                        class={listQuotesModeClass}
-                        data-mode="quotes"
+                        class={listTransferModeClass}
+                        data-mode="transferRequests"
                         onclick={handleListModeChange}
                     >
-                        Quotes ({quotesCount})
+                        Transfer Requests ({transferRequestCount})
                     </button>
                     <button
                         type="button"
@@ -41,14 +41,6 @@
                         onclick={handleListModeChange}
                     >
                         Crew Pool ({crewCount})
-                    </button>
-                    <button
-                        type="button"
-                        class={listFulfillingModeClass}
-                        data-mode="fulfilling"
-                        onclick={handleListModeChange}
-                    >
-                        Currently Fulfilling ({fulfillingCount})
                     </button>
                     <button
                         type="button"
@@ -84,19 +76,19 @@
                     </button>
                     <button
                         type="button"
-                        class={listTransferModeClass}
-                        data-mode="transferRequests"
-                        onclick={handleListModeChange}
-                    >
-                        Transfer Requests ({transferRequestCount})
-                    </button>
-                    <button
-                        type="button"
                         class={listPartsReadyModeClass}
                         data-mode="partsReady"
                         onclick={handleListModeChange}
                     >
                         Parts Ready ({partsReadyCount})
+                    </button>
+                    <button
+                        type="button"
+                        class={listFulfillingModeClass}
+                        data-mode="fulfilling"
+                        onclick={handleListModeChange}
+                    >
+                        Currently Fulfilling ({fulfillingCount})
                     </button>
                 </div>
 
