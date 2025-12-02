@@ -2438,22 +2438,20 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const downloadUrl = appt.quoteAttachmentUrl;
 
         if (docId) {
-            if (this.isDesktopFormFactor) {
-                this[NavigationMixin.Navigate]({
-                    type: 'standard__recordPage',
-                    attributes: {
-                        recordId: docId,
-                        objectApiName: 'ContentDocument',
-                        actionName: 'view'
-                    }
-                });
-            } else {
-                this[NavigationMixin.Navigate]({
-                    type: 'standard__namedPage',
-                    attributes: { pageName: 'filePreview' },
-                    state: { selectedRecordId: docId }
-                });
-            }
+            this[NavigationMixin.Navigate]({
+                type: this.isDesktopFormFactor
+                    ? 'standard__recordPage'
+                    : 'standard__webPage',
+                attributes: this.isDesktopFormFactor
+                    ? {
+                          recordId: docId,
+                          objectApiName: 'ContentDocument',
+                          actionName: 'view'
+                      }
+                    : {
+                          url: `com.salesforce.fieldservice://v1/sObject/${docId}`
+                      }
+            });
             return;
         }
 
