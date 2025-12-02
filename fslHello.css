@@ -325,7 +325,11 @@
     border-radius: 999px;
     background: #e5e5e5;
     gap: 0.1rem;
-    overflow-x: auto;
+    row-gap: 0.25rem;
+}
+
+.sfs-list-mode button {
+    flex: 0 0 auto;
 }
 
 
