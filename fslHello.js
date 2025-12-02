@@ -2438,6 +2438,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             appt.quoteAttachmentDocumentId ||
             this.extractContentDocumentId(appt.quoteAttachmentUrl);
         const quoteDownloadUrl =
+        const downloadUrl =
             this.normalizeDownloadUrl(appt.quoteAttachmentUrl) ||
             this.buildDownloadUrlFromDocId(docId);
 
@@ -2465,12 +2466,18 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 }
             } catch (err) {
                 this.handleNavigationError(quoteDownloadUrl, err);
+                        this.handleNavigationError(downloadUrl, error)
+                    );
+                }
+            } catch (err) {
+                this.handleNavigationError(downloadUrl, err);
             }
 
             return;
         }
 
         this.navigateToDownload(quoteDownloadUrl);
+        this.navigateToDownload(downloadUrl);
     }
 
     handleNavigationError(targetUrl, error) {
@@ -2520,6 +2527,166 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         return `${window.location.origin}/sfc/servlet.shepherd/document/download/${docId}`;
+    }
+
+    extractContentDocumentId(url) {
+        if (!url) {
+            return null;
+        }
+
+        }
+
+        return `${window.location.origin}/sfc/servlet.shepherd/document/download/${docId}`;
+
+        if (docId) {
+            // Use the native file previewer so the experience matches opening the
+            // attachment from the Files related list in the mobile app. If
+            // navigation fails (e.g. invalid record id for preview), fall back
+            // to the raw download URL so the tech can still access the file.
+            try {
+                const navPromise = this[NavigationMixin.Navigate]({
+                    type: 'standard__namedPage',
+                    attributes: {
+                        pageName: 'filePreview'
+                    },
+                    state: {
+                        recordIds: docId,
+                        selectedRecordId: docId
+                    }
+                });
+
+                if (navPromise && typeof navPromise.catch === 'function') {
+                    navPromise.catch(error =>
+                        this.handleNavigationError(downloadUrl, error)
+                    );
+                }
+            } catch (err) {
+                this.handleNavigationError(downloadUrl, err);
+            }
+
+            return;
+        }
+
+        this.navigateToDownload(downloadUrl);
+    }
+
+    handleNavigationError(downloadUrl, error) {
+        // If we have a direct download URL, use it as a fallback so the tech
+        // can still view the quote file. Otherwise, surface a toast so the user
+        // knows navigation failed instead of seeing a generic routing error.
+        if (downloadUrl) {
+            this.navigateToDownload(downloadUrl);
+            return;
+        }
+
+        const message =
+            (error && (error.message || error.body?.message)) ||
+            'Unable to open the quote attachment.';
+        this.showToast('Navigation failed', message, 'error');
+    }
+
+    navigateToDownload(downloadUrl) {
+        if (!downloadUrl) {
+            return;
+        }
+
+        this[NavigationMixin.Navigate]({
+            type: 'standard__webPage',
+            attributes: { url: downloadUrl }
+        });
+        const downloadUrl = this.normalizeDownloadUrl(appt.quoteAttachmentUrl);
+
+        if (docId) {
+            // Use the native file previewer so the experience matches opening the
+            // attachment from the Files related list in the mobile app. If
+            // navigation fails (e.g. invalid record id for preview), fall back
+            // to the raw download URL so the tech can still access the file.
+            try {
+                const navPromise = this[NavigationMixin.Navigate]({
+                    type: 'standard__namedPage',
+                    attributes: {
+                        pageName: 'filePreview'
+                    },
+                    state: {
+                        recordIds: docId,
+                        selectedRecordId: docId
+                    }
+                });
+
+                if (navPromise && typeof navPromise.catch === 'function') {
+                    navPromise.catch(() => this.navigateToDownload(downloadUrl));
+                }
+            } catch (err) {
+                this.navigateToDownload(downloadUrl);
+            }
+
+            return;
+        }
+
+        this.navigateToDownload(downloadUrl);
+    }
+
+    navigateToDownload(downloadUrl) {
+        if (!downloadUrl) {
+            return;
+        }
+
+        this[NavigationMixin.Navigate]({
+            type: 'standard__webPage',
+            attributes: { url: downloadUrl }
+        });
+    }
+
+    normalizeDownloadUrl(url) {
+        if (!url) {
+            return null;
+        }
+
+        // Mobile apps require absolute URLs; the server returns a relative path
+        // (e.g. "/sfc/servlet.shepherd/document/download/<docId>"). Prefix with
+        // the current origin so the in-app browser can resolve it.
+        if (url.startsWith('/')) {
+            return `${window.location.origin}${url}`;
+        }
+
+        return url;
+    }
+
+    extractContentDocumentId(url) {
+        if (!url) {
+            return null;
+        }
+
+        // Extract the 15 or 18 character ContentDocumentId from a shepherd
+        // download or view URL so we can open the native file preview.
+        const match = url.match(/\/document\/(?:download|view)\/([a-zA-Z0-9]{15,18})/);
+        return match ? match[1] : null;
+    }
+
+    normalizeDownloadUrl(url) {
+        if (!url) {
+            return null;
+        }
+
+        // Mobile apps require absolute URLs; the server returns a relative path
+        // (e.g. "/sfc/servlet.shepherd/document/download/<docId>"). Prefix with
+        // the current origin so the in-app browser can resolve it.
+        if (url.startsWith('/')) {
+            return `${window.location.origin}${url}`;
+        }
+
+        return url;
+    }
+
+    buildDownloadUrlFromDocId(docId) {
+        if (!docId) {
+            return null;
+        }
+
+        return `${window.location.origin}/sfc/servlet.shepherd/document/download/${docId}`;
+        }
+
+        return url;
     }
 
     extractContentDocumentId(url) {
