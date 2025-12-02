@@ -411,7 +411,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     isQuoteAttachedAppointment(appt) {
         const status = (appt.workOrderStatus || '').toLowerCase();
         const hasAttachment = appt.hasQuoteAttachment || Boolean(
-            appt.quoteAttachmentUrl
+            appt.quoteAttachmentUrl || appt.quoteAttachmentDocumentId
         );
 
         return status.startsWith('quote attached') ||
@@ -1774,6 +1774,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     clone.disableAssignTech = true;
 
                     clone.quoteAttachmentUrl = appt.quoteAttachmentDownloadUrl || null;
+                    clone.quoteAttachmentDocumentId =
+                        appt.quoteAttachmentDocumentId || null;
                     clone.hasQuoteAttachment = Boolean(
                         appt.hasQuoteAttachment ||
                             appt.workOrderStatus === 'Quote Attached'
@@ -2302,6 +2304,50 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
         this.listMode = mode;
+    }
+
+    handleQuoteAttachmentClick(event) {
+        event.preventDefault();
+
+        const appointmentId = event.currentTarget.dataset.id;
+        if (!appointmentId) {
+            return;
+        }
+
+        const appt = (this.appointments || []).find(
+            a => a.appointmentId === appointmentId
+        );
+
+        if (!appt) {
+            return;
+        }
+
+        const docId = appt.quoteAttachmentDocumentId;
+        const downloadUrl = appt.quoteAttachmentUrl;
+
+        if (docId) {
+            if (this.isDesktopFormFactor) {
+                this[NavigationMixin.Navigate]({
+                    type: 'standard__recordPage',
+                    attributes: {
+                        recordId: docId,
+                        objectApiName: 'ContentDocument',
+                        actionName: 'view'
+                    }
+                });
+            } else {
+                this[NavigationMixin.Navigate]({
+                    type: 'standard__namedPage',
+                    attributes: { pageName: 'filePreview' },
+                    state: { selectedRecordId: docId }
+                });
+            }
+            return;
+        }
+
+        if (downloadUrl) {
+            window.open(downloadUrl, '_blank');
+        }
     }
 
     handleMarkQuoteSent(event) {

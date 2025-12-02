@@ -319,19 +319,19 @@
                                                     </template>
                                                 </span>
                                                 <template if:true={appt.quoteAttachmentUrl}>
-                                                    <a
-                                                        href={appt.quoteAttachmentUrl}
-                                                        target="_blank"
-                                                        rel="noopener"
+                                                    <button
+                                                        type="button"
                                                         class="sfs-attachment-link"
-                                                        title="Download quote PDF"
+                                                        title="Open quote PDF"
+                                                        data-id={appt.appointmentId}
+                                                        onclick={handleQuoteAttachmentClick}
                                                     >
                                                         <lightning-icon
                                                             icon-name="utility:paperclip"
                                                             size="x-small"
                                                             class="sfs-attachment-icon"
                                                         ></lightning-icon>
-                                                    </a>
+                                                    </button>
                                                 </template>
                                             </div>
 
@@ -347,11 +347,11 @@
                                             <template if:true={appt.showQuoteActions}>
                                                 <div class="sfs-quote-bar">
                                                     <template if:true={appt.quoteAttachmentUrl}>
-                                                        <a
-                                                            href={appt.quoteAttachmentUrl}
-                                                            target="_blank"
-                                                            rel="noopener"
+                                                        <button
+                                                            type="button"
                                                             class="sfs-quote-download"
+                                                            data-id={appt.appointmentId}
+                                                            onclick={handleQuoteAttachmentClick}
                                                         >
                                                             <lightning-icon
                                                                 icon-name="utility:download"
@@ -361,7 +361,7 @@
                                                             <span class="sfs-quote-download__label">
                                                                 Download Quote
                                                             </span>
-                                                        </a>
+                                                        </button>
                                                     </template>
 
                                                     <template if:true={appt.showMarkQuoteSentAction}>
