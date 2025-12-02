@@ -2435,7 +2435,14 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         const docId = appt.quoteAttachmentDocumentId;
-        const downloadUrl = appt.quoteAttachmentUrl;
+        let downloadUrl = appt.quoteAttachmentUrl;
+
+        // Mobile apps require absolute URLs; the server returns a relative path
+        // (e.g. "/sfc/servlet.shepherd/document/download/<docId>"). Prefix with
+        // the current origin so the in-app browser can resolve it.
+        if (downloadUrl && downloadUrl.startsWith('/')) {
+            downloadUrl = `${window.location.origin}${downloadUrl}`;
+        }
 
         if (docId) {
             this[NavigationMixin.Navigate]({
