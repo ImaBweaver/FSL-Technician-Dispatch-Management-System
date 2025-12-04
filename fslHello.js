@@ -1024,7 +1024,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         // Long press threshold (about a quarter second)
         this.clearLongPressTimer();
-        this.dragLongPressTimer = window.setTimeout(() => {
+        this.dragLongPressTimer = this.safeSetTimeout(() => {
             this.beginDragFromPending();
         }, 250);
 
@@ -1186,7 +1186,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this._pendingDrag = pending;
 
         this.clearLongPressTimer();
-        this.dragLongPressTimer = window.setTimeout(() => {
+        this.dragLongPressTimer = this.safeSetTimeout(() => {
             this.beginDragFromPending();
         }, 250);
 
@@ -1194,9 +1194,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         event.stopPropagation();
     }
 
-        clearLongPressTimer() {
+    clearLongPressTimer() {
         if (this.dragLongPressTimer) {
-            window.clearTimeout(this.dragLongPressTimer);
+            this.safeClearTimeout(this.dragLongPressTimer);
             this.dragLongPressTimer = null;
         }
     }
@@ -2525,11 +2525,19 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     scheduleNowLinePositionUpdate() {
-        if (this._nowLineFrame) {
-            cancelAnimationFrame(this._nowLineFrame);
+        if (
+            !this.hasWindow ||
+            typeof window.requestAnimationFrame !== 'function' ||
+            typeof window.cancelAnimationFrame !== 'function'
+        ) {
+            return;
         }
 
-        this._nowLineFrame = requestAnimationFrame(() => {
+        if (this._nowLineFrame) {
+            window.cancelAnimationFrame(this._nowLineFrame);
+        }
+
+        this._nowLineFrame = window.requestAnimationFrame(() => {
             this._nowLineFrame = null;
             this.updateNowLinePosition();
         });
@@ -2737,7 +2745,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         // Mobile apps require absolute URLs; the server returns a relative path
         // (e.g. "/sfc/servlet.shepherd/document/download/<docId>"). Prefix with
         // the current origin so the in-app browser can resolve it.
-        if (url.startsWith('/')) {
+        if (url.startsWith('/') && this.hasWindow) {
             return `${window.location.origin}${url}`;
         }
 
@@ -2746,6 +2754,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     buildDownloadUrlFromDocId(docId) {
         if (!docId) {
+            return null;
+        }
+
+        if (!this.hasWindow) {
             return null;
         }
 
@@ -3131,7 +3143,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         if (kind === 'absence') {
             const absence = this.findAbsenceById(id);
-            window.clearTimeout(this._closeTimeout);
+            this.safeClearTimeout(this._closeTimeout);
             this.isDetailClosing = false;
             this.selectedAppointment = null;
             this.selectedAbsence = absence
@@ -3143,7 +3155,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         const appt = this.findAppointmentByCardId(id);
 
-        window.clearTimeout(this._closeTimeout);
+        this.safeClearTimeout(this._closeTimeout);
         this.isDetailClosing = false;
         this.selectedAbsence = null;
         this.selectedAppointment = appt ? { ...appt } : null;
@@ -3163,8 +3175,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         this.isDetailClosing = true;
 
-        window.clearTimeout(this._closeTimeout);
-        this._closeTimeout = window.setTimeout(() => {
+        this.safeClearTimeout(this._closeTimeout);
+        this._closeTimeout = this.safeSetTimeout(() => {
             this.selectedAppointment = null;
             this.isDetailClosing = false;
             this.updateSelectedEventStyles();
@@ -3305,8 +3317,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         this.isAbsenceDetailClosing = true;
 
-        window.clearTimeout(this._absenceCloseTimeout);
-        this._absenceCloseTimeout = window.setTimeout(() => {
+        this.safeClearTimeout(this._absenceCloseTimeout);
+        this._absenceCloseTimeout = this.safeSetTimeout(() => {
             this.selectedAbsence = null;
             this.isAbsenceDetailClosing = false;
             this.updateSelectedEventStyles();
@@ -3428,8 +3440,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         if (this.isTimelineMode) {
             this._needsCenterOnToday = true;
 
-            window.clearTimeout(this._centerTimeout);
-            this._centerTimeout = window.setTimeout(() => {
+            this.safeClearTimeout(this._centerTimeout);
+            this._centerTimeout = this.safeSetTimeout(() => {
                 this.centerTimelineOnTodayColumn();
             }, 0);
         }
@@ -3850,6 +3862,23 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     // ======= UTIL =======
+
+    get hasWindow() {
+        return typeof window !== 'undefined';
+    }
+
+    safeSetTimeout(callback, delay) {
+        if (!this.hasWindow || typeof window.setTimeout !== 'function') {
+            return null;
+        }
+        return window.setTimeout(callback, delay);
+    }
+
+    safeClearTimeout(handle) {
+        if (this.hasWindow && typeof window.clearTimeout === 'function') {
+            window.clearTimeout(handle);
+        }
+    }
 
     reduceError(error) {
         let message = 'Unknown error';
