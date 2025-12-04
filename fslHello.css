@@ -1357,6 +1357,17 @@
     color: #706e6b;
 }
 
+.sfs-modal-highlight {
+    margin: 0 0 0.25rem;
+    font-weight: 600;
+    color: #181818;
+}
+
+.sfs-modal-subtext {
+    margin: 0 0 0.75rem;
+    color: #706e6b;
+}
+
 .sfs-modal-actions {
     justify-content: flex-end;
     gap: 0.5rem;
