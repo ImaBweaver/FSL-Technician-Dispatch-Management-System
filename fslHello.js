@@ -3824,8 +3824,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     getEventTypeClass(workTypeName) {
-        if (!workTypeName) {
-            return '';
+        if (!workTypeName || typeof workTypeName !== 'string') {
+            return 'sfs-event-default';
         }
         const name = workTypeName.toLowerCase();
 
