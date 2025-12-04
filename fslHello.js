@@ -941,6 +941,25 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.buildCalendarModel();
     }
 
+    getClientPoint(event) {
+        const touch =
+            (event.touches && event.touches[0]) ||
+            (event.changedTouches && event.changedTouches[0]);
+
+        if (touch) {
+            return { clientX: touch.clientX, clientY: touch.clientY };
+        }
+
+        if (
+            typeof event.clientX === 'number' &&
+            typeof event.clientY === 'number'
+        ) {
+            return { clientX: event.clientX, clientY: event.clientY };
+        }
+
+        return null;
+    }
+
     // ======= DRAG HANDLERS (events) =======
 
     handleEventDragStart(event) {
@@ -964,14 +983,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
-        let clientX;
-        let clientY;
-        if (event.touches && event.touches.length) {
-            clientX = event.touches[0].clientX;
-            clientY = event.touches[0].clientY;
-        } else {
-            clientX = event.clientX;
-            clientY = event.clientY;
+        const clientPoint = this.getClientPoint(event);
+        if (!clientPoint) {
+            return;
         }
 
         const dayIndex = parseInt(dayIndexStr, 10);
@@ -992,8 +1006,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             id,
             dayIndex,
             localStart,
-            clientX,
-            clientY,
+            clientX: clientPoint.clientX,
+            clientY: clientPoint.clientY,
             dayBodyHeight: bodyRect.height || dayBodyEl.clientHeight || 1,
             dayBodyTop: bodyRect.top,
             dayWidth: dayEl.clientWidth || 1,
@@ -1044,14 +1058,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
-        let clientX;
-        let clientY;
-        if (event.touches && event.touches.length) {
-            clientX = event.touches[0].clientX;
-            clientY = event.touches[0].clientY;
-        } else {
-            clientX = event.clientX;
-            clientY = event.clientY;
+        const clientPoint = this.getClientPoint(event);
+        if (!clientPoint) {
+            return;
         }
 
         const dayBodyEl = event.currentTarget.closest('.sfs-calendar-day-body');
@@ -1082,8 +1091,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.dragStartEndLocal = endLocal;
         this.dragDurationHours = durationHours;
         this.dragPreviewDurationHours = durationHours;
-        this.dragStartClientX = clientX;
-        this.dragStartClientY = clientY;
+        this.dragStartClientX = clientPoint.clientX;
+        this.dragStartClientY = clientPoint.clientY;
         this.dragDayBodyHeight = bodyRect.height || dayBodyEl.clientHeight || 1;
         this.dragDayBodyTop = bodyRect.top;
         this.dragDayWidth = dayRect.width || 1;
@@ -1126,20 +1135,20 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
+        if (!event || !event.currentTarget) {
+            this.resetDragState();
+            return;
+        }
+
         const card = event.currentTarget;
-        const workOrderId = card.dataset.woid;
+        const workOrderId = card.dataset && card.dataset.woid;
         if (!workOrderId) {
             return;
         }
 
-        let clientX;
-        let clientY;
-        if (event.touches && event.touches.length) {
-            clientX = event.touches[0].clientX;
-            clientY = event.touches[0].clientY;
-        } else {
-            clientX = event.clientX;
-            clientY = event.clientY;
+        const clientPoint = this.getClientPoint(event);
+        if (!clientPoint) {
+            return;
         }
 
         // Use first day column/body to measure width and height
@@ -1159,8 +1168,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             type: 'wo',
             workOrderId,
             dayIndex: startIndex,
-            clientX,
-            clientY,
+            clientX: clientPoint.clientX,
+            clientY: clientPoint.clientY,
             dayBodyHeight: bodyRect.height || dayBodyEl.clientHeight || 1,
             dayBodyTop: bodyRect.top,
             dayWidth: dayEl.clientWidth || 1,
@@ -1413,18 +1422,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
-        let clientX;
-        let clientY;
-        if (event.touches && event.touches.length) {
-            clientX = event.touches[0].clientX;
-            clientY = event.touches[0].clientY;
-        } else if (event.changedTouches && event.changedTouches.length) {
-            clientX = event.changedTouches[0].clientX;
-            clientY = event.changedTouches[0].clientY;
-        } else {
-            clientX = event.clientX;
-            clientY = event.clientY;
+        const clientPoint = this.getClientPoint(event);
+        if (!clientPoint) {
+            return;
         }
+        const { clientX, clientY } = clientPoint;
 
         const dx = clientX - this.dragStartClientX;
         const dy = clientY - this.dragStartClientY;
@@ -1619,14 +1621,13 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
-        let clientY;
-        if (event.changedTouches && event.changedTouches.length) {
-            clientY = event.changedTouches[0].clientY;
-        } else if (event.touches && event.touches.length) {
-            clientY = event.touches[0].clientY;
-        } else {
-            clientY = event.clientY;
+        const clientPoint = this.getClientPoint(event);
+        if (!clientPoint) {
+            this.resetDragState();
+            return;
         }
+
+        const clientY = clientPoint.clientY;
 
         const dy = clientY - this.dragStartClientY;
         const hoursDelta = (dy / this.dragDayBodyHeight) * 24;
@@ -3179,18 +3180,17 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     handleDetailTouchStart(event) {
-        if (event.touches && event.touches.length > 0) {
-            this.touchStartY = event.touches[0].clientY;
-        }
+        const clientPoint = this.getClientPoint(event);
+        this.touchStartY = clientPoint ? clientPoint.clientY : null;
     }
 
     handleDetailTouchEnd(event) {
         if (this.touchStartY === null) {
             return;
         }
-        if (event.changedTouches && event.changedTouches.length > 0) {
-            const deltaY =
-                event.changedTouches[0].clientY - this.touchStartY;
+        const clientPoint = this.getClientPoint(event);
+        if (clientPoint) {
+            const deltaY = clientPoint.clientY - this.touchStartY;
             if (deltaY > 40) {
                 if (this.selectedAbsence) {
                     this.handleCloseAbsenceDetails(event);
