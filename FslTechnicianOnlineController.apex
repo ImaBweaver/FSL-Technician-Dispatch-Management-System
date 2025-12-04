@@ -195,12 +195,12 @@ public with sharing class FslTechnicianOnlineController {
             userSrIds.add(sr.Id);
         }
 
-        // ServiceResource for the *viewer*; used for showing absences
+        // ServiceResource for the *active* user; used for showing absences
         Set<Id> absenceSrIds = new Set<Id>();
         for (ServiceResource sr : [
             SELECT Id
             FROM ServiceResource
-            WHERE RelatedRecordId = :viewerUserId
+            WHERE RelatedRecordId = :effectiveUserId
         ]) {
             absenceSrIds.add(sr.Id);
         }
