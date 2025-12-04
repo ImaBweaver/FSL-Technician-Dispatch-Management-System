@@ -723,6 +723,34 @@
                     </div>
                 </template>
 
+                <template if:false={isLoading}>
+                    <div class="sfs-absence-debug">
+                        <div class="sfs-absence-debug__summary">
+                            {absenceDebugSummary}
+                        </div>
+                        <template if:true={hasAbsenceDebugRows}>
+                            <div class="sfs-absence-debug__list">
+                                <template
+                                    for:each={absenceDebugRows}
+                                    for:item="abs"
+                                >
+                                    <div key={abs.key} class="sfs-absence-debug__row">
+                                        <div class="sfs-absence-debug__title">
+                                            {abs.subject}
+                                        </div>
+                                        <div class="sfs-absence-debug__meta">
+                                            Resource: {abs.resourceId}
+                                        </div>
+                                        <div class="sfs-absence-debug__time">
+                                            {abs.range}
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+
                 <template if:true={isManager}>
                     <div class="sfs-viewing-pill">{viewingAsLabel}</div>
                 </template>
