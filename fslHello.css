@@ -489,6 +489,46 @@
     text-align: center;
 }
 
+.sfs-absence-debug {
+    margin: 0.5rem 0;
+    padding: 0.6rem 0.75rem;
+    background: #eef4ff;
+    border: 1px solid #d8dff1;
+    border-radius: 0.5rem;
+}
+
+.sfs-absence-debug__summary {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #1b4f9c;
+}
+
+.sfs-absence-debug__list {
+    margin-top: 0.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.sfs-absence-debug__row {
+    background: #ffffff;
+    border: 1px dashed #d8dff1;
+    border-radius: 0.35rem;
+    padding: 0.45rem 0.5rem;
+}
+
+.sfs-absence-debug__title {
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.sfs-absence-debug__meta,
+.sfs-absence-debug__time {
+    font-size: 0.8rem;
+    color: #514f4d;
+    margin-top: 0.1rem;
+}
+
 
 .sfs-calendar-day-body {
     position: relative;
