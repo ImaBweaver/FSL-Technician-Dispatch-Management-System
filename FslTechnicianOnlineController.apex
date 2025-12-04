@@ -51,6 +51,15 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public Id userId;
     }
 
+    public class ResourceAbsenceDTO {
+        @AuraEnabled public Id absenceId;
+        @AuraEnabled public Id resourceId;
+        @AuraEnabled public Datetime start;
+        @AuraEnabled public Datetime end;
+        @AuraEnabled public String description;
+        @AuraEnabled public String status;
+    }
+
     // Unscheduled Work Orders for tray
     public class UnscheduledWorkOrderDTO {
         @AuraEnabled public Id workOrderId;
@@ -105,6 +114,7 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public List<UnscheduledWorkOrderDTO> unscheduledWorkOrders;
         @AuraEnabled public List<TransferRequestDTO> transferRequests;
         @AuraEnabled public List<TransferRequestDTO> submittedTransferRequests;
+        @AuraEnabled public List<ResourceAbsenceDTO> absences;
         @AuraEnabled public DebugInfo debug;
         @AuraEnabled public String userTimeZoneId;
         @AuraEnabled public Boolean isManager;
@@ -169,6 +179,7 @@ public with sharing class FslTechnicianOnlineController {
             dbg.note   = 'No ServiceResource found for user.';
             wrapper.appointments = new List<AppointmentDTO>();
             wrapper.unscheduledWorkOrders = new List<UnscheduledWorkOrderDTO>();
+            wrapper.absences = new List<ResourceAbsenceDTO>();
             List<Engineer_Transfer_Request__c> pendingRequests =
                 getPendingTransferRequests(effectiveUserId);
             wrapper.transferRequests = buildTransferRequests(pendingRequests);
@@ -181,6 +192,35 @@ public with sharing class FslTechnicianOnlineController {
         Set<Id> userSrIds = new Set<Id>();
         for (ServiceResource sr : srs) {
             userSrIds.add(sr.Id);
+        }
+
+        wrapper.absences = new List<ResourceAbsenceDTO>();
+        if (!userSrIds.isEmpty()) {
+            Datetime windowStart = System.now().addDays(-14);
+            Datetime windowEnd = System.now().addDays(90);
+
+            for (ResourceAbsence ra : [
+                SELECT Id,
+                       ResourceId,
+                       Start,
+                       End,
+                       Description,
+                       Status
+                FROM ResourceAbsence
+                WHERE ResourceId IN :userSrIds
+                AND End >= :windowStart
+                AND Start <= :windowEnd
+                ORDER BY Start ASC
+            ]) {
+                ResourceAbsenceDTO dto = new ResourceAbsenceDTO();
+                dto.absenceId   = ra.Id;
+                dto.resourceId  = ra.ResourceId;
+                dto.start       = ra.Start;
+                dto.end         = ra.End;
+                dto.description = ra.Description;
+                dto.status      = ra.Status;
+                wrapper.absences.add(dto);
+            }
         }
 
         // 2) Service crews that this user is a member of
@@ -1208,6 +1248,58 @@ public with sharing class FslTechnicianOnlineController {
         );
 
         update sa;
+    }
+
+    @AuraEnabled
+    public static void updateResourceAbsence(
+        Id absenceId,
+        Datetime startDateTimeIso,
+        Datetime endDateTimeIso
+    ) {
+        if (absenceId == null) {
+            throw new AuraHandledException('Absence ID is required.');
+        }
+
+        if (startDateTimeIso == null || endDateTimeIso == null) {
+            throw new AuraHandledException('Start and End date/time are required.');
+        }
+
+        if (endDateTimeIso.getTime() <= startDateTimeIso.getTime()) {
+            throw new AuraHandledException('End time must be after start time.');
+        }
+
+        ResourceAbsence ra = [
+            SELECT Id
+            FROM ResourceAbsence
+            WHERE Id = :absenceId
+            LIMIT 1
+            FOR UPDATE
+        ];
+
+        ra = new ResourceAbsence(
+            Id = ra.Id,
+            Start = startDateTimeIso,
+            End = endDateTimeIso
+        );
+
+        update ra;
+    }
+
+    @AuraEnabled
+    public static void deleteResourceAbsence(Id absenceId) {
+        if (absenceId == null) {
+            throw new AuraHandledException('Absence ID is required.');
+        }
+
+        ResourceAbsence ra = [
+            SELECT Id
+            FROM ResourceAbsence
+            WHERE Id = :absenceId
+            LIMIT 1
+            FOR UPDATE
+        ];
+
+        delete ra;
     }
 
     @AuraEnabled

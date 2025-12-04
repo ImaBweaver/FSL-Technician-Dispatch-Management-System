@@ -742,27 +742,29 @@
                                             <div class="sfs-calendar-day-body">
                                                 <template
                                                     for:each={day.events}
-                                                    for:item="evt"
+                                                for:item="evt"
+                                            >
+                                                <div
+                                                    key={evt.key}
+                                                    class={evt.className}
+                                                    style={evt.style}
+                                                    data-id={evt.id}
+                                                    data-kind={evt.kind}
+                                                    data-day-index={dayIndex}
+                                                    onclick={handleEventClick}
+                                                    onmousedown={handleEventDragStart}
+                                                    ontouchstart={handleEventDragStart}
+                                                    onmouseup={handleEventPressEnd}
+                                                    ontouchend={handleEventPressEnd}
                                                 >
-                                                    <div
-                                                        key={evt.id}
-                                                        class={evt.className}
-                                                        style={evt.style}
-                                                        data-id={evt.id}
-                                                        data-day-index={dayIndex}
-                                                        onclick={handleEventClick}
-                                                        onmousedown={handleEventDragStart}
-                                                        ontouchstart={handleEventDragStart}
-                                                        onmouseup={handleEventPressEnd}
-                                                        ontouchend={handleEventPressEnd}
-                                                    >
-                                                        <!-- RED CREW WARNING BANNER -->
-                                                        <template if:true={evt.isCrewAssignment}>
-                                                            <div class="sfs-calendar-crew-banner">
-                                                                Need Eng Assignment
-                                                            </div>
-                                                        </template>
+                                                    <!-- RED CREW WARNING BANNER -->
+                                                    <template if:true={evt.isCrewAssignment}>
+                                                        <div class="sfs-calendar-crew-banner">
+                                                            Need Eng Assignment
+                                                        </div>
+                                                    </template>
 
+                                                    <template if:false={evt.isAbsence}>
                                                         <button
                                                             class="sfs-unassign-btn sfs-unassign-btn_calendar"
                                                             title="Remove me from this work order"
@@ -772,39 +774,55 @@
                                                         >
                                                             ✕
                                                         </button>
+                                                    </template>
 
-                                                        <div class="sfs-calendar-event-title">
-                                                            {evt.subject}
+                                                    <template if:true={evt.isAbsence}>
+                                                        <button
+                                                            class="sfs-unassign-btn sfs-unassign-btn_calendar"
+                                                            title="Delete absence"
+                                                            data-id={evt.id}
+                                                            onclick={handleDeleteAbsenceClick}
+                                                            type="button"
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    </template>
+
+                                                    <div class="sfs-calendar-event-title">
+                                                        {evt.subject}
+                                                    </div>
+
+                                                    <template if:true={evt.workOrderNumber}>
+                                                        <div class="sfs-calendar-event-wo">
+                                                            {evt.workOrderNumber}
                                                         </div>
+                                                    </template>
 
-                                                        <template if:true={evt.workOrderNumber}>
-                                                            <div class="sfs-calendar-event-wo">
-                                                                {evt.workOrderNumber}
-                                                            </div>
-                                                        </template>
+                                                    <div class="sfs-calendar-event-time">
+                                                        {evt.timeLabel}
+                                                    </div>
 
-                                                        <div class="sfs-calendar-event-time">
-                                                            {evt.timeLabel}
-                                                        </div>
-
+                                                    <template if:false={evt.isAbsence}>
                                                         <div
                                                             class="sfs-calendar-event-resize"
                                                             data-id={evt.id}
+                                                            data-kind={evt.kind}
                                                             data-day-index={dayIndex}
                                                             onmousedown={handleEventResizeStart}
                                                             ontouchstart={handleEventResizeStart}
                                                         ></div>
-                                                    </div>
-                                                </template>
-                                            </div>
+                                                    </template>
+                                                </div>
+                                            </template>
                                         </div>
-                                    </template>
+                                    </div>
+                                </template>
                                 </div>
                             </div>
 
                             <template if:false={hasAppointments}>
                                 <div class="sfs-empty">
-                                    <p>No service appointments are scheduled yet.</p>
+                                    <p>No appointments or absences are scheduled yet.</p>
                                 </div>
                             </template>
                         </div>
@@ -839,13 +857,14 @@
                                             </div>
                                             <div class="sfs-week-cell-events">
                                                 <template
-                                                    for:each={day.events}
+                                                for:each={day.events}
                                                     for:item="evt"
                                                 >
                                                     <div
-                                                        key={evt.id}
+                                                        key={evt.key}
                                                         class={evt.classNameWeek}
                                                         data-id={evt.id}
+                                                        data-kind={evt.kind}
                                                         onclick={handleEventClick}
                                                     >
                                                         <!-- RED CREW WARNING BANNER -->
@@ -855,15 +874,29 @@
                                                             </div>
                                                         </template>
 
-                                                        <button
-                                                            class="sfs-unassign-btn sfs-unassign-btn_calendar"
-                                                            title="Remove me from this work order"
-                                                            data-id={evt.id}
-                                                            onclick={handleUnassignClick}
-                                                            type="button"
-                                                        >
-                                                            ✕
-                                                        </button>
+                                                        <template if:false={evt.isAbsence}>
+                                                            <button
+                                                                class="sfs-unassign-btn sfs-unassign-btn_calendar"
+                                                                title="Remove me from this work order"
+                                                                data-id={evt.id}
+                                                                onclick={handleUnassignClick}
+                                                                type="button"
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        </template>
+
+                                                        <template if:true={evt.isAbsence}>
+                                                            <button
+                                                                class="sfs-unassign-btn sfs-unassign-btn_calendar"
+                                                                title="Delete absence"
+                                                                data-id={evt.id}
+                                                                onclick={handleDeleteAbsenceClick}
+                                                                type="button"
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        </template>
 
                                                         <template if:true={evt.workOrderNumber}>
                                                             <div class="sfs-week-event-wo">
@@ -889,7 +922,7 @@
 
                         <template if:false={hasAppointments}>
                             <div class="sfs-empty">
-                                <p>No service appointments are scheduled yet.</p>
+                                <p>No appointments or absences are scheduled yet.</p>
                             </div>
                         </template>
                     </template>
@@ -1257,6 +1290,98 @@
                                 data-woid={selectedAppointment.workOrderId}
                                 data-id={selectedAppointment.appointmentId}
                                 onclick={handleRequestReschedule}
+                            ></lightning-button>
+                        </div>
+                    </div>
+                </article>
+            </div>
+        </template>
+
+        <template if:true={hasSelectedAbsence}>
+            <div class="sfs-detail-overlay" onclick={handleOverlayClick}>
+                <article
+                    class={absenceDetailCardClass}
+                    onclick={handleDetailCardClick}
+                    ontouchstart={handleDetailTouchStart}
+                    ontouchend={handleDetailTouchEnd}
+                >
+                    <div class="sfs-detail-header">
+                        <div class="sfs-detail-drag-handle"></div>
+                        <button
+                            class="sfs-detail-close"
+                            type="button"
+                            title="Delete absence"
+                            onclick={handleDeleteAbsenceClick}
+                        >
+                            ✕
+                        </button>
+                    </div>
+
+                    <h3 class="sfs-detail-title">Absence</h3>
+
+                    <div class="sfs-detail-section">
+                        <div class="sfs-detail-section-title">Schedule</div>
+
+                        <p class="sfs-detail-line">
+                            <span class="sfs-detail-label">Start</span>
+                            <span class="sfs-detail-value">
+                                <lightning-formatted-date-time
+                                    value={selectedAbsence.start}
+                                    year="numeric"
+                                    month="short"
+                                    day="2-digit"
+                                    hour="2-digit"
+                                    minute="2-digit"
+                                    time-zone={userTimeZoneId}
+                                ></lightning-formatted-date-time>
+                            </span>
+                        </p>
+
+                        <p class="sfs-detail-line">
+                            <span class="sfs-detail-label">End</span>
+                            <span class="sfs-detail-value">
+                                <lightning-formatted-date-time
+                                    value={selectedAbsence.end}
+                                    year="numeric"
+                                    month="short"
+                                    day="2-digit"
+                                    hour="2-digit"
+                                    minute="2-digit"
+                                    time-zone={userTimeZoneId}
+                                ></lightning-formatted-date-time>
+                            </span>
+                        </p>
+
+                        <lightning-input
+                            type="datetime"
+                            name="absenceStartDateTime"
+                            label="New Start Date/Time"
+                            value={selectedAbsence.newStart}
+                            data-field="newStart"
+                            onchange={handleAbsenceDateChange}
+                        >
+                        </lightning-input>
+
+                        <lightning-input
+                            type="datetime"
+                            name="absenceEndDateTime"
+                            label="New End Date/Time"
+                            value={selectedAbsence.newEnd}
+                            data-field="newEnd"
+                            onchange={handleAbsenceDateChange}
+                        >
+                        </lightning-input>
+
+                        <div class="sfs-absence-actions">
+                            <lightning-button
+                                variant="brand"
+                                label="Save Changes"
+                                onclick={handleSaveAbsence}
+                            ></lightning-button>
+                            <lightning-button
+                                variant="neutral"
+                                label="Close"
+                                onclick={handleCloseAbsenceDetails}
                             ></lightning-button>
                         </div>
                     </div>
