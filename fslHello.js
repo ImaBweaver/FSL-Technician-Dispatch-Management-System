@@ -3274,6 +3274,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 }
                 return this.loadAppointments();
             })
+            .then(() => {
+                this.handleCalendarToday();
+            })
             .catch(error => {
                 const message = this.reduceError(error);
                 this.showToast('Error deleting absence', message, 'error');
