@@ -644,11 +644,11 @@
                         ></lightning-button>
                     </div>
 
-                <div class="sfs-calendar-mode">
-                    <button
-                        class={timelineModeClass}
-                        type="button"
-                        data-mode="timeline"
+                    <div class="sfs-calendar-mode">
+                        <button
+                            class={timelineModeClass}
+                            type="button"
+                            data-mode="timeline"
                             onclick={handleCalendarMode}
                         >
                             Timeline
@@ -659,18 +659,16 @@
                             data-mode="week"
                             onclick={handleCalendarMode}
                         >
-                        Weeks
-                    </button>
+                            Weeks
+                        </button>
+                    </div>
                 </div>
-            </div>
-                </div>
-            </div>
 
-            <!-- Time zone label -->
-            <template if:true={userTimeZoneShort}>
-                <div class="sfs-timezone-label">
-                    Times shown in your Salesforce time zone: {userTimeZoneShort}
-                </div>
+                <!-- Time zone label -->
+                <template if:true={userTimeZoneShort}>
+                    <div class="sfs-timezone-label">
+                        Times shown in your Salesforce time zone: {userTimeZoneShort}
+                    </div>
                 </template>
 
                 <template if:true={isManager}>
