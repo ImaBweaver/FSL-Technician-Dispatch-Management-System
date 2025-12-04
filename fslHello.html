@@ -666,30 +666,6 @@
                 </div>
             </div>
 
-            <template if:false={isLoading}>
-                <div class="sfs-absence-box">
-                    <div class="sfs-absence-box__header">
-                        <div class="sfs-absence-box__title">Absence feed</div>
-                        <span class="sfs-absence-box__pill">{absenceDebugRows.length} loaded</span>
-                    </div>
-                    <p class="sfs-absence-box__summary">{absenceDebugSummary}</p>
-                    <template if:true={hasAbsenceDebugRows}>
-                        <div class="sfs-absence-box__list">
-                            <template for:each={absenceDebugRows} for:item="abs">
-                                <div key={abs.key} class="sfs-absence-box__item">
-                                    <div class="sfs-absence-box__item-title">{abs.subject}</div>
-                                    <div class="sfs-absence-box__item-meta">{abs.range}</div>
-                                    <div class="sfs-absence-box__item-meta">Resource: {abs.resourceId}</div>
-                                </div>
-                            </template>
-                        </div>
-                    </template>
-                    <template if:false={hasAbsenceDebugRows}>
-                        <div class="sfs-absence-box__empty">No absences returned for this view.</div>
-                    </template>
-                </div>
-            </template>
-
             <!-- Time zone label -->
             <template if:true={userTimeZoneShort}>
                 <div class="sfs-timezone-label">
