@@ -196,6 +196,43 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return this.rescheduleLoading || !this.rescheduleSelection;
     }
 
+    get absenceDebugSummary() {
+        const absCount = this.absences ? this.absences.length : 0;
+        const ids =
+            this.debugInfo && Array.isArray(this.debugInfo.absenceResourceIds)
+                ? this.debugInfo.absenceResourceIds
+                : [];
+        const resourceLabel = ids.length ? ids.join(', ') : 'none';
+        return `Absence fetch: ${absCount} record(s); resources: ${resourceLabel}`;
+    }
+
+    get absenceDebugRows() {
+        const absences = this.absences || [];
+        return absences.map(abs => {
+            const startLocal = abs.start
+                ? this.convertUtcToUserLocal(abs.start)
+                : null;
+            const endLocal = abs.endTime
+                ? this.convertUtcToUserLocal(abs.endTime)
+                : null;
+            const rangeLabel =
+                startLocal && endLocal
+                    ? this.formatTimeRange(startLocal, endLocal)
+                    : 'No time available';
+
+            return {
+                key: abs.absenceId || abs.subject || rangeLabel,
+                subject: abs.subject || 'Absence',
+                resourceId: abs.resourceId,
+                range: rangeLabel
+            };
+        });
+    }
+
+    get hasAbsenceDebugRows() {
+        return this.absenceDebugRows.length > 0;
+    }
+
     // Position + size of the floating event
     get dragGhostStyle() {
         return `top:${this.dragGhostY}px;left:${this.dragGhostX}px;width:${this.dragGhostWidth}px;height:${this.dragGhostHeight}px;transform:translateX(-50%);`;
