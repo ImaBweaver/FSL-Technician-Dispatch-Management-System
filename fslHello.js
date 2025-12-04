@@ -3373,11 +3373,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     // ======= CALENDAR TAB HANDLERS =======
 
-    handleManagerTabActive() {
-        this.isCalendarTabActive = false;
-        this.pullTrayOpen = false;
-    }
-
     handleManagerUserChange(event) {
         this.selectedManagerUserId = event.detail.value || null;
         const selected = (this.managerTeam || []).find(
@@ -3401,14 +3396,16 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.loadAppointments();
     }
 
-    handleCalendarTabActive() {
-        this.isCalendarTabActive = true;
-        this.handleCalendarToday();
-    }
+    handleTabActive(event) {
+        const activeTab = event.detail.value;
 
-    handleListTabActive() {
-        this.isCalendarTabActive = false;
-        this.pullTrayOpen = false;
+        this.isCalendarTabActive = activeTab === 'calendar';
+
+        if (this.isCalendarTabActive) {
+            this.handleCalendarToday();
+        } else {
+            this.pullTrayOpen = false;
+        }
     }
 
     handleCalendarPrev() {

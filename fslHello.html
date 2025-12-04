@@ -1,8 +1,12 @@
 <template>
     <section class="sfs-container">
-        <lightning-tabset variant="scoped" class="sfs-tabset">
+        <lightning-tabset
+            variant="scoped"
+            class="sfs-tabset"
+            onactive={handleTabActive}
+        >
             <!-- LIST TAB (default) -->
-            <lightning-tab label="List" value="list" onactive={handleListTabActive}>
+            <lightning-tab label="List" value="list">
                 <div class="sfs-header">
                     <h2 class="sfs-title">My Service Appointments</h2>
                     <lightning-button
@@ -614,11 +618,7 @@
             </lightning-tab>
 
             <!-- CALENDAR TAB -->
-            <lightning-tab
-                label="Calendar"
-                value="calendar"
-                onactive={handleCalendarTabActive}
-            >
+            <lightning-tab label="Calendar" value="calendar">
                 <div class="sfs-header sfs-header-calendar">
                     <div class="sfs-calendar-nav">
                         <lightning-button-icon
@@ -996,11 +996,7 @@
             </lightning-tab>
 
             <template if:true={isManager}>
-                <lightning-tab
-                    label="Manager Console"
-                    value="manager"
-                    onactive={handleManagerTabActive}
-                >
+                <lightning-tab label="Manager Console" value="manager">
                     <div class="sfs-manager-panel">
                         <h3 class="sfs-manager-title">Manager console</h3>
                         <p class="sfs-manager-copy">
