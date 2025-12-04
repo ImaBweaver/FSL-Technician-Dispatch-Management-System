@@ -92,6 +92,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     rescheduleWorkOrderId = null;
     rescheduleLoading = false;
 
+    // Unschedule confirmation modal
+    isUnassignModalOpen = false;
+    unassignTarget = null;
+
     // Transfer request rejection modal
     isRejectModalOpen = false;
     rejectReason = '';
@@ -3369,11 +3373,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     // ======= CALENDAR TAB HANDLERS =======
 
-    handleManagerTabActive() {
-        this.isCalendarTabActive = false;
-        this.pullTrayOpen = false;
-    }
-
     handleManagerUserChange(event) {
         this.selectedManagerUserId = event.detail.value || null;
         const selected = (this.managerTeam || []).find(
@@ -3397,14 +3396,16 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.loadAppointments();
     }
 
-    handleCalendarTabActive() {
-        this.isCalendarTabActive = true;
-        this.handleCalendarToday();
-    }
+    handleTabActive(event) {
+        const activeTab = event.detail.value;
 
-    handleListTabActive() {
-        this.isCalendarTabActive = false;
-        this.pullTrayOpen = false;
+        this.isCalendarTabActive = activeTab === 'calendar';
+
+        if (this.isCalendarTabActive) {
+            this.handleCalendarToday();
+        } else {
+            this.pullTrayOpen = false;
+        }
     }
 
     handleCalendarPrev() {
@@ -3516,6 +3517,47 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
+        const targetAppt = this.appointments.find(
+            appt => appt.appointmentId === id
+        );
+
+        this.unassignTarget = targetAppt
+            ? {
+                  id,
+                  subject: targetAppt.subject,
+                  workOrderNumber: targetAppt.workOrderNumber
+              }
+            : { id };
+
+        this.isUnassignModalOpen = true;
+    }
+
+    closeUnassignModal() {
+        this.isUnassignModalOpen = false;
+        this.unassignTarget = null;
+    }
+
+    get unassignModalSubject() {
+        if (!this.unassignTarget) {
+            return '';
+        }
+
+        return this.unassignTarget.subject || 'Service Appointment';
+    }
+
+    get unassignModalWorkOrder() {
+        if (!this.unassignTarget || !this.unassignTarget.workOrderNumber) {
+            return '';
+        }
+
+        return `WO # ${this.unassignTarget.workOrderNumber}`;
+    }
+
+    confirmUnassignAppointment() {
+        if (!this.unassignTarget || !this.unassignTarget.id) {
+            return;
+        }
+
         this.checkOnline();
         if (this.isOffline) {
             this.showToast(
@@ -3526,16 +3568,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
-        const confirmed = confirm(
-            'Are you sure you want to unschedule this service appointment?'
-        );
-        if (!confirmed) {
-            return;
-        }
-
         this.isLoading = true;
+        const appointmentId = this.unassignTarget.id;
 
-        unassignAppointment({ appointmentId: id })
+        unassignAppointment({ appointmentId })
             .then(() => {
                 this.showToast(
                     'Removed from schedule',
@@ -3559,6 +3595,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             })
             .finally(() => {
                 this.isLoading = false;
+                this.closeUnassignModal();
             });
     }
 

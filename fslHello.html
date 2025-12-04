@@ -1,8 +1,12 @@
 <template>
     <section class="sfs-container">
-        <lightning-tabset variant="scoped" class="sfs-tabset">
+        <lightning-tabset
+            variant="scoped"
+            class="sfs-tabset"
+            onactive={handleTabActive}
+        >
             <!-- LIST TAB (default) -->
-            <lightning-tab label="List" value="list" onactive={handleListTabActive}>
+            <lightning-tab label="List" value="list">
                 <div class="sfs-header">
                     <h2 class="sfs-title">My Service Appointments</h2>
                     <lightning-button
@@ -614,11 +618,7 @@
             </lightning-tab>
 
             <!-- CALENDAR TAB -->
-            <lightning-tab
-                label="Calendar"
-                value="calendar"
-                onactive={handleCalendarTabActive}
-            >
+            <lightning-tab label="Calendar" value="calendar">
                 <div class="sfs-header sfs-header-calendar">
                     <div class="sfs-calendar-nav">
                         <lightning-button-icon
@@ -996,11 +996,7 @@
             </lightning-tab>
 
             <template if:true={isManager}>
-                <lightning-tab
-                    label="Manager Console"
-                    value="manager"
-                    onactive={handleManagerTabActive}
-                >
+                <lightning-tab label="Manager Console" value="manager">
                     <div class="sfs-manager-panel">
                         <h3 class="sfs-manager-title">Manager console</h3>
                         <p class="sfs-manager-copy">
@@ -1376,6 +1372,45 @@
                         </div>
                     </div>
                 </article>
+            </div>
+        </template>
+
+        <template if:true={isUnassignModalOpen}>
+            <div class="sfs-modal-backdrop" onclick={closeUnassignModal}>
+                <div class="sfs-modal" onclick={handleDetailCardClick}>
+                    <div class="sfs-modal-header">
+                        <h3 class="sfs-modal-title">Remove from schedule</h3>
+                        <button
+                            class="sfs-modal-close"
+                            type="button"
+                            onclick={closeUnassignModal}
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    <p class="sfs-modal-copy">
+                        Are you sure you want to unschedule this service appointment?
+                    </p>
+                    <template if:true={unassignModalSubject}>
+                        <p class="sfs-modal-highlight">{unassignModalSubject}</p>
+                    </template>
+                    <template if:true={unassignModalWorkOrder}>
+                        <p class="sfs-modal-subtext">{unassignModalWorkOrder}</p>
+                    </template>
+                    <div class="sfs-actions sfs-modal-actions">
+                        <lightning-button
+                            variant="brand"
+                            label="Remove from schedule"
+                            onclick={confirmUnassignAppointment}
+                            disabled={isLoading}
+                        ></lightning-button>
+                        <lightning-button
+                            variant="neutral"
+                            label="Cancel"
+                            onclick={closeUnassignModal}
+                        ></lightning-button>
+                    </div>
+                </div>
             </div>
         </template>
 
