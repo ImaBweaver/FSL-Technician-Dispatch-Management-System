@@ -55,7 +55,7 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public Id absenceId;
         @AuraEnabled public Id resourceId;
         @AuraEnabled public Datetime start;
-        @AuraEnabled public Datetime end;
+        @AuraEnabled public Datetime endTime;
         @AuraEnabled public String description;
         @AuraEnabled public String type;
     }
@@ -216,7 +216,7 @@ public with sharing class FslTechnicianOnlineController {
                 dto.absenceId   = ra.Id;
                 dto.resourceId  = ra.ResourceId;
                 dto.start       = ra.Start;
-                dto.end         = ra.End;
+                dto.endTime     = ra.End;
                 dto.description = ra.Description;
                 dto.type        = ra.Type;
                 wrapper.absences.add(dto);

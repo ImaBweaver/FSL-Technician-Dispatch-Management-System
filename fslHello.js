@@ -1861,7 +1861,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     ...abs,
                     subject: abs.description || 'Absence',
                     newStart: abs.start,
-                    newEnd: abs.end
+                    newEnd: abs.endTime
                 }));
 
                 this.appointments = appts.map(appt => {
@@ -2356,12 +2356,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         });
 
         this.absences.forEach(abs => {
-            if (!abs.start || !abs.end) {
+            if (!abs.start || !abs.endTime) {
                 return;
             }
 
             const startLocal = this.convertUtcToUserLocal(abs.start);
-            const endLocal = this.convertUtcToUserLocal(abs.end);
+            const endLocal = this.convertUtcToUserLocal(abs.endTime);
 
             const startDay = new Date(startLocal);
             startDay.setHours(0, 0, 0, 0);
@@ -3055,7 +3055,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             this.isDetailClosing = false;
             this.selectedAppointment = null;
             this.selectedAbsence = absence
-                ? { ...absence, newStart: absence.newStart || absence.start, newEnd: absence.newEnd || absence.end }
+                ? { ...absence, newStart: absence.newStart || absence.start, newEnd: absence.newEnd || absence.endTime }
                 : null;
             this.updateSelectedEventStyles();
             return;
