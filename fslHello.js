@@ -2120,8 +2120,16 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return local.toISOString();
         }
 
-        const offsetMinutes = this.getTimeZoneOffsetMinutes(local);
-        const utcMs = local.getTime() - offsetMinutes * 60 * 1000;
+        // Adjust only when the browser's timezone differs from the user's
+        const userOffsetMinutes = this.getTimeZoneOffsetMinutes(local);
+        const browserOffsetMinutes = -local.getTimezoneOffset();
+        const offsetDeltaMinutes = userOffsetMinutes - browserOffsetMinutes;
+
+        if (offsetDeltaMinutes === 0) {
+            return local.toISOString();
+        }
+
+        const utcMs = local.getTime() - offsetDeltaMinutes * 60 * 1000;
         return new Date(utcMs).toISOString();
     }
 
