@@ -136,6 +136,7 @@ public with sharing class FslTechnicianOnlineController {
         Id effectiveUserId = (targetUserId != null)
             ? targetUserId
             : UserInfo.getUserId();
+        Id viewerUserId = UserInfo.getUserId();
 
         wrapper.userTimeZoneId     = UserInfo.getTimeZone().getID();
 
@@ -194,8 +195,18 @@ public with sharing class FslTechnicianOnlineController {
             userSrIds.add(sr.Id);
         }
 
+        // ServiceResource for the *viewer*; used for showing absences
+        Set<Id> absenceSrIds = new Set<Id>();
+        for (ServiceResource sr : [
+            SELECT Id
+            FROM ServiceResource
+            WHERE RelatedRecordId = :viewerUserId
+        ]) {
+            absenceSrIds.add(sr.Id);
+        }
+
         wrapper.absences = new List<ResourceAbsenceDTO>();
-        if (!userSrIds.isEmpty()) {
+        if (!absenceSrIds.isEmpty()) {
             Datetime windowStart = System.now().addDays(-14);
             Datetime windowEnd = System.now().addDays(90);
 
@@ -207,7 +218,7 @@ public with sharing class FslTechnicianOnlineController {
                        Description,
                        Type
                 FROM ResourceAbsence
-                WHERE ResourceId IN :userSrIds
+                WHERE ResourceId IN :absenceSrIds
                 AND End >= :windowStart
                 AND Start <= :windowEnd
                 ORDER BY Start ASC
