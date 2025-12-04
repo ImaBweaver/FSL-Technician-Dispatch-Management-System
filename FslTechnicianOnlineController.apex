@@ -136,6 +136,10 @@ public with sharing class FslTechnicianOnlineController {
         Id effectiveUserId = (targetUserId != null)
             ? targetUserId
             : UserInfo.getUserId();
+        Set<Id> srLookupIds = new Set<Id>();
+        if (effectiveUserId != null) {
+            srLookupIds.add(effectiveUserId);
+        }
         Id viewerUserId = UserInfo.getUserId();
 
         wrapper.userTimeZoneId     = UserInfo.getTimeZone().getID();
@@ -169,7 +173,8 @@ public with sharing class FslTechnicianOnlineController {
         List<ServiceResource> srs = [
             SELECT Id
             FROM ServiceResource
-            WHERE RelatedRecordId = :effectiveUserId
+            WHERE RelatedRecordId IN :srLookupIds
+               OR Id IN :srLookupIds
         ];
 
         for (ServiceResource sr : srs) {
@@ -200,15 +205,20 @@ public with sharing class FslTechnicianOnlineController {
         for (ServiceResource sr : [
             SELECT Id
             FROM ServiceResource
-            WHERE RelatedRecordId = :effectiveUserId
+            WHERE RelatedRecordId IN :srLookupIds
+               OR Id IN :srLookupIds
         ]) {
             absenceSrIds.add(sr.Id);
         }
 
         wrapper.absences = new List<ResourceAbsenceDTO>();
         if (!absenceSrIds.isEmpty()) {
-            Datetime windowStart = System.now().addDays(-14);
-            Datetime windowEnd = System.now().addDays(90);
+            // Pull a wide absence window so that future-dated time off is visible
+            // even if it extends beyond the current 2-week calendar view. Managers
+            // and techs commonly schedule vacation months in advance, so we include
+            // two years of future absences and one year of history for context.
+            Datetime windowStart = System.now().addDays(-365);
+            Datetime windowEnd = System.now().addDays(365 * 2);
 
             for (ResourceAbsence ra : [
                 SELECT Id,
