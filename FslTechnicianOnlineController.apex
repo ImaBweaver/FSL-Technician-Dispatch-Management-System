@@ -207,8 +207,12 @@ public with sharing class FslTechnicianOnlineController {
 
         wrapper.absences = new List<ResourceAbsenceDTO>();
         if (!absenceSrIds.isEmpty()) {
-            Datetime windowStart = System.now().addDays(-14);
-            Datetime windowEnd = System.now().addDays(90);
+            // Pull a wide absence window so that future-dated time off is visible
+            // even if it extends beyond the current 2-week calendar view. Managers
+            // and techs commonly schedule vacation months in advance, so we include
+            // two years of future absences and one year of history for context.
+            Datetime windowStart = System.now().addDays(-365);
+            Datetime windowEnd = System.now().addDays(365 * 2);
 
             for (ResourceAbsence ra : [
                 SELECT Id,
