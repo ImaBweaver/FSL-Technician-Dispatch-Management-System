@@ -416,7 +416,7 @@
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
 }
 
-/* TIMELINE MODE – CAROUSEL */
+/* TIMELINE MODE - CAROUSEL */
 
 .sfs-calendar {
     display: flex;
@@ -622,7 +622,7 @@
     border-color: #ff9a66 !important;
 }
 
-/* WEEK MODE – HEADER + UNIFORM GRID */
+/* WEEK MODE - HEADER + UNIFORM GRID */
 
 .sfs-week-header-row {
     margin-top: 0.5rem;
@@ -1222,14 +1222,14 @@
     box-sizing: border-box;
 }
 
-/* Floating ghost wrapper – inner uses .sfs-calendar-event styles */
+/* Floating ghost wrapper - inner uses .sfs-calendar-event styles */
 .sfs-drag-ghost {
     position: fixed;
     z-index: 99999;
     pointer-events: none;
 }
 
-/* Ghost event inside floating wrapper – use full container size */
+/* Ghost event inside floating wrapper - use full container size */
 .sfs-calendar-event_ghost {
     position: relative;  /* override absolute from base .sfs-calendar-event */
     left: 0;
