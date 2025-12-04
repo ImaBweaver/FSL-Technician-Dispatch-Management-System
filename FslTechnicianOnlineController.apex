@@ -101,11 +101,13 @@ public with sharing class FslTechnicianOnlineController {
     public class DebugInfo {
         @AuraEnabled public Id currentUserId;
         @AuraEnabled public List<Id> serviceResourceIds;
+        @AuraEnabled public List<Id> absenceResourceIds;
         @AuraEnabled public List<Id> assignedResourceIds;
         @AuraEnabled public List<Id> serviceAppointmentIds;
         @AuraEnabled public List<Id> serviceCrewIds;
         @AuraEnabled public List<Id> workOrderIds;
         @AuraEnabled public Integer length;
+        @AuraEnabled public Integer absenceCount;
         @AuraEnabled public String note;
     }
 
@@ -136,17 +138,23 @@ public with sharing class FslTechnicianOnlineController {
         Id effectiveUserId = (targetUserId != null)
             ? targetUserId
             : UserInfo.getUserId();
+        Set<Id> srLookupIds = new Set<Id>();
+        if (effectiveUserId != null) {
+            srLookupIds.add(effectiveUserId);
+        }
         Id viewerUserId = UserInfo.getUserId();
 
         wrapper.userTimeZoneId     = UserInfo.getTimeZone().getID();
 
         dbg.currentUserId          = UserInfo.getUserId();
         dbg.serviceResourceIds     = new List<Id>();
+        dbg.absenceResourceIds     = new List<Id>();
         dbg.assignedResourceIds    = new List<Id>();
         dbg.serviceAppointmentIds  = new List<Id>();
         dbg.serviceCrewIds         = new List<Id>();
         dbg.workOrderIds           = new List<Id>();
         dbg.note                   = '';
+        dbg.absenceCount           = 0;
 
         wrapper.teamMembers = new List<UserPickerOption>();
 
@@ -169,7 +177,8 @@ public with sharing class FslTechnicianOnlineController {
         List<ServiceResource> srs = [
             SELECT Id
             FROM ServiceResource
-            WHERE RelatedRecordId = :effectiveUserId
+            WHERE RelatedRecordId IN :srLookupIds
+               OR Id IN :srLookupIds
         ];
 
         for (ServiceResource sr : srs) {
@@ -200,15 +209,20 @@ public with sharing class FslTechnicianOnlineController {
         for (ServiceResource sr : [
             SELECT Id
             FROM ServiceResource
-            WHERE RelatedRecordId = :effectiveUserId
+            WHERE RelatedRecordId IN :srLookupIds
+               OR Id IN :srLookupIds
         ]) {
             absenceSrIds.add(sr.Id);
         }
 
         wrapper.absences = new List<ResourceAbsenceDTO>();
         if (!absenceSrIds.isEmpty()) {
-            Datetime windowStart = System.now().addDays(-14);
-            Datetime windowEnd = System.now().addDays(90);
+            // Pull a wide absence window so that future-dated time off is visible
+            // even if it extends beyond the current 2-week calendar view. Managers
+            // and techs commonly schedule vacation months in advance, so we include
+            // two years of future absences and one year of history for context.
+            Datetime windowStart = System.now().addDays(-365);
+            Datetime windowEnd = System.now().addDays(365 * 2);
 
             for (ResourceAbsence ra : [
                 SELECT Id,
@@ -231,6 +245,8 @@ public with sharing class FslTechnicianOnlineController {
                 dto.description = ra.Description;
                 dto.type        = ra.Type;
                 wrapper.absences.add(dto);
+                dbg.absenceCount++;
+                dbg.absenceResourceIds.add(ra.ResourceId);
             }
         }
 
