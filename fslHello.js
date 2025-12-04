@@ -1135,8 +1135,13 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
+        if (!event || !event.currentTarget) {
+            this.resetDragState();
+            return;
+        }
+
         const card = event.currentTarget;
-        const workOrderId = card.dataset.woid;
+        const workOrderId = card.dataset && card.dataset.woid;
         if (!workOrderId) {
             return;
         }
