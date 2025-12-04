@@ -101,11 +101,13 @@ public with sharing class FslTechnicianOnlineController {
     public class DebugInfo {
         @AuraEnabled public Id currentUserId;
         @AuraEnabled public List<Id> serviceResourceIds;
+        @AuraEnabled public List<Id> absenceResourceIds;
         @AuraEnabled public List<Id> assignedResourceIds;
         @AuraEnabled public List<Id> serviceAppointmentIds;
         @AuraEnabled public List<Id> serviceCrewIds;
         @AuraEnabled public List<Id> workOrderIds;
         @AuraEnabled public Integer length;
+        @AuraEnabled public Integer absenceCount;
         @AuraEnabled public String note;
     }
 
@@ -146,11 +148,13 @@ public with sharing class FslTechnicianOnlineController {
 
         dbg.currentUserId          = UserInfo.getUserId();
         dbg.serviceResourceIds     = new List<Id>();
+        dbg.absenceResourceIds     = new List<Id>();
         dbg.assignedResourceIds    = new List<Id>();
         dbg.serviceAppointmentIds  = new List<Id>();
         dbg.serviceCrewIds         = new List<Id>();
         dbg.workOrderIds           = new List<Id>();
         dbg.note                   = '';
+        dbg.absenceCount           = 0;
 
         wrapper.teamMembers = new List<UserPickerOption>();
 
@@ -241,6 +245,8 @@ public with sharing class FslTechnicianOnlineController {
                 dto.description = ra.Description;
                 dto.type        = ra.Type;
                 wrapper.absences.add(dto);
+                dbg.absenceCount++;
+                dbg.absenceResourceIds.add(ra.ResourceId);
             }
         }
 
