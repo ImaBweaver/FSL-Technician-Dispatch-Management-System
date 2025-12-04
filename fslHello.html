@@ -693,69 +693,68 @@
                 </template>
 
                 <template if:false={isLoading}>
-                    <template if:true={hasAppointments}>
-                        <!-- TIMELINE MODE -->
-                        <template if:true={isTimelineMode}>
-                            <div class="sfs-calendar">
-                                <!-- Global NOW line across the calendar -->
-                                <template if:true={showNowLine}>
-                                    <div
-                                        class="sfs-calendar-now-line"
-                                        style={nowLineStyle}
-                                    ></div>
-                                </template>
+                    <!-- TIMELINE MODE -->
+                    <template if:true={isTimelineMode}>
+                        <div class="sfs-calendar">
+                            <!-- Global NOW line across the calendar -->
+                            <template if:true={showNowLine}>
+                                <div
+                                    class="sfs-calendar-now-line"
+                                    style={nowLineStyle}
+                                ></div>
+                            </template>
 
-                                <div class="sfs-calendar-hours">
+                            <div class="sfs-calendar-hours">
+                                <template
+                                    for:each={calendarHourLabels}
+                                    for:item="hour"
+                                >
+                                    <div
+                                        key={hour}
+                                        class="sfs-calendar-hour-label"
+                                    >
+                                        {hour}
+                                    </div>
+                                </template>
+                            </div>
+
+                            <div class={calendarDaysWrapperClass}>
+                                <div
+                                    class="sfs-calendar-days"
+                                    onmousemove={handleCalendarPointerMove}
+                                    onmouseup={handleCalendarPointerEnd}
+                                    ontouchmove={handleCalendarPointerMove}
+                                    ontouchend={handleCalendarPointerEnd}
+                                >
                                     <template
-                                        for:each={calendarHourLabels}
-                                        for:item="hour"
+                                        for:each={calendarDays}
+                                        for:item="day"
+                                        for:index="dayIndex"
                                     >
                                         <div
-                                            key={hour}
-                                            class="sfs-calendar-hour-label"
+                                            key={day.key}
+                                            class={day.cssClassTimeline}
+                                            data-day-index={dayIndex}
                                         >
-                                            {hour}
-                                        </div>
-                                    </template>
-                                </div>
-
-                                <div class={calendarDaysWrapperClass}>
-                                    <div
-                                        class="sfs-calendar-days"
-                                        onmousemove={handleCalendarPointerMove}
-                                        onmouseup={handleCalendarPointerEnd}
-                                        ontouchmove={handleCalendarPointerMove}
-                                        ontouchend={handleCalendarPointerEnd}
-                                    >
-                                        <template
-                                            for:each={calendarDays}
-                                            for:item="day"
-                                            for:index="dayIndex"
-                                        >
-                                            <div
-                                                key={day.key}
-                                                class={day.cssClassTimeline}
-                                                data-day-index={dayIndex}
-                                            >
-                                                <div class="sfs-calendar-day-header">
-                                                    {day.fullLabel}
-                                                </div>
-                                                <div class="sfs-calendar-day-body">
-                                                    <template
-                                                        for:each={day.events}
-                                                        for:item="evt"
-                                                    >
-                                                            <div
-                                                                key={evt.id}
-                                                                class={evt.className}
-                                                                style={evt.style}
-                                                                data-id={evt.id}
-                                                                data-day-index={dayIndex}
-                                                                onclick={handleEventClick}
-                                                                onmousedown={handleEventDragStart}
-                                                                ontouchstart={handleEventDragStart}
-                                                                onmouseup={handleEventPressEnd}
-                                                                ontouchend={handleEventPressEnd}
+                                            <div class="sfs-calendar-day-header">
+                                                {day.fullLabel}
+                                            </div>
+                                            <div class="sfs-calendar-day-body">
+                                                <template
+                                                    for:each={day.events}
+                                                    for:item="evt"
+                                                >
+                                                    <div
+                                                        key={evt.id}
+                                                        class={evt.className}
+                                                        style={evt.style}
+                                                        data-id={evt.id}
+                                                        data-day-index={dayIndex}
+                                                        onclick={handleEventClick}
+                                                        onmousedown={handleEventDragStart}
+                                                        ontouchstart={handleEventDragStart}
+                                                        onmouseup={handleEventPressEnd}
+                                                        ontouchend={handleEventPressEnd}
                                                     >
                                                         <!-- RED CREW WARNING BANNER -->
                                                         <template if:true={evt.isCrewAssignment}>
@@ -778,125 +777,121 @@
                                                             {evt.subject}
                                                         </div>
 
-                                                            <template if:true={evt.workOrderNumber}>
-                                                                <div class="sfs-calendar-event-wo">
-                                                                    {evt.workOrderNumber}
-                                                                </div>
-                                                            </template>
-
-                                                            <div class="sfs-calendar-event-time">
-                                                                {evt.timeLabel}
+                                                        <template if:true={evt.workOrderNumber}>
+                                                            <div class="sfs-calendar-event-wo">
+                                                                {evt.workOrderNumber}
                                                             </div>
+                                                        </template>
 
-                                                            <div
-                                                                class="sfs-calendar-event-resize"
-                                                                data-id={evt.id}
-                                                                data-day-index={dayIndex}
-                                                                onmousedown={handleEventResizeStart}
-                                                                ontouchstart={handleEventResizeStart}
-                                                            ></div>
+                                                        <div class="sfs-calendar-event-time">
+                                                            {evt.timeLabel}
                                                         </div>
-                                                    </template>
-                                                </div>
+
+                                                        <div
+                                                            class="sfs-calendar-event-resize"
+                                                            data-id={evt.id}
+                                                            data-day-index={dayIndex}
+                                                            onmousedown={handleEventResizeStart}
+                                                            ontouchstart={handleEventResizeStart}
+                                                        ></div>
+                                                    </div>
+                                                </template>
                                             </div>
-                                        </template>
-                                    </div>
+                                        </div>
+                                    </template>
                                 </div>
                             </div>
-                        </template>
 
-                        <!-- WEEK MODE -->
-                        <template if:true={isWeekMode}>
-                            <div class="sfs-week-header-row">
-                                <template
-                                    for:each={calendarHeaderDays}
-                                    for:item="day"
-                                >
-                                    <div
-                                        key={day.key}
-                                        class="sfs-week-header-cell"
-                                    >
-                                        {day.weekdayLabel}
-                                    </div>
-                                </template>
-                            </div>
-
-                            <div class="sfs-weekgrid">
-                                <template
-                                    for:each={calendarWeeks}
-                                    for:item="week"
-                                >
-                                    <div
-                                        key={week.key}
-                                        class="sfs-week-row"
-                                    >
-                                        <template
-                                            for:each={week.days}
-                                            for:item="day"
-                                        >
-                                            <div
-                                                key={day.key}
-                                                class={day.cssClassWeekCell}
-                                            >
-                                                <div class="sfs-week-cell-date">
-                                                    {day.dayNumberLabel}
-                                                </div>
-                                                <div class="sfs-week-cell-events">
-                                                    <template
-                                                        for:each={day.events}
-                                                        for:item="evt"
-                                                    >
-                                                        <div
-                                                            key={evt.id}
-                                                            class={evt.classNameWeek}
-                                                            data-id={evt.id}
-                                                            onclick={handleEventClick}
-                                                        >
-                                                            <!-- RED CREW WARNING BANNER -->
-                                                            <template if:true={evt.isCrewAssignment}>
-                                                                <div class="sfs-week-crew-banner">
-                                                                    Need Eng Assignment
-                                                                </div>
-                                                            </template>
-
-                                                            <button
-                                                                class="sfs-unassign-btn sfs-unassign-btn_calendar"
-                                                                title="Remove me from this work order"
-                                                                data-id={evt.id}
-                                                                onclick={handleUnassignClick}
-                                                                type="button"
-                                                            >
-                                                                ✕
-                                                            </button>
-
-                                                            <template if:true={evt.workOrderNumber}>
-                                                                <div class="sfs-week-event-wo">
-                                                                    {evt.workOrderNumber}
-                                                                </div>
-                                                            </template>
-
-                                                            <div class="sfs-week-event-time">
-                                                                {evt.timeLabel}
-                                                            </div>
-
-                                                            <div class="sfs-week-event-title">
-                                                                {evt.subject}
-                                                            </div>
-                                                        </div>
-                                                    </template>
-                                                </div>
-                                            </div>
-                                        </template>
-                                    </div>
-                                </template>
-                            </div>
-                        </template>
+                            <template if:false={hasAppointments}>
+                                <div class="sfs-empty">
+                                    <p>No service appointments are scheduled yet.</p>
+                                </div>
+                            </template>
+                        </div>
                     </template>
 
-                    <template if:false={hasAppointments}>
-                        <div class="sfs-empty">
-                            <p>No service appointments were found for your resource.</p>
+                    <!-- WEEK MODE -->
+                    <template if:true={isWeekMode}>
+                        <div class="sfs-week-header-row">
+                            <template
+                                for:each={calendarHeaderDays}
+                                for:item="day"
+                            >
+                                <div key={day.key} class="sfs-week-header-cell">
+                                    {day.weekdayLabel}
+                                </div>
+                            </template>
                         </div>
+
+                        <div class="sfs-weekgrid">
+                            <template
+                                for:each={calendarWeeks}
+                                for:item="week"
+                            >
+                                <div key={week.key} class="sfs-week-row">
+                                    <template
+                                        for:each={week.days}
+                                        for:item="day"
+                                    >
+                                        <div key={day.key} class={day.cssClassWeekCell}>
+                                            <div class="sfs-week-cell-date">
+                                                {day.dayNumberLabel}
+                                            </div>
+                                            <div class="sfs-week-cell-events">
+                                                <template
+                                                    for:each={day.events}
+                                                    for:item="evt"
+                                                >
+                                                    <div
+                                                        key={evt.id}
+                                                        class={evt.classNameWeek}
+                                                        data-id={evt.id}
+                                                        onclick={handleEventClick}
+                                                    >
+                                                        <!-- RED CREW WARNING BANNER -->
+                                                        <template if:true={evt.isCrewAssignment}>
+                                                            <div class="sfs-week-crew-banner">
+                                                                Need Eng Assignment
+                                                            </div>
+                                                        </template>
+
+                                                        <button
+                                                            class="sfs-unassign-btn sfs-unassign-btn_calendar"
+                                                            title="Remove me from this work order"
+                                                            data-id={evt.id}
+                                                            onclick={handleUnassignClick}
+                                                            type="button"
+                                                        >
+                                                            ✕
+                                                        </button>
+
+                                                        <template if:true={evt.workOrderNumber}>
+                                                            <div class="sfs-week-event-wo">
+                                                                {evt.workOrderNumber}
+                                                            </div>
+                                                        </template>
+
+                                                        <div class="sfs-week-event-time">
+                                                            {evt.timeLabel}
+                                                        </div>
+
+                                                        <div class="sfs-week-event-title">
+                                                            {evt.subject}
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+
+                        <template if:false={hasAppointments}>
+                            <div class="sfs-empty">
+                                <p>No service appointments are scheduled yet.</p>
+                            </div>
+                        </template>
                     </template>
                 </template>
 
