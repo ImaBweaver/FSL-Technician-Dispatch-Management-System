@@ -489,6 +489,82 @@
     text-align: center;
 }
 
+.sfs-absence-box {
+    margin: 0.75rem 0 0.25rem;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid #c7def6;
+    border-radius: 0.6rem;
+    background: linear-gradient(90deg, #f7fbff 0%, #eef4ff 100%);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.sfs-absence-box__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+}
+
+.sfs-absence-box__title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #16325c;
+}
+
+.sfs-absence-box__pill {
+    background: #e1ecff;
+    color: #1b4f9c;
+    border: 1px solid #c7def6;
+    border-radius: 1rem;
+    padding: 0.1rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.sfs-absence-box__summary {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #1b4f9c;
+    line-height: 1.35;
+}
+
+.sfs-absence-box__list {
+    margin-top: 0.55rem;
+    display: grid;
+    gap: 0.4rem;
+}
+
+.sfs-absence-box__item {
+    background: #ffffff;
+    border: 1px solid #d8dff1;
+    border-radius: 0.45rem;
+    padding: 0.5rem 0.55rem;
+}
+
+.sfs-absence-box__item-title {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #16325c;
+}
+
+.sfs-absence-box__item-meta {
+    font-size: 0.8rem;
+    color: #514f4d;
+    margin-top: 0.15rem;
+}
+
+.sfs-absence-box__empty {
+    margin-top: 0.6rem;
+    padding: 0.55rem 0.65rem;
+    border: 1px dashed #c7def6;
+    border-radius: 0.4rem;
+    background: #f9fbff;
+    color: #514f4d;
+    font-size: 0.8rem;
+}
+
 .sfs-absence-debug {
     margin: 0.5rem 0;
     padding: 0.6rem 0.75rem;
