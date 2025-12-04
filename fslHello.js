@@ -12,13 +12,17 @@ import createEngineerTransferRequest from '@salesforce/apex/FslTechnicianOnlineC
 import acceptEngineerTransferRequest from '@salesforce/apex/FslTechnicianOnlineController.acceptEngineerTransferRequest';
 import rejectEngineerTransferRequest from '@salesforce/apex/FslTechnicianOnlineController.rejectEngineerTransferRequest';
 import markWorkOrderQuoteSent from '@salesforce/apex/FslTechnicianOnlineController.markWorkOrderQuoteSent';
+import updateResourceAbsence from '@salesforce/apex/FslTechnicianOnlineController.updateResourceAbsence';
+import deleteResourceAbsence from '@salesforce/apex/FslTechnicianOnlineController.deleteResourceAbsence';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
 export default class FslHello extends NavigationMixin(LightningElement) {
     @track appointments = [];
+    @track absences = [];
     @track debugInfo = {};
     @track calendarDays = [];
     @track selectedAppointment = null;
+    @track selectedAbsence = null;
     get hasVisibleAppointments() {
         return this.visibleAppointments.length > 0;
     }
@@ -127,6 +131,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     // Detail bottom sheet animation
     isDetailClosing = false;
     _closeTimeout;
+    isAbsenceDetailClosing = false;
+    _absenceCloseTimeout;
 
     // swipe-to-close support
     touchStartY = null;
@@ -134,7 +140,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     // ======= GETTERS =======
 
     get hasAppointments() {
-        return this.appointments && this.appointments.length > 0;
+        const apptCount = this.appointments ? this.appointments.length : 0;
+        const absenceCount = this.absences ? this.absences.length : 0;
+        return apptCount + absenceCount > 0;
     }
 
     get isMyMode() {
@@ -530,8 +538,20 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return (this.quoteWorkOrders || []).find(wo => wo.cardId === cardId);
     }
 
+    findAbsenceById(absenceId) {
+        if (!absenceId || !this.absences) {
+            return null;
+        }
+
+        return this.absences.find(a => a.absenceId === absenceId) || null;
+    }
+
     get hasSelectedAppointment() {
         return this.selectedAppointment !== null;
+    }
+
+    get hasSelectedAbsence() {
+        return this.selectedAbsence !== null;
     }
 
     get calendarHourLabels() {
@@ -743,6 +763,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             : 'sfs-detail-card sfs-detail-card_open';
     }
 
+    get absenceDetailCardClass() {
+        return this.isAbsenceDetailClosing
+            ? 'sfs-detail-card sfs-detail-card_closing'
+            : 'sfs-detail-card sfs-detail-card_open';
+    }
+
     // Tray helpers
     get trayContainerClass() {
         return this.pullTrayOpen ? 'sfs-tray sfs-tray_open' : 'sfs-tray';
@@ -882,6 +908,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
+        if (event.currentTarget.dataset.kind === 'absence') {
+            return;
+        }
+
         const id = event.currentTarget.dataset.id;
         const dayIndexStr = event.currentTarget.dataset.dayIndex;
         if (!id || dayIndexStr === undefined) {
@@ -954,6 +984,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     handleEventResizeStart(event) {
         if (this.dragMode) {
+            return;
+        }
+
+        if (event.currentTarget.dataset.kind === 'absence') {
             return;
         }
 
@@ -1744,6 +1778,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     loadAppointments() {
         this.isLoading = true;
         this.selectedAppointment = null;
+        this.selectedAbsence = null;
 
         getMyAppointmentsOnline({ targetUserId: this.activeUserId })
             .then(result => {
@@ -1819,6 +1854,15 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 this.submittedTransferRequests = submittedTransferRequests
                     .filter(req => !req.acceptedOn && !req.rejectedOn)
                     .map(req => this.normalizeTransferRequest(req));
+
+                const absences =
+                    result && result.absences ? result.absences : [];
+                this.absences = absences.map(abs => ({
+                    ...abs,
+                    subject: abs.description || 'Absence',
+                    newStart: abs.start,
+                    newEnd: abs.end
+                }));
 
                 this.appointments = appts.map(appt => {
                     const clone = { ...appt };
@@ -1920,6 +1964,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 this.appointments = [];
                 this.calendarDays = [];
                 this.unscheduledWorkOrders = [];
+                this.absences = [];
                 this.showToast('Error loading appointments', message, 'error');
             })
             .finally(() => {
@@ -2257,6 +2302,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 return;
             }
 
+            const eventKey = `${appt.appointmentId}-${dayKey}`;
+
             let startHour =
                 startLocal.getHours() + startLocal.getMinutes() / 60;
             let endHour =
@@ -2291,6 +2338,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
             day.events.push({
                 id: appt.appointmentId,
+                key: eventKey,
                 style: `top:${topPct}%;height:${heightPct}%;`,
                 subject: appt.workOrderSubject,
                 workOrderNumber: appt.workOrderNumber,
@@ -2298,11 +2346,93 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 timeLabel,
                 isCrewAssignment: appt.isCrewAssignment,
                 isMyAssignment: appt.isMyAssignment,
+                isAbsence: false,
+                kind: 'appointment',
                 className: baseTimelineClass,
                 classNameWeek: baseWeekClass,
                 baseClassTimeline: baseTimelineClass,
                 baseClassWeek: baseWeekClass
             });
+        });
+
+        this.absences.forEach(abs => {
+            if (!abs.start || !abs.end) {
+                return;
+            }
+
+            const startLocal = this.convertUtcToUserLocal(abs.start);
+            const endLocal = this.convertUtcToUserLocal(abs.end);
+
+            const startDay = new Date(startLocal);
+            startDay.setHours(0, 0, 0, 0);
+            const endDay = new Date(endLocal);
+            endDay.setHours(0, 0, 0, 0);
+
+            const baseTimelineClass = 'sfs-calendar-event sfs-calendar-event_absence';
+            const baseWeekClass = 'sfs-week-event-box sfs-week-event-box_absence';
+
+            for (
+                let cursor = new Date(startDay);
+                cursor.getTime() <= endDay.getTime();
+                cursor.setDate(cursor.getDate() + 1)
+            ) {
+                const year = cursor.getFullYear();
+                const month = cursor.getMonth() + 1;
+                const dayNum = cursor.getDate();
+                const dayKey =
+                    year + '-' + this.pad2(month) + '-' + this.pad2(dayNum);
+                const day = dayMap.get(dayKey);
+                if (!day) {
+                    continue;
+                }
+
+                const dayStart = new Date(cursor);
+                const dayEnd = new Date(cursor);
+                dayEnd.setHours(23, 59, 59, 999);
+
+                const segmentStart =
+                    startLocal.getTime() > dayStart.getTime()
+                        ? startLocal
+                        : dayStart;
+                const segmentEnd =
+                    endLocal.getTime() < dayEnd.getTime() ? endLocal : dayEnd;
+
+                let startHour =
+                    segmentStart.getHours() + segmentStart.getMinutes() / 60;
+                let endHour = segmentEnd.getHours() + segmentEnd.getMinutes() / 60;
+
+                startHour = Math.max(startHour, this.calendarStartHour);
+                endHour = Math.min(endHour, this.calendarEndHour);
+
+                if (endHour <= startHour) {
+                    endHour = startHour + 0.25;
+                }
+
+                const topPct =
+                    ((startHour - this.calendarStartHour) / totalHours) * 100;
+                const heightPct = ((endHour - startHour) / totalHours) * 100;
+
+                const timeLabel = this.formatTimeRange(segmentStart, segmentEnd);
+                const key = `${abs.absenceId}-${dayKey}`;
+
+                day.events.push({
+                    id: abs.absenceId,
+                    key,
+                    style: `top:${topPct}%;height:${heightPct}%;`,
+                    subject: abs.subject || 'Absence',
+                    workOrderNumber: null,
+                    workTypeName: null,
+                    timeLabel,
+                    isCrewAssignment: false,
+                    isMyAssignment: false,
+                    isAbsence: true,
+                    kind: 'absence',
+                    className: baseTimelineClass,
+                    classNameWeek: baseWeekClass,
+                    baseClassTimeline: baseTimelineClass,
+                    baseClassWeek: baseWeekClass
+                });
+            }
         });
 
         if (this.isTimelineMode) {
@@ -2367,9 +2497,14 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     updateSelectedEventStyles() {
-        const selectedId = this.selectedAppointment
-            ? this.selectedAppointment.appointmentId
-            : null;
+        const selectedIds = [];
+        if (this.selectedAppointment) {
+            selectedIds.push(this.selectedAppointment.appointmentId);
+        }
+
+        if (this.selectedAbsence) {
+            selectedIds.push(this.selectedAbsence.absenceId);
+        }
 
         const draggingId = this.dragMode ? this.draggingEventId : null;
 
@@ -2380,7 +2515,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 const baseWeek =
                     evt.baseClassWeek || 'sfs-week-event-box';
 
-                const isSelected = selectedId && evt.id === selectedId;
+                const isSelected =
+                    selectedIds.length > 0 && selectedIds.includes(evt.id);
                 const isDragging = draggingId && evt.id === draggingId;
 
                 let classTimeline = baseTimeline;
@@ -3061,13 +3197,28 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         const id = event.currentTarget.dataset.id;
+        const kind = event.currentTarget.dataset.kind || 'appointment';
         if (!id) {
             return;
         }
+
+        if (kind === 'absence') {
+            const absence = this.findAbsenceById(id);
+            window.clearTimeout(this._closeTimeout);
+            this.isDetailClosing = false;
+            this.selectedAppointment = null;
+            this.selectedAbsence = absence
+                ? { ...absence, newStart: absence.newStart || absence.start, newEnd: absence.newEnd || absence.end }
+                : null;
+            this.updateSelectedEventStyles();
+            return;
+        }
+
         const appt = this.findAppointmentByCardId(id);
 
         window.clearTimeout(this._closeTimeout);
         this.isDetailClosing = false;
+        this.selectedAbsence = null;
         this.selectedAppointment = appt ? { ...appt } : null;
         this.updateSelectedEventStyles();
     }
@@ -3094,7 +3245,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     handleOverlayClick() {
-        this.handleCloseDetails();
+        if (this.selectedAbsence) {
+            this.handleCloseAbsenceDetails();
+        } else {
+            this.handleCloseDetails();
+        }
     }
 
     handleDetailCardClick(event) {
@@ -3115,10 +3270,118 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             const deltaY =
                 event.changedTouches[0].clientY - this.touchStartY;
             if (deltaY > 40) {
-                this.handleCloseDetails(event);
+                if (this.selectedAbsence) {
+                    this.handleCloseAbsenceDetails(event);
+                } else {
+                    this.handleCloseDetails(event);
+                }
             }
         }
         this.touchStartY = null;
+    }
+
+    // ======= ABSENCE EDITING =======
+
+    handleAbsenceDateChange(event) {
+        if (!this.selectedAbsence) {
+            return;
+        }
+
+        const field = event.target.dataset.field;
+        if (!field) {
+            return;
+        }
+
+        const value = event.detail ? event.detail.value : event.target.value;
+        this.selectedAbsence = { ...this.selectedAbsence, [field]: value };
+    }
+
+    handleSaveAbsence() {
+        if (!this.selectedAbsence) {
+            return;
+        }
+
+        const { absenceId, newStart, newEnd } = this.selectedAbsence;
+        this.isLoading = true;
+
+        updateResourceAbsence({
+            absenceId,
+            startDateTimeIso: newStart,
+            endDateTimeIso: newEnd
+        })
+            .then(() => {
+                this.showToast(
+                    'Absence updated',
+                    'Absence time updated.',
+                    'success'
+                );
+                this.selectedAbsence = null;
+                return this.loadAppointments();
+            })
+            .catch(error => {
+                const message = this.reduceError(error);
+                this.showToast('Error updating absence', message, 'error');
+            })
+            .finally(() => {
+                this.isLoading = false;
+            });
+    }
+
+    handleDeleteAbsenceClick(event) {
+        if (event) {
+            event.stopPropagation();
+        }
+
+        const id = event && event.currentTarget ? event.currentTarget.dataset.id : null;
+        const absenceId = id || (this.selectedAbsence ? this.selectedAbsence.absenceId : null);
+
+        if (!absenceId) {
+            return;
+        }
+
+        this.isLoading = true;
+
+        deleteResourceAbsence({ absenceId })
+            .then(() => {
+                this.showToast(
+                    'Absence deleted',
+                    'The absence has been removed from the calendar.',
+                    'success'
+                );
+                if (
+                    this.selectedAbsence &&
+                    this.selectedAbsence.absenceId === absenceId
+                ) {
+                    this.selectedAbsence = null;
+                }
+                return this.loadAppointments();
+            })
+            .catch(error => {
+                const message = this.reduceError(error);
+                this.showToast('Error deleting absence', message, 'error');
+            })
+            .finally(() => {
+                this.isLoading = false;
+            });
+    }
+
+    handleCloseAbsenceDetails(event) {
+        if (event) {
+            event.stopPropagation();
+        }
+
+        if (!this.selectedAbsence || this.isAbsenceDetailClosing) {
+            return;
+        }
+
+        this.isAbsenceDetailClosing = true;
+
+        window.clearTimeout(this._absenceCloseTimeout);
+        this._absenceCloseTimeout = window.setTimeout(() => {
+            this.selectedAbsence = null;
+            this.isAbsenceDetailClosing = false;
+            this.updateSelectedEventStyles();
+        }, 200);
     }
 
     navigateToRecord(recordId, objectApiName) {
