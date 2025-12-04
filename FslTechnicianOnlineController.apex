@@ -136,6 +136,10 @@ public with sharing class FslTechnicianOnlineController {
         Id effectiveUserId = (targetUserId != null)
             ? targetUserId
             : UserInfo.getUserId();
+        Set<Id> srLookupIds = new Set<Id>();
+        if (effectiveUserId != null) {
+            srLookupIds.add(effectiveUserId);
+        }
         Id viewerUserId = UserInfo.getUserId();
 
         wrapper.userTimeZoneId     = UserInfo.getTimeZone().getID();
@@ -169,7 +173,8 @@ public with sharing class FslTechnicianOnlineController {
         List<ServiceResource> srs = [
             SELECT Id
             FROM ServiceResource
-            WHERE RelatedRecordId = :effectiveUserId
+            WHERE RelatedRecordId IN :srLookupIds
+               OR Id IN :srLookupIds
         ];
 
         for (ServiceResource sr : srs) {
@@ -200,7 +205,8 @@ public with sharing class FslTechnicianOnlineController {
         for (ServiceResource sr : [
             SELECT Id
             FROM ServiceResource
-            WHERE RelatedRecordId = :effectiveUserId
+            WHERE RelatedRecordId IN :srLookupIds
+               OR Id IN :srLookupIds
         ]) {
             absenceSrIds.add(sr.Id);
         }
