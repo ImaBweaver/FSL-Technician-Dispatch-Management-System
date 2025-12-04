@@ -942,6 +942,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     getClientPoint(event) {
+        if (!event) {
+            return null;
+        }
+
         const touch =
             (event.touches && event.touches[0]) ||
             (event.changedTouches && event.changedTouches[0]);
