@@ -57,7 +57,7 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public Datetime start;
         @AuraEnabled public Datetime end;
         @AuraEnabled public String description;
-        @AuraEnabled public String status;
+        @AuraEnabled public String type;
     }
 
     // Unscheduled Work Orders for tray
@@ -205,7 +205,7 @@ public with sharing class FslTechnicianOnlineController {
                        Start,
                        End,
                        Description,
-                       Status
+                       Type
                 FROM ResourceAbsence
                 WHERE ResourceId IN :userSrIds
                 AND End >= :windowStart
@@ -218,7 +218,7 @@ public with sharing class FslTechnicianOnlineController {
                 dto.start       = ra.Start;
                 dto.end         = ra.End;
                 dto.description = ra.Description;
-                dto.status      = ra.Status;
+                dto.type        = ra.Type;
                 wrapper.absences.add(dto);
             }
         }
