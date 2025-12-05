@@ -869,13 +869,19 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             const tabset = this.template.querySelector('lightning-tabset');
             if (tabset) {
                 const activeTabValue = tabset.activeTabValue || tabset.value;
-                const isCalendarActive = activeTabValue === 'calendar';
 
-                if (isCalendarActive !== this.isCalendarTabActive) {
-                    this.isCalendarTabActive = isCalendarActive;
+                // If the tabset has not reported its active value yet, avoid
+                // resetting the flag based on an undefined value (which would
+                // hide the pull-up tray on the calendar tab).
+                if (activeTabValue) {
+                    const isCalendarActive = activeTabValue === 'calendar';
 
-                    if (!isCalendarActive) {
-                        this.pullTrayOpen = false;
+                    if (isCalendarActive !== this.isCalendarTabActive) {
+                        this.isCalendarTabActive = isCalendarActive;
+
+                        if (!isCalendarActive) {
+                            this.pullTrayOpen = false;
+                        }
                     }
                 }
             }
