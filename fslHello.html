@@ -619,6 +619,14 @@
 
             <!-- CALENDAR TAB -->
             <lightning-tab label="Calendar" value="calendar">
+                <button
+                    slot="title"
+                    class="sfs-calendar-tab-button"
+                    type="button"
+                    onclick={handleCalendarTabClick}
+                >
+                    Calendar
+                </button>
                 <div class="sfs-header sfs-header-calendar">
                     <div class="sfs-calendar-nav">
                         <lightning-button-icon
