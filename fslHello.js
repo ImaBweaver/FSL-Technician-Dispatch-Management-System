@@ -880,7 +880,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             this.captureError(error, 'renderedCallback');
         }
     }
-} 
 
     errorCallback(error, stack) {
         this.captureError(error, 'errorCallback');
@@ -889,63 +888,13 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
-        var debugInfoCopy = this.debugInfo
-            ? Object.assign({}, this.debugInfo)
-            : {};
+        const lastError = (this.debugInfo && this.debugInfo.lastError) || {};
 
-        var lastErrorDetails = debugInfoCopy.lastError
-            ? Object.assign({}, debugInfoCopy.lastError)
-            : {};
-
-        lastErrorDetails.stack = stack;
-        debugInfoCopy.lastError = lastErrorDetails;
-
-        this.debugInfo = debugInfoCopy;
-        if (stack) {
-            const debugInfoCopy = this.debugInfo
-                ? Object.assign({}, this.debugInfo)
-                : {};
-
-            const lastErrorDetails = debugInfoCopy.lastError
-                ? Object.assign({}, debugInfoCopy.lastError)
-                : {};
-
-            lastErrorDetails.stack = stack;
-            debugInfoCopy.lastError = lastErrorDetails;
-
-            this.debugInfo = debugInfoCopy;
-            const lastError = debugInfoCopy.lastError
-                ? Object.assign({}, debugInfoCopy.lastError)
-                : {};
-
-            lastError.stack = stack;
-            debugInfoCopy.lastError = lastError;
-
-            this.debugInfo = debugInfoCopy;
-                const lastError =
-                    this.debugInfo && this.debugInfo.lastError
-                        ? this.debugInfo.lastError
-                        : {};
-
-                this.debugInfo = {
-                    ...this.debugInfo,
-                    lastError: {
-                        ...lastError,
-                        stack
-                    }
-                };
-            this.debugInfo = {
-                ...this.debugInfo,
-                lastError: {
-                    ...(this.debugInfo?.lastError || {}),
-                    stack
-                }
-            };
-
-            this.scheduleNowLinePositionUpdate();
-        } catch (error) {
-            this.captureError(error, 'renderedCallback');
-        }
+        this.debugInfo = Object.assign({}, this.debugInfo, {
+            lastError: Object.assign({}, lastError, {
+                stack: stack
+            })
+        });
     }
 
     // ======= ONLINE CHECK =======
@@ -4036,8 +3985,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             event.preventDefault();
         }
 
-        const reason =
-            event.reason || (event.detail && event.detail.reason);
         const reason = event.reason || event.detail?.reason;
         const error =
             reason instanceof Error
@@ -4072,10 +4019,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         const message =
-            (error &&
-                (error.message ||
-                    (error.body && error.body.message))) ||
-            'Unknown error';
             (error && (error.message || error.body?.message)) || 'Unknown error';
 
         this.debugInfo = {
@@ -4083,7 +4026,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             lastError: {
                 context,
                 message,
-                stack: (error && error.stack) || null
                 stack: error?.stack || null
             }
         };
