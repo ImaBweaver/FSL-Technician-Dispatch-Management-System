@@ -879,12 +879,24 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         } catch (error) {
             this.captureError(error, 'renderedCallback');
         }
-    }
+} 
 
     errorCallback(error, stack) {
         this.captureError(error, 'errorCallback');
 
         if (stack) {
+            const debugInfoCopy = this.debugInfo
+                ? Object.assign({}, this.debugInfo)
+                : {};
+
+            const lastError = debugInfoCopy.lastError
+                ? Object.assign({}, debugInfoCopy.lastError)
+                : {};
+
+            lastError.stack = stack;
+            debugInfoCopy.lastError = lastError;
+
+            this.debugInfo = debugInfoCopy;
                 const lastError =
                     this.debugInfo && this.debugInfo.lastError
                         ? this.debugInfo.lastError
