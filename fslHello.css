@@ -374,6 +374,96 @@
     padding: 0.1rem;
 }
 
+.sfs-tray-debug {
+    margin: 0.75rem 0;
+    padding: 0.75rem;
+    border: 1px solid #e0e5ee;
+    border-radius: 0.5rem;
+    background: #f9fbff;
+}
+
+.sfs-tray-debug__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.sfs-tray-debug__title {
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.sfs-tray-debug__summary {
+    margin: 0.35rem 0 0.5rem;
+    color: #3e3e3c;
+    font-size: 0.8rem;
+}
+
+.sfs-tray-debug__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.sfs-tray-checklist__item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.5rem;
+    border-radius: 0.35rem;
+    border: 1px solid #d8dde6;
+    background: #ffffff;
+    font-size: 0.8rem;
+}
+
+.sfs-tray-checklist__item_met {
+    border-color: #2e844a;
+    background: #f3fbf5;
+}
+
+.sfs-tray-checklist__item_missing {
+    border-color: #ba0517;
+    background: #fff5f5;
+}
+
+.sfs-tray-debug__icon {
+    width: 1.25rem;
+    text-align: center;
+    font-weight: 700;
+}
+
+.sfs-tray-debug__label {
+    flex: 1;
+}
+
+.sfs-tray-debug__value {
+    font-weight: 700;
+}
+
+.sfs-tray-debug__badge {
+    padding: 0.1rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border: 1px solid transparent;
+}
+
+.sfs-tray-debug__badge_ready {
+    background: #e5f7ed;
+    color: #0b6a3c;
+    border-color: #2e844a;
+}
+
+.sfs-tray-debug__badge_blocked {
+    background: #ffe6e6;
+    color: #ba0517;
+    border-color: #ba0517;
+}
+
 .sfs-desktop-tray-button {
     display: flex;
     justify-content: flex-end;
