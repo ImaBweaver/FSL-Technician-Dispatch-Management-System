@@ -918,6 +918,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         const isCalendarActive = resolvedTabValue === 'calendar';
+        const wasCalendarActive = this.isCalendarTabActive;
 
         if (isCalendarActive !== this.isCalendarTabActive) {
             this.isCalendarTabActive = isCalendarActive;
@@ -925,6 +926,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             if (!isCalendarActive) {
                 this.pullTrayOpen = false;
             }
+        }
+
+        if (isCalendarActive && !wasCalendarActive) {
+            this.handleCalendarToday();
         }
     }
 
@@ -3569,10 +3574,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             event.target.activeTabValue;
 
         this.updateActiveTabState(activeTab);
-
-        if (this.isCalendarTabActive) {
-            this.handleCalendarToday();
-        } else {
+        if (!this.isCalendarTabActive) {
             this.pullTrayOpen = false;
         }
     }
