@@ -101,6 +101,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     rejectReason = '';
     rejectRequestId = null;
 
+    // Global error capture handlers
+    _boundOnGlobalError = null;
+    _boundOnUnhandledRejection = null;
+    _hasRegisteredErrorHandlers = false;
+
     // Long press to start drag
     dragLongPressTimer = null;
     isPressingForDrag = false;
@@ -844,23 +849,57 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     // ======= LIFECYCLE =======
 
     connectedCallback() {
-        this.checkOnline();
-        if (!this.isOffline) {
-            this.loadAppointments();
+        try {
+            this.registerGlobalErrorHandlers();
+            this.checkOnline();
+            if (!this.isOffline) {
+                this.loadAppointments();
+            }
+        } catch (error) {
+            this.captureError(error, 'connectedCallback');
         }
     }
 
+    disconnectedCallback() {
+        this.unregisterGlobalErrorHandlers();
+    }
+
     renderedCallback() {
-        if (
-            this.isTimelineMode &&
-            this._needsCenterOnToday &&
-            this.calendarDays &&
-            this.calendarDays.length > 0
-        ) {
-            this.centerTimelineOnTodayColumn();
+        try {
+            if (
+                this.isTimelineMode &&
+                this._needsCenterOnToday &&
+                this.calendarDays &&
+                this.calendarDays.length > 0
+            ) {
+                this.centerTimelineOnTodayColumn();
+            }
+
+            this.scheduleNowLinePositionUpdate();
+        } catch (error) {
+            this.captureError(error, 'renderedCallback');
+        }
+    }
+
+    errorCallback(error, stack) {
+        this.captureError(error, 'errorCallback');
+
+        if (!stack) {
+            return;
         }
 
-        this.scheduleNowLinePositionUpdate();
+        var debugInfoCopy = this.debugInfo
+            ? Object.assign({}, this.debugInfo)
+            : {};
+
+        var lastErrorDetails = debugInfoCopy.lastError
+            ? Object.assign({}, debugInfoCopy.lastError)
+            : {};
+
+        lastErrorDetails.stack = stack;
+        debugInfoCopy.lastError = lastErrorDetails;
+
+        this.debugInfo = debugInfoCopy;
     }
 
     // ======= ONLINE CHECK =======
@@ -1024,7 +1063,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         // Long press threshold (about a quarter second)
         this.clearLongPressTimer();
-        this.dragLongPressTimer = window.setTimeout(() => {
+        this.dragLongPressTimer = this.safeSetTimeout(() => {
             this.beginDragFromPending();
         }, 250);
 
@@ -1042,6 +1081,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     handleEventResizeStart(event) {
+        if (!event) {
+            return;
+        }
+
         if (this.dragMode) {
             return;
         }
@@ -1127,8 +1170,14 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         );
 
         this.updateSelectedEventStyles();
-        event.stopPropagation();
-        event.preventDefault();
+
+        if (typeof event.stopPropagation === 'function') {
+            event.stopPropagation();
+        }
+
+        if (typeof event.preventDefault === 'function') {
+            event.preventDefault();
+        }
     }
 
 
@@ -1186,7 +1235,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this._pendingDrag = pending;
 
         this.clearLongPressTimer();
-        this.dragLongPressTimer = window.setTimeout(() => {
+        this.dragLongPressTimer = this.safeSetTimeout(() => {
             this.beginDragFromPending();
         }, 250);
 
@@ -1194,9 +1243,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         event.stopPropagation();
     }
 
-        clearLongPressTimer() {
+    clearLongPressTimer() {
         if (this.dragLongPressTimer) {
-            window.clearTimeout(this.dragLongPressTimer);
+            this.safeClearTimeout(this.dragLongPressTimer);
             this.dragLongPressTimer = null;
         }
     }
@@ -2525,11 +2574,19 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     scheduleNowLinePositionUpdate() {
-        if (this._nowLineFrame) {
-            cancelAnimationFrame(this._nowLineFrame);
+        if (
+            !this.hasWindow ||
+            typeof window.requestAnimationFrame !== 'function' ||
+            typeof window.cancelAnimationFrame !== 'function'
+        ) {
+            return;
         }
 
-        this._nowLineFrame = requestAnimationFrame(() => {
+        if (this._nowLineFrame) {
+            window.cancelAnimationFrame(this._nowLineFrame);
+        }
+
+        this._nowLineFrame = window.requestAnimationFrame(() => {
             this._nowLineFrame = null;
             this.updateNowLinePosition();
         });
@@ -2708,7 +2765,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         const message =
-            (error && (error.message || error.body?.message)) ||
+            (error &&
+                (error.message ||
+                    (error.body && error.body.message))) ||
             'Unable to open the quote attachment.';
         this.showToast('Navigation failed', message, 'error');
     }
@@ -2737,7 +2796,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         // Mobile apps require absolute URLs; the server returns a relative path
         // (e.g. "/sfc/servlet.shepherd/document/download/<docId>"). Prefix with
         // the current origin so the in-app browser can resolve it.
-        if (url.startsWith('/')) {
+        if (url.startsWith('/') && this.hasWindow) {
             return `${window.location.origin}${url}`;
         }
 
@@ -2746,6 +2805,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     buildDownloadUrlFromDocId(docId) {
         if (!docId) {
+            return null;
+        }
+
+        if (!this.hasWindow) {
             return null;
         }
 
@@ -3131,7 +3194,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         if (kind === 'absence') {
             const absence = this.findAbsenceById(id);
-            window.clearTimeout(this._closeTimeout);
+            this.safeClearTimeout(this._closeTimeout);
             this.isDetailClosing = false;
             this.selectedAppointment = null;
             this.selectedAbsence = absence
@@ -3143,7 +3206,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         const appt = this.findAppointmentByCardId(id);
 
-        window.clearTimeout(this._closeTimeout);
+        this.safeClearTimeout(this._closeTimeout);
         this.isDetailClosing = false;
         this.selectedAbsence = null;
         this.selectedAppointment = appt ? { ...appt } : null;
@@ -3163,8 +3226,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         this.isDetailClosing = true;
 
-        window.clearTimeout(this._closeTimeout);
-        this._closeTimeout = window.setTimeout(() => {
+        this.safeClearTimeout(this._closeTimeout);
+        this._closeTimeout = this.safeSetTimeout(() => {
             this.selectedAppointment = null;
             this.isDetailClosing = false;
             this.updateSelectedEventStyles();
@@ -3305,8 +3368,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         this.isAbsenceDetailClosing = true;
 
-        window.clearTimeout(this._absenceCloseTimeout);
-        this._absenceCloseTimeout = window.setTimeout(() => {
+        this.safeClearTimeout(this._absenceCloseTimeout);
+        this._absenceCloseTimeout = this.safeSetTimeout(() => {
             this.selectedAbsence = null;
             this.isAbsenceDetailClosing = false;
             this.updateSelectedEventStyles();
@@ -3428,8 +3491,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         if (this.isTimelineMode) {
             this._needsCenterOnToday = true;
 
-            window.clearTimeout(this._centerTimeout);
-            this._centerTimeout = window.setTimeout(() => {
+            this.safeClearTimeout(this._centerTimeout);
+            this._centerTimeout = this.safeSetTimeout(() => {
                 this.centerTimelineOnTodayColumn();
             }, 0);
         }
@@ -3851,13 +3914,139 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     // ======= UTIL =======
 
+    registerGlobalErrorHandlers() {
+        if (
+            this._hasRegisteredErrorHandlers ||
+            !this.hasWindow ||
+            typeof window.addEventListener !== 'function'
+        ) {
+            return;
+        }
+
+        this._boundOnGlobalError = event => this.onGlobalError(event);
+        this._boundOnUnhandledRejection = event =>
+            this.onUnhandledRejection(event);
+
+        window.addEventListener('error', this._boundOnGlobalError);
+        window.addEventListener(
+            'unhandledrejection',
+            this._boundOnUnhandledRejection
+        );
+
+        this._hasRegisteredErrorHandlers = true;
+    }
+
+    unregisterGlobalErrorHandlers() {
+        if (!this._hasRegisteredErrorHandlers || !this.hasWindow) {
+            return;
+        }
+
+        if (
+            typeof window.removeEventListener === 'function' &&
+            this._boundOnGlobalError
+        ) {
+            window.removeEventListener('error', this._boundOnGlobalError);
+        }
+
+        if (
+            typeof window.removeEventListener === 'function' &&
+            this._boundOnUnhandledRejection
+        ) {
+            window.removeEventListener(
+                'unhandledrejection',
+                this._boundOnUnhandledRejection
+            );
+        }
+
+        this._hasRegisteredErrorHandlers = false;
+        this._boundOnGlobalError = null;
+        this._boundOnUnhandledRejection = null;
+    }
+
+    onGlobalError(event) {
+        if (!event) {
+            return;
+        }
+
+        if (typeof event.preventDefault === 'function') {
+            event.preventDefault();
+        }
+
+        const error =
+            event.error ||
+            new Error(
+                event.message || 'Script error occurred before error object.'
+            );
+
+        this.captureError(error, 'window.onerror');
+    }
+
+    onUnhandledRejection(event) {
+        if (!event) {
+            return;
+        }
+
+        if (typeof event.preventDefault === 'function') {
+            event.preventDefault();
+        }
+
+        const reason =
+            event.reason || (event.detail && event.detail.reason);
+        const error =
+            reason instanceof Error
+                ? reason
+                : new Error(
+                      reason || 'Unhandled promise rejection with no reason'
+                  );
+
+        this.captureError(error, 'window.unhandledrejection');
+    }
+
+    get hasWindow() {
+        return typeof window !== 'undefined';
+    }
+
+    safeSetTimeout(callback, delay) {
+        if (!this.hasWindow || typeof window.setTimeout !== 'function') {
+            return null;
+        }
+        return window.setTimeout(callback, delay);
+    }
+
+    safeClearTimeout(handle) {
+        if (this.hasWindow && typeof window.clearTimeout === 'function') {
+            window.clearTimeout(handle);
+        }
+    }
+
+    captureError(error, context = '') {
+        if (typeof console !== 'undefined' && typeof console.error === 'function') {
+            console.error('[fslHello]', context, error);
+        }
+
+        const message =
+            (error &&
+                (error.message ||
+                    (error.body && error.body.message))) ||
+            'Unknown error';
+
+        this.debugInfo = {
+            ...this.debugInfo,
+            lastError: {
+                context,
+                message,
+                stack: (error && error.stack) || null
+            }
+        };
+    }
+
     reduceError(error) {
         let message = 'Unknown error';
-        if (Array.isArray(error?.body)) {
+        if (error && Array.isArray(error.body)) {
             message = error.body.map(e => e.message).join(', ');
-        } else if (error?.body?.message) {
+        } else if (error && error.body && error.body.message) {
             message = error.body.message;
-        } else if (error?.message) {
+        } else if (error && error.message) {
             message = error.message;
         }
         return message;
