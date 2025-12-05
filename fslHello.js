@@ -892,6 +892,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     stack
                 }
             };
+
+            this.scheduleNowLinePositionUpdate();
+        } catch (error) {
+            this.captureError(error, 'renderedCallback');
         }
     }
 
