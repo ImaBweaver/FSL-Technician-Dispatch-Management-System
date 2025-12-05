@@ -1050,6 +1050,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     handleEventResizeStart(event) {
+        if (!event) {
+            return;
+        }
+
         if (this.dragMode) {
             return;
         }
@@ -1135,8 +1139,14 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         );
 
         this.updateSelectedEventStyles();
-        event.stopPropagation();
-        event.preventDefault();
+
+        if (typeof event.stopPropagation === 'function') {
+            event.stopPropagation();
+        }
+
+        if (typeof event.preventDefault === 'function') {
+            event.preventDefault();
+        }
     }
 
 
