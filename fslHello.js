@@ -3475,7 +3475,14 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     handleTabActive(event) {
-        const activeTab = event.detail.value;
+        // lightning-tabset fires an active event whose detail contains the
+        // activated tab component. The tab value can surface in multiple
+        // places depending on the platform, so check all supported shapes.
+        const activeTab =
+            event.detail.value ||
+            (event.detail.tab && event.detail.tab.value) ||
+            event.target.value ||
+            event.target.activeTabValue;
 
         this.isCalendarTabActive = activeTab === 'calendar';
 
