@@ -902,7 +902,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 stack: stack
             })
         });
-        const lastError = this.debugInfo?.lastError || {};
+        lastError = this.debugInfo?.lastError || {};
 
         this.debugInfo = {
             ...this.debugInfo,
@@ -3475,10 +3475,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     handleTabActive(event) {
-        // lightning-tabset fires an active event whose detail contains the
-        // activated tab component. The tab value is exposed on the target
-        // rather than event.detail, so fall back to that when needed.
-        const activeTab = event.detail.value || event.target.value;
+        const activeTab = event.detail.value;
 
         this.isCalendarTabActive = activeTab === 'calendar';
 
