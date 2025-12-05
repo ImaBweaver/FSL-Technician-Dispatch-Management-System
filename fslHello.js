@@ -879,6 +879,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         } catch (error) {
             this.captureError(error, 'renderedCallback');
         }
+    }
 } 
 
     errorCallback(error, stack) {
@@ -889,6 +890,14 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 ? Object.assign({}, this.debugInfo)
                 : {};
 
+            const lastErrorDetails = debugInfoCopy.lastError
+                ? Object.assign({}, debugInfoCopy.lastError)
+                : {};
+
+            lastErrorDetails.stack = stack;
+            debugInfoCopy.lastError = lastErrorDetails;
+
+            this.debugInfo = debugInfoCopy;
             const lastError = debugInfoCopy.lastError
                 ? Object.assign({}, debugInfoCopy.lastError)
                 : {};
