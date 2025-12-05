@@ -866,6 +866,20 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     renderedCallback() {
         try {
+            const tabset = this.template.querySelector('lightning-tabset');
+            if (tabset) {
+                const activeTabValue = tabset.activeTabValue || tabset.value;
+                const isCalendarActive = activeTabValue === 'calendar';
+
+                if (isCalendarActive !== this.isCalendarTabActive) {
+                    this.isCalendarTabActive = isCalendarActive;
+
+                    if (!isCalendarActive) {
+                        this.pullTrayOpen = false;
+                    }
+                }
+            }
+
             if (
                 this.isTimelineMode &&
                 this._needsCenterOnToday &&
