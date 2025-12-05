@@ -897,6 +897,17 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                         stack
                     }
                 };
+            this.debugInfo = {
+                ...this.debugInfo,
+                lastError: {
+                    ...(this.debugInfo?.lastError || {}),
+                    stack
+                }
+            };
+
+            this.scheduleNowLinePositionUpdate();
+        } catch (error) {
+            this.captureError(error, 'renderedCallback');
         }
     }
 
@@ -3990,6 +4001,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         const reason =
             event.reason || (event.detail && event.detail.reason);
+        const reason = event.reason || event.detail?.reason;
         const error =
             reason instanceof Error
                 ? reason
@@ -4027,6 +4039,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 (error.message ||
                     (error.body && error.body.message))) ||
             'Unknown error';
+            (error && (error.message || error.body?.message)) || 'Unknown error';
 
         this.debugInfo = {
             ...this.debugInfo,
@@ -4034,6 +4047,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 context,
                 message,
                 stack: (error && error.stack) || null
+                stack: error?.stack || null
             }
         };
     }
