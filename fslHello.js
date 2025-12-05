@@ -41,6 +41,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     pullTrayOpen = false;
     isDesktopFormFactor = FORM_FACTOR === 'Large';
     isCalendarTabActive = false;
+    lastKnownActiveTab = null;
 
     // Global "now" line state
     showNowLine = false;
@@ -846,6 +847,87 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return `${count} work orders need scheduling`;
     }
 
+    get pullUpTrayCriteria() {
+        const criteria = [
+            {
+                key: 'calendarTab',
+                label: 'Calendar tab is active',
+                met: this.isCalendarTabActive
+            },
+            {
+                key: 'dataLoaded',
+                label: 'Data finished loading',
+                met: !this.isLoading
+            },
+            {
+                key: 'unscheduledLoaded',
+                label: 'Unscheduled work orders loaded',
+                met: Array.isArray(this.unscheduledWorkOrders)
+            },
+            {
+                key: 'online',
+                label: 'Online (required for scheduling)',
+                met: !this.isOffline
+            }
+        ];
+
+        return criteria.map(item => ({
+            ...item,
+            statusText: item.met ? 'Met' : 'Missing',
+            statusSymbol: item.met ? '✔' : '⚠',
+            itemClass: item.met
+                ? 'sfs-tray-checklist__item sfs-tray-checklist__item_met'
+                : 'sfs-tray-checklist__item sfs-tray-checklist__item_missing'
+        }));
+    }
+
+    get isTrayReady() {
+        return this.pullUpTrayCriteria.every(item => item.met);
+    }
+
+    get trayReadinessSummary() {
+        return this.isTrayReady
+            ? 'All criteria are satisfied. The pull-up bar should appear below.'
+            : 'One or more criteria are missing. Resolve the items below to render the pull-up bar.';
+    }
+
+    get trayStatusClass() {
+        return this.isTrayReady
+            ? 'sfs-tray-debug__badge sfs-tray-debug__badge_ready'
+            : 'sfs-tray-debug__badge sfs-tray-debug__badge_blocked';
+    }
+
+    get trayStatusLabel() {
+        return this.isTrayReady ? 'Ready' : 'Blocked';
+    }
+
+    get shouldRenderTray() {
+        return this.isTrayReady;
+    }
+
+    updateActiveTabState(explicitValue) {
+        const tabset = this.template.querySelector('lightning-tabset');
+
+        const resolvedTabValue =
+            explicitValue ??
+            (tabset ? tabset.activeTabValue ?? tabset.value : null) ??
+            this.lastKnownActiveTab;
+
+        if (resolvedTabValue) {
+            this.lastKnownActiveTab = resolvedTabValue;
+        }
+
+        const isCalendarActive = resolvedTabValue === 'calendar';
+
+        if (isCalendarActive !== this.isCalendarTabActive) {
+            this.isCalendarTabActive = isCalendarActive;
+
+            if (!isCalendarActive) {
+                this.pullTrayOpen = false;
+            }
+        }
+    }
+
     // ======= LIFECYCLE =======
 
     connectedCallback() {
@@ -866,25 +948,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     renderedCallback() {
         try {
-            const tabset = this.template.querySelector('lightning-tabset');
-            if (tabset) {
-                const activeTabValue = tabset.activeTabValue || tabset.value;
-
-                // If the tabset has not reported its active value yet, avoid
-                // resetting the flag based on an undefined value (which would
-                // hide the pull-up tray on the calendar tab).
-                if (activeTabValue) {
-                    const isCalendarActive = activeTabValue === 'calendar';
-
-                    if (isCalendarActive !== this.isCalendarTabActive) {
-                        this.isCalendarTabActive = isCalendarActive;
-
-                        if (!isCalendarActive) {
-                            this.pullTrayOpen = false;
-                        }
-                    }
-                }
-            }
+            this.updateActiveTabState();
 
             if (
                 this.isTimelineMode &&
@@ -3504,7 +3568,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             event.target.value ||
             event.target.activeTabValue;
 
-        this.isCalendarTabActive = activeTab === 'calendar';
+        this.updateActiveTabState(activeTab);
 
         if (this.isCalendarTabActive) {
             this.handleCalendarToday();
