@@ -3558,6 +3558,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.loadAppointments();
     }
 
+    handleCalendarTabClick() {
+        this.handleCalendarToday();
+    }
+
     handleTabActive(event) {
         // lightning-tabset fires an active event whose detail contains the
         // activated tab component. The tab value can surface in multiple
@@ -3568,9 +3572,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             event.target.value ||
             event.target.activeTabValue;
 
+        const isCalendarTab = activeTab === 'calendar';
         this.updateActiveTabState(activeTab);
 
-        if (this.isCalendarTabActive) {
+        if (isCalendarTab) {
             this.handleCalendarToday();
         } else {
             this.pullTrayOpen = false;
