@@ -543,7 +543,7 @@
                                             <template if:true={appt.hasAppointment}>
                                                 <div class="sfs-input-block">
                                                     <lightning-input
-                                                        type="datetime"
+                                                        type="datetime-local"
                                                         name="startDateTime"
                                                         label="Start Date/Time"
                                                         value={appt.newStart}
@@ -1254,7 +1254,7 @@
                         <!-- Inline reschedule inside detail sheet -->
                         <div class="sfs-detail-reschedule">
                             <lightning-input
-                                type="datetime"
+                                type="datetime-local"
                                 name="detailStartDateTime"
                                 label="New Start Date/Time"
                                 value={selectedAppointment.newStart}
@@ -1339,7 +1339,7 @@
                         </p>
 
                         <lightning-input
-                            type="datetime"
+                            type="datetime-local"
                             name="absenceStartDateTime"
                             label="New Start Date/Time"
                             value={selectedAbsence.newStart}
@@ -1349,7 +1349,7 @@
                         </lightning-input>
 
                         <lightning-input
-                            type="datetime"
+                            type="datetime-local"
                             name="absenceEndDateTime"
                             label="New End Date/Time"
                             value={selectedAbsence.newEnd}
