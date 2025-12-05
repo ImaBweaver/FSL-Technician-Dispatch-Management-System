@@ -844,23 +844,31 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     // ======= LIFECYCLE =======
 
     connectedCallback() {
-        this.checkOnline();
-        if (!this.isOffline) {
-            this.loadAppointments();
+        try {
+            this.checkOnline();
+            if (!this.isOffline) {
+                this.loadAppointments();
+            }
+        } catch (error) {
+            this.captureError(error, 'connectedCallback');
         }
     }
 
     renderedCallback() {
-        if (
-            this.isTimelineMode &&
-            this._needsCenterOnToday &&
-            this.calendarDays &&
-            this.calendarDays.length > 0
-        ) {
-            this.centerTimelineOnTodayColumn();
-        }
+        try {
+            if (
+                this.isTimelineMode &&
+                this._needsCenterOnToday &&
+                this.calendarDays &&
+                this.calendarDays.length > 0
+            ) {
+                this.centerTimelineOnTodayColumn();
+            }
 
-        this.scheduleNowLinePositionUpdate();
+            this.scheduleNowLinePositionUpdate();
+        } catch (error) {
+            this.captureError(error, 'renderedCallback');
+        }
     }
 
     // ======= ONLINE CHECK =======
@@ -3878,6 +3886,24 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         if (this.hasWindow && typeof window.clearTimeout === 'function') {
             window.clearTimeout(handle);
         }
+    }
+
+    captureError(error, context = '') {
+        if (typeof console !== 'undefined' && typeof console.error === 'function') {
+            console.error('[fslHello]', context, error);
+        }
+
+        const message =
+            (error && (error.message || error.body?.message)) || 'Unknown error';
+
+        this.debugInfo = {
+            ...this.debugInfo,
+            lastError: {
+                context,
+                message,
+                stack: error?.stack || null
+            }
+        };
     }
 
     reduceError(error) {
