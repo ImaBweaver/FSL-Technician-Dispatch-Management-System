@@ -101,6 +101,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     rejectReason = '';
     rejectRequestId = null;
 
+    // Global error capture handlers
+    _boundOnGlobalError = null;
+    _boundOnUnhandledRejection = null;
+    _hasRegisteredErrorHandlers = false;
+
     // Long press to start drag
     dragLongPressTimer = null;
     isPressingForDrag = false;
@@ -845,6 +850,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     connectedCallback() {
         try {
+            this.registerGlobalErrorHandlers();
             this.checkOnline();
             if (!this.isOffline) {
                 this.loadAppointments();
@@ -852,6 +858,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         } catch (error) {
             this.captureError(error, 'connectedCallback');
         }
+    }
+
+    disconnectedCallback() {
+        this.unregisterGlobalErrorHandlers();
     }
 
     renderedCallback() {
@@ -864,6 +874,24 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             ) {
                 this.centerTimelineOnTodayColumn();
             }
+
+            this.scheduleNowLinePositionUpdate();
+        } catch (error) {
+            this.captureError(error, 'renderedCallback');
+        }
+    }
+
+    errorCallback(error, stack) {
+        this.captureError(error, 'errorCallback');
+
+        if (stack) {
+            this.debugInfo = {
+                ...this.debugInfo,
+                lastError: {
+                    ...(this.debugInfo?.lastError || {}),
+                    stack
+                }
+            };
 
             this.scheduleNowLinePositionUpdate();
         } catch (error) {
@@ -3880,6 +3908,93 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     // ======= UTIL =======
+
+    registerGlobalErrorHandlers() {
+        if (
+            this._hasRegisteredErrorHandlers ||
+            !this.hasWindow ||
+            typeof window.addEventListener !== 'function'
+        ) {
+            return;
+        }
+
+        this._boundOnGlobalError = event => this.onGlobalError(event);
+        this._boundOnUnhandledRejection = event =>
+            this.onUnhandledRejection(event);
+
+        window.addEventListener('error', this._boundOnGlobalError);
+        window.addEventListener(
+            'unhandledrejection',
+            this._boundOnUnhandledRejection
+        );
+
+        this._hasRegisteredErrorHandlers = true;
+    }
+
+    unregisterGlobalErrorHandlers() {
+        if (!this._hasRegisteredErrorHandlers || !this.hasWindow) {
+            return;
+        }
+
+        if (
+            typeof window.removeEventListener === 'function' &&
+            this._boundOnGlobalError
+        ) {
+            window.removeEventListener('error', this._boundOnGlobalError);
+        }
+
+        if (
+            typeof window.removeEventListener === 'function' &&
+            this._boundOnUnhandledRejection
+        ) {
+            window.removeEventListener(
+                'unhandledrejection',
+                this._boundOnUnhandledRejection
+            );
+        }
+
+        this._hasRegisteredErrorHandlers = false;
+        this._boundOnGlobalError = null;
+        this._boundOnUnhandledRejection = null;
+    }
+
+    onGlobalError(event) {
+        if (!event) {
+            return;
+        }
+
+        if (typeof event.preventDefault === 'function') {
+            event.preventDefault();
+        }
+
+        const error =
+            event.error ||
+            new Error(
+                event.message || 'Script error occurred before error object.'
+            );
+
+        this.captureError(error, 'window.onerror');
+    }
+
+    onUnhandledRejection(event) {
+        if (!event) {
+            return;
+        }
+
+        if (typeof event.preventDefault === 'function') {
+            event.preventDefault();
+        }
+
+        const reason = event.reason || event.detail?.reason;
+        const error =
+            reason instanceof Error
+                ? reason
+                : new Error(
+                      reason || 'Unhandled promise rejection with no reason'
+                  );
+
+        this.captureError(error, 'window.unhandledrejection');
+    }
 
     get hasWindow() {
         return typeof window !== 'undefined';
