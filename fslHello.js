@@ -895,6 +895,22 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 stack: stack
             })
         });
+        const lastError = (this.debugInfo && this.debugInfo.lastError) || {};
+
+        this.debugInfo = Object.assign({}, this.debugInfo, {
+            lastError: Object.assign({}, lastError, {
+                stack: stack
+            })
+        });
+        const lastError = this.debugInfo?.lastError || {};
+
+        this.debugInfo = {
+            ...this.debugInfo,
+            lastError: {
+                ...lastError,
+                stack
+            }
+        };
     }
 
     // ======= ONLINE CHECK =======
