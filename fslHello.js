@@ -885,6 +885,18 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.captureError(error, 'errorCallback');
 
         if (stack) {
+                const lastError =
+                    this.debugInfo && this.debugInfo.lastError
+                        ? this.debugInfo.lastError
+                        : {};
+
+                this.debugInfo = {
+                    ...this.debugInfo,
+                    lastError: {
+                        ...lastError,
+                        stack
+                    }
+                };
             this.debugInfo = {
                 ...this.debugInfo,
                 lastError: {
@@ -2762,7 +2774,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         const message =
-            (error && (error.message || error.body?.message)) ||
+            (error &&
+                (error.message ||
+                    (error.body && error.body.message))) ||
             'Unable to open the quote attachment.';
         this.showToast('Navigation failed', message, 'error');
     }
@@ -3985,6 +3999,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             event.preventDefault();
         }
 
+        const reason =
+            event.reason || (event.detail && event.detail.reason);
         const reason = event.reason || event.detail?.reason;
         const error =
             reason instanceof Error
@@ -4019,6 +4035,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         const message =
+            (error &&
+                (error.message ||
+                    (error.body && error.body.message))) ||
+            'Unknown error';
             (error && (error.message || error.body?.message)) || 'Unknown error';
 
         this.debugInfo = {
@@ -4026,6 +4046,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             lastError: {
                 context,
                 message,
+                stack: (error && error.stack) || null
                 stack: error?.stack || null
             }
         };
@@ -4033,11 +4054,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     reduceError(error) {
         let message = 'Unknown error';
-        if (Array.isArray(error?.body)) {
+        if (error && Array.isArray(error.body)) {
             message = error.body.map(e => e.message).join(', ');
-        } else if (error?.body?.message) {
+        } else if (error && error.body && error.body.message) {
             message = error.body.message;
-        } else if (error?.message) {
+        } else if (error && error.message) {
             message = error.message;
         }
         return message;
