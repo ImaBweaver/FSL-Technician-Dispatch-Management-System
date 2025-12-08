@@ -3562,6 +3562,16 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.handleCalendarToday();
     }
 
+    handleCalendarTabKeydown(event) {
+        const isActivationKey = event.key === 'Enter' || event.key === ' ';
+        if (!isActivationKey) {
+            return;
+        }
+
+        event.preventDefault();
+        this.handleCalendarTabClick();
+    }
+
     handleTabActive(event) {
         // lightning-tabset fires an active event whose detail contains the
         // activated tab component. The tab value can surface in multiple
