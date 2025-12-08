@@ -3619,6 +3619,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
     }
 
+    }
+
     handleCalendarPrev() {
         const step = this.isTimelineMode ? -1 : -7;
         this.shiftCalendar(step);
