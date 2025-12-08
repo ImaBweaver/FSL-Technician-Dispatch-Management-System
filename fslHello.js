@@ -109,6 +109,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     // Long press to start drag
     dragLongPressTimer = null;
+    dragHoldDelayMs = 600;
     isPressingForDrag = false;
     _pendingDrag = null;          // holds data until long press triggers
 
@@ -1176,11 +1177,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.isPressingForDrag = true;
         this._pendingDrag = pending;
 
-        // Long press threshold (about a quarter second)
+        // Long press threshold: require a deliberate press-and-hold to move
         this.clearLongPressTimer();
         this.dragLongPressTimer = this.safeSetTimeout(() => {
             this.beginDragFromPending();
-        }, 250);
+        }, this.dragHoldDelayMs);
 
         event.preventDefault();
         event.stopPropagation();
@@ -1352,7 +1353,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.clearLongPressTimer();
         this.dragLongPressTimer = this.safeSetTimeout(() => {
             this.beginDragFromPending();
-        }, 250);
+        }, this.dragHoldDelayMs);
 
         event.preventDefault();
         event.stopPropagation();
