@@ -830,6 +830,21 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     get firstTimeWorkOrders() {
         const workOrders = this.unscheduledWorkOrders || [];
+        return workOrders.filter(wo => {
+            const recordType = (wo.recordTypeName || '').toLowerCase();
+            const saCount = wo.serviceAppointmentCount || 0;
+            const unscheduledCount = wo.unscheduledServiceAppointmentCount || 0;
+
+            if (recordType !== 'fsl work order') {
+                return false;
+            }
+
+            if (saCount === 0) {
+                return true;
+            }
+
+            return saCount === 1 && unscheduledCount === 1;
+        });
         return workOrders.filter(
             wo => wo.serviceAppointmentCount === 1 && !wo.needsReturnVisitScheduling
         );
@@ -837,6 +852,29 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     get returnVisitWorkOrders() {
         const workOrders = this.unscheduledWorkOrders || [];
+        return workOrders.filter(wo => {
+            const recordType = (wo.recordTypeName || '').toLowerCase();
+            const saCount = wo.serviceAppointmentCount || 0;
+            const unscheduledCount = wo.unscheduledServiceAppointmentCount || 0;
+            const isFirstTimeCandidate =
+                saCount === 0 || (saCount === 1 && unscheduledCount === 1);
+
+            if (recordType !== 'fsl work order' || saCount === 0) {
+                return false;
+            }
+
+            if (isFirstTimeCandidate) {
+                return false;
+            }
+
+            const allReturnRequired =
+                wo.allServiceAppointmentsReturnRequired === true;
+            const hasUnscheduledNonReturn =
+                wo.hasUnscheduledNonReturnAppointment === true;
+
+            return (allReturnRequired && unscheduledCount === 0) ||
+                hasUnscheduledNonReturn;
+        });
         return workOrders.filter(wo => wo.needsReturnVisitScheduling);
     }
 
@@ -2060,6 +2098,18 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     const clone = { ...wo };
                     clone.isCrewAppointment = Boolean(wo.hasCrewAssignment);
                     clone.serviceAppointmentCount = wo.serviceAppointmentCount || 0;
+                    clone.unscheduledServiceAppointmentCount =
+                        wo.unscheduledServiceAppointmentCount || 0;
+                    clone.allServiceAppointmentsReturnRequired = Boolean(
+                        wo.allServiceAppointmentsReturnRequired
+                    );
+                    clone.hasUnscheduledNonReturnAppointment = Boolean(
+                        wo.hasUnscheduledNonReturnAppointment
+                    );
+                    clone.hasAnyReturnVisitRequired = Boolean(
+                        wo.hasAnyReturnVisitRequired
+                    );
+                    clone.recordTypeName = wo.recordTypeName;
                     clone.needsReturnVisitScheduling = Boolean(
                         wo.needsReturnVisitScheduling
                     );
