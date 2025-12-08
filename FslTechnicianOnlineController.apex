@@ -581,8 +581,11 @@ public with sharing class FslTechnicianOnlineController {
             dto.isCrewAssignment = isCrew;
             dto.isMyAssignment   = isMy && !isCrew;
 
-            // Track WOs where this tech already has an appointment
-            if ((isMy || isCrew) && sa.Work_Order__c != null) {
+            Boolean hasSchedule =
+                (sa.SchedStartTime != null) || (sa.SchedEndTime != null);
+
+            // Track WOs where this tech already has a scheduled appointment
+            if ((isMy || isCrew) && hasSchedule && sa.Work_Order__c != null) {
                 workOrdersWithThisTech.add(sa.Work_Order__c);
             }
 
@@ -892,10 +895,14 @@ public with sharing class FslTechnicianOnlineController {
         // 2) Query open ServiceAppointments for those Work Orders
         Map<Id, Id> saIdToWoId = new Map<Id, Id>();
 
+        Map<Id, Boolean> saHasSchedule = new Map<Id, Boolean>();
+
         List<ServiceAppointment> candidateSAs = [
             SELECT Id,
                 Work_Order__c,
-                Status
+                Status,
+                SchedStartTime,
+                SchedEndTime
             FROM ServiceAppointment
             WHERE Work_Order__c IN :candidateWoIds
             AND Status NOT IN :saClosedStatuses
@@ -905,6 +912,10 @@ public with sharing class FslTechnicianOnlineController {
             if (sa.Work_Order__c != null) {
                 saIdToWoId.put(sa.Id, sa.Work_Order__c);
             }
+
+            Boolean hasSchedule =
+                (sa.SchedStartTime != null) || (sa.SchedEndTime != null);
+            saHasSchedule.put(sa.Id, hasSchedule);
         }
 
         if (!candidateWoIds.isEmpty()) {
@@ -1001,7 +1012,13 @@ public with sharing class FslTechnicianOnlineController {
                     if (isCrewLike) {
                         workOrdersWithCrewAssignment.add(woId);
                     } else {
-                        workOrdersWithNonCrewAssignment.add(woId);
+                        Boolean hasSchedule = saHasSchedule.containsKey(ar.ServiceAppointmentId)
+                            ? saHasSchedule.get(ar.ServiceAppointmentId)
+                            : false;
+
+                        if (hasSchedule) {
+                            workOrdersWithNonCrewAssignment.add(woId);
+                        }
                     }
                 }
             }
