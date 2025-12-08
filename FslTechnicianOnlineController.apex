@@ -928,7 +928,6 @@ public with sharing class FslTechnicianOnlineController {
         Map<Id, Boolean> hasUnscheduledNonReturnByWo = new Map<Id, Boolean>();
         // Track total Service Appointments and whether the most recently created
         // appointment requested a return visit.
-        Map<Id, Integer> saCountByWo = new Map<Id, Integer>();
         Map<Id, Datetime> latestSaCreatedByWo = new Map<Id, Datetime>();
         Map<Id, Boolean> latestSaReturnVisitByWo = new Map<Id, Boolean>();
 
@@ -1146,11 +1145,8 @@ public with sharing class FslTechnicianOnlineController {
                 hasUnscheduledNonReturnByWo.containsKey(wo.Id)
                     ? hasUnscheduledNonReturnByWo.get(wo.Id)
                     : false;
-            dto.hasAnyReturnVisitRequired = hasReturnRequiredByWo.containsKey(wo.Id)
-                ? hasReturnRequiredByWo.get(wo.Id)
-            dto.needsReturnVisitScheduling = latestSaReturnVisitByWo.containsKey(wo.Id)
-                ? latestSaReturnVisitByWo.get(wo.Id)
-                : false;
+            dto.hasAnyReturnVisitRequired = hasReturnRequiredByWo.containsKey(wo.Id) ? hasReturnRequiredByWo.get(wo.Id): false;
+            dto.needsReturnVisitScheduling = latestSaReturnVisitByWo.containsKey(wo.Id) ? latestSaReturnVisitByWo.get(wo.Id) : false;
             dto.hasCrewAssignment = workOrdersWithCrewAssignment.contains(wo.Id);
             dto.accountId       = wo.AccountId;
             dto.accountName     = (wo.Account != null ? wo.Account.Name : null);
