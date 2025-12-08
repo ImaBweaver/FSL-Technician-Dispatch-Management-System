@@ -918,12 +918,18 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         const isCalendarActive = resolvedTabValue === 'calendar';
+        const wasCalendarActive = this.isCalendarTabActive;
 
         if (isCalendarActive !== this.isCalendarTabActive) {
             this.isCalendarTabActive = isCalendarActive;
 
             if (!isCalendarActive) {
                 this.pullTrayOpen = false;
+            } else if (!wasCalendarActive) {
+                // Ensure the calendar recenters on today whenever the user
+                // switches into the calendar tab (keyboard, click, or
+                // programmatic activation).
+                this.handleCalendarToday();
             }
         }
     }
@@ -3565,7 +3571,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         this.updateActiveTabState('calendar');
-        this.handleCalendarToday();
     }
 
     handleCalendarTabKeydown(event) {
@@ -3591,9 +3596,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const isCalendarTab = activeTab === 'calendar';
         this.updateActiveTabState(activeTab);
 
-        if (isCalendarTab) {
-            this.handleCalendarToday();
-        } else {
+        if (!isCalendarTab) {
             this.pullTrayOpen = false;
         }
     }
