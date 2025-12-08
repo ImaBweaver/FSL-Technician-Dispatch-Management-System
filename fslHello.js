@@ -909,10 +909,21 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const { suppressCalendarToday = false } = options;
         const tabset = this.template.querySelector('lightning-tabset');
 
-        const resolvedTabValue =
-            explicitValue ??
-            (tabset ? tabset.activeTabValue ?? tabset.value : null) ??
-            this.lastKnownActiveTab;
+        let resolvedTabValue = null;
+
+        if (explicitValue !== undefined && explicitValue !== null) {
+            resolvedTabValue = explicitValue;
+        } else if (tabset) {
+            const activeFromTabset =
+                tabset.activeTabValue !== undefined && tabset.activeTabValue !== null
+                    ? tabset.activeTabValue
+                    : tabset.value;
+            resolvedTabValue = activeFromTabset;
+        }
+
+        if (resolvedTabValue === null || resolvedTabValue === undefined) {
+            resolvedTabValue = this.lastKnownActiveTab;
+        }
 
         if (resolvedTabValue) {
             this.lastKnownActiveTab = resolvedTabValue;
