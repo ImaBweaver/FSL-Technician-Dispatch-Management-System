@@ -3789,6 +3789,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
             // In the mobile app, deep-link directly to the Information tab for consistency with
             // the dispatcher experience shown in the work order tray.
+            const infoUrl =
+                'com.salesforce.fieldservice://v1/sObject/' +
+                workOrderId +
+                '/information';
             const infoUrl = `com.salesforce.fieldservice://v1/sObject/${workOrderId}/information`;
 
             this[NavigationMixin.Navigate]({
