@@ -905,7 +905,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return this.isTrayReady;
     }
 
-    updateActiveTabState(explicitValue) {
+    updateActiveTabState(explicitValue, options = {}) {
+        const { suppressCalendarToday = false } = options;
         const tabset = this.template.querySelector('lightning-tabset');
 
         const resolvedTabValue =
@@ -925,6 +926,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
             if (!isCalendarActive) {
                 this.pullTrayOpen = false;
+            } else if (!wasCalendarActive && !suppressCalendarToday) {
             } else if (!wasCalendarActive) {
                 // Ensure the calendar recenters on today whenever the user
                 // switches into the calendar tab (keyboard, click, or
@@ -3570,6 +3572,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             tabset.activeTabValue = 'calendar';
         }
 
+        this.updateActiveTabState('calendar', { suppressCalendarToday: true });
         this.updateActiveTabState('calendar');
     }
 
@@ -3594,8 +3597,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             event.target.activeTabValue;
 
         const isCalendarTab = activeTab === 'calendar';
-        this.updateActiveTabState(activeTab);
+        const wasCalendarTabActive = this.isCalendarTabActive;
+        this.updateActiveTabState(activeTab, { suppressCalendarToday: true });
 
+        if (isCalendarTab && !wasCalendarTabActive) {
+            this.handleCalendarToday();
+        } else if (!isCalendarTab) {
         if (!isCalendarTab) {
             this.pullTrayOpen = false;
         }
