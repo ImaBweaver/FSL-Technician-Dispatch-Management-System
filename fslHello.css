@@ -1307,10 +1307,25 @@
     cursor: grab;
 }
 
+.sfs-tray-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.25rem;
+}
+
 .sfs-tray-card-title {
     font-size: 0.8rem;
     font-weight: 600;
     margin-bottom: 0.1rem;
+}
+
+.sfs-tray-card-info {
+    margin-top: -0.15rem;
+}
+
+.sfs-tray-card-info .slds-button {
+    padding: 0.15rem;
 }
 
 .sfs-tray-card-subtitle {

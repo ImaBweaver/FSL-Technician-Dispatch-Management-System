@@ -66,6 +66,7 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public String workOrderNumber;
         @AuraEnabled public String subject;
         @AuraEnabled public String status;
+        @AuraEnabled public String workTypeName;
         @AuraEnabled public Integer serviceAppointmentCount;
         @AuraEnabled public Integer unscheduledServiceAppointmentCount;
         @AuraEnabled public Boolean allServiceAppointmentsReturnRequired;
@@ -75,10 +76,17 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public Boolean hasCrewAssignment;
         @AuraEnabled public Id accountId;
         @AuraEnabled public String accountName;
+        @AuraEnabled public Id contactId;
+        @AuraEnabled public String contactName;
+        @AuraEnabled public String contactPhone;
+        @AuraEnabled public String contactEmail;
         @AuraEnabled public String opportunityRecordType;
         @AuraEnabled public Boolean hasQuoteAttachment;
         @AuraEnabled public String quoteAttachmentDownloadUrl;
         @AuraEnabled public Id quoteAttachmentDocumentId;
+        @AuraEnabled public String makeModel;
+        @AuraEnabled public String reporterContactInfo;
+        @AuraEnabled public String description;
         @AuraEnabled public String street;
         @AuraEnabled public String city;
         @AuraEnabled public String state;
@@ -836,11 +844,19 @@ public with sharing class FslTechnicianOnlineController {
                 WorkOrderNumber,
                 Subject,
                 Status,
+                WorkType.Name,
                 AccountId,
                 Account.Name,
+                ContactId,
+                Contact.Name,
+                Contact.Phone,
+                Contact.Email,
                 Opportunity__c,
                 Opportunity__r.RecordType.Name,
                 RecordType.Name,
+                Description,
+                Make_Model__c,
+                Reporter_Contact_Info__c,
                 Street,
                 City,
                 State,
@@ -1114,6 +1130,7 @@ public with sharing class FslTechnicianOnlineController {
             dto.workOrderNumber = wo.WorkOrderNumber;
             dto.subject         = wo.Subject;
             dto.status          = wo.Status;
+            dto.workTypeName    = (wo.WorkType != null ? wo.WorkType.Name : null);
             dto.serviceAppointmentCount = saCountByWo.containsKey(wo.Id)
                 ? saCountByWo.get(wo.Id)
                 : 0;
@@ -1137,6 +1154,12 @@ public with sharing class FslTechnicianOnlineController {
             dto.hasCrewAssignment = workOrdersWithCrewAssignment.contains(wo.Id);
             dto.accountId       = wo.AccountId;
             dto.accountName     = (wo.Account != null ? wo.Account.Name : null);
+            dto.contactId       = wo.ContactId;
+            if (wo.Contact != null) {
+                dto.contactName  = wo.Contact.Name;
+                dto.contactPhone = wo.Contact.Phone;
+                dto.contactEmail = wo.Contact.Email;
+            }
             dto.opportunityRecordType = (wo.Opportunity__c != null &&
                 opportunityRecordTypeByWo.containsKey(wo.Id))
                     ? opportunityRecordTypeByWo.get(wo.Id)
@@ -1153,6 +1176,9 @@ public with sharing class FslTechnicianOnlineController {
                 quoteDocIdByWo != null && quoteDocIdByWo.containsKey(wo.Id))
                     ? quoteDocIdByWo.get(wo.Id)
                     : null;
+            dto.makeModel        = wo.Make_Model__c;
+            dto.reporterContactInfo = wo.Reporter_Contact_Info__c;
+            dto.description      = wo.Description;
             dto.street          = wo.Street;
             dto.city            = wo.City;
             dto.state           = wo.State;
