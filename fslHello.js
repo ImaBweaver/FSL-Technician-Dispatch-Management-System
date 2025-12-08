@@ -905,7 +905,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return this.isTrayReady;
     }
 
-    updateActiveTabState(explicitValue) {
+    updateActiveTabState(explicitValue, options = {}) {
+        const { suppressCalendarToday = false } = options;
         const tabset = this.template.querySelector('lightning-tabset');
 
         const resolvedTabValue =
@@ -918,12 +919,18 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         const isCalendarActive = resolvedTabValue === 'calendar';
+        const wasCalendarActive = this.isCalendarTabActive;
 
         if (isCalendarActive !== this.isCalendarTabActive) {
             this.isCalendarTabActive = isCalendarActive;
 
             if (!isCalendarActive) {
                 this.pullTrayOpen = false;
+            } else if (!wasCalendarActive && !suppressCalendarToday) {
+                // Ensure the calendar recenters on today whenever the user
+                // switches into the calendar tab (keyboard, click, or
+                // programmatic activation).
+                this.handleCalendarToday();
             }
         }
     }
@@ -3564,8 +3571,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             tabset.activeTabValue = 'calendar';
         }
 
-        this.updateActiveTabState('calendar');
-        this.handleCalendarToday();
+        this.updateActiveTabState('calendar', { suppressCalendarToday: true });
     }
 
     handleCalendarTabKeydown(event) {
@@ -3589,11 +3595,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             event.target.activeTabValue;
 
         const isCalendarTab = activeTab === 'calendar';
-        this.updateActiveTabState(activeTab);
+        const wasCalendarTabActive = this.isCalendarTabActive;
+        this.updateActiveTabState(activeTab, { suppressCalendarToday: true });
 
-        if (isCalendarTab) {
+        if (isCalendarTab && !wasCalendarTabActive) {
             this.handleCalendarToday();
-        } else {
+        } else if (!isCalendarTab) {
             this.pullTrayOpen = false;
         }
     }
