@@ -3760,6 +3760,41 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
+        this.navigateToWorkOrderInformation(workOrderId);
+    }
+
+    navigateToWorkOrderInformation(workOrderId) {
+        if (!workOrderId) {
+            return;
+        }
+
+        try {
+            if (this.isDesktopFormFactor) {
+                // Hint the lightning record page to show the Information tab.
+                this[NavigationMixin.Navigate]({
+                    type: 'standard__recordPage',
+                    attributes: {
+                        recordId: workOrderId,
+                        objectApiName: 'WorkOrder',
+                        actionName: 'view'
+                    },
+                    state: {
+                        // Some orgs label the primary tab "Information"; when present, this
+                        // deep-link lands the user there while still working for custom layouts.
+                        tabsetName: 'Information'
+                    }
+                });
+                return;
+            }
+
+            // In the mobile app, deep-link directly to the Information tab for consistency with
+            // the dispatcher experience shown in the work order tray.
+            const infoUrl = `com.salesforce.fieldservice://v1/sObject/${workOrderId}/information`;
+
+            this[NavigationMixin.Navigate]({
+                type: 'standard__webPage',
+                attributes: {
+                    url: infoUrl
         try {
             this[NavigationMixin.Navigate]({
                 type: 'standard__recordPage',
