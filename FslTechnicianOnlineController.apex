@@ -66,6 +66,11 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public String workOrderNumber;
         @AuraEnabled public String subject;
         @AuraEnabled public String status;
+        @AuraEnabled public Integer serviceAppointmentCount;
+        @AuraEnabled public Integer unscheduledServiceAppointmentCount;
+        @AuraEnabled public Boolean allServiceAppointmentsReturnRequired;
+        @AuraEnabled public Boolean hasUnscheduledNonReturnAppointment;
+        @AuraEnabled public Boolean hasAnyReturnVisitRequired;
         @AuraEnabled public Boolean hasCrewAssignment;
         @AuraEnabled public Id accountId;
         @AuraEnabled public String accountName;
@@ -78,6 +83,7 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public String state;
         @AuraEnabled public String postalCode;
         @AuraEnabled public String country;
+        @AuraEnabled public String recordTypeName;
     }
 
     public class TransferRequestDTO {
@@ -833,6 +839,7 @@ public with sharing class FslTechnicianOnlineController {
                 Account.Name,
                 Opportunity__c,
                 Opportunity__r.RecordType.Name,
+                RecordType.Name,
                 Street,
                 City,
                 State,
@@ -897,25 +904,59 @@ public with sharing class FslTechnicianOnlineController {
 
         Map<Id, Boolean> saHasSchedule = new Map<Id, Boolean>();
 
+        Map<Id, Integer> saCountByWo = new Map<Id, Integer>();
+        Map<Id, Integer> unscheduledSaCountByWo = new Map<Id, Integer>();
+        Map<Id, Boolean> allReturnRequiredByWo = new Map<Id, Boolean>();
+        Map<Id, Boolean> hasReturnRequiredByWo = new Map<Id, Boolean>();
+        Map<Id, Boolean> hasUnscheduledNonReturnByWo = new Map<Id, Boolean>();
+
         List<ServiceAppointment> candidateSAs = [
             SELECT Id,
                 Work_Order__c,
                 Status,
                 SchedStartTime,
-                SchedEndTime
+                SchedEndTime,
+                Return_Visit_Required__c
             FROM ServiceAppointment
             WHERE Work_Order__c IN :candidateWoIds
-            AND Status NOT IN :saClosedStatuses
         ];
 
         for (ServiceAppointment sa : candidateSAs) {
-            if (sa.Work_Order__c != null) {
-                saIdToWoId.put(sa.Id, sa.Work_Order__c);
+            if (sa.Work_Order__c == null) continue;
+
+            Integer count = saCountByWo.containsKey(sa.Work_Order__c)
+                ? saCountByWo.get(sa.Work_Order__c)
+                : 0;
+            saCountByWo.put(sa.Work_Order__c, count + 1);
+
+            Boolean returnRequired = sa.Return_Visit_Required__c == true;
+            Boolean isScheduled =
+                (sa.SchedStartTime != null) || (sa.SchedEndTime != null);
+
+            Boolean allReturnRequired = allReturnRequiredByWo.containsKey(sa.Work_Order__c)
+                ? allReturnRequiredByWo.get(sa.Work_Order__c)
+                : true;
+            allReturnRequiredByWo.put(sa.Work_Order__c, allReturnRequired && returnRequired);
+
+            if (returnRequired) {
+                hasReturnRequiredByWo.put(sa.Work_Order__c, true);
             }
 
-            Boolean hasSchedule =
-                (sa.SchedStartTime != null) || (sa.SchedEndTime != null);
-            saHasSchedule.put(sa.Id, hasSchedule);
+            if (!isScheduled) {
+                Integer unscheduledCount = unscheduledSaCountByWo.containsKey(sa.Work_Order__c)
+                    ? unscheduledSaCountByWo.get(sa.Work_Order__c)
+                    : 0;
+                unscheduledSaCountByWo.put(sa.Work_Order__c, unscheduledCount + 1);
+
+                if (!returnRequired) {
+                    hasUnscheduledNonReturnByWo.put(sa.Work_Order__c, true);
+                }
+            }
+
+            if (!saClosedStatuses.contains(sa.Status)) {
+                saIdToWoId.put(sa.Id, sa.Work_Order__c);
+                saHasSchedule.put(sa.Id, isScheduled);
+            }
         }
 
         if (!candidateWoIds.isEmpty()) {
@@ -1042,6 +1083,24 @@ public with sharing class FslTechnicianOnlineController {
             dto.workOrderNumber = wo.WorkOrderNumber;
             dto.subject         = wo.Subject;
             dto.status          = wo.Status;
+            dto.serviceAppointmentCount = saCountByWo.containsKey(wo.Id)
+                ? saCountByWo.get(wo.Id)
+                : 0;
+            dto.unscheduledServiceAppointmentCount =
+                unscheduledSaCountByWo.containsKey(wo.Id)
+                    ? unscheduledSaCountByWo.get(wo.Id)
+                    : 0;
+            dto.allServiceAppointmentsReturnRequired =
+                allReturnRequiredByWo.containsKey(wo.Id)
+                    ? allReturnRequiredByWo.get(wo.Id)
+                    : false;
+            dto.hasUnscheduledNonReturnAppointment =
+                hasUnscheduledNonReturnByWo.containsKey(wo.Id)
+                    ? hasUnscheduledNonReturnByWo.get(wo.Id)
+                    : false;
+            dto.hasAnyReturnVisitRequired = hasReturnRequiredByWo.containsKey(wo.Id)
+                ? hasReturnRequiredByWo.get(wo.Id)
+                : false;
             dto.hasCrewAssignment = workOrdersWithCrewAssignment.contains(wo.Id);
             dto.accountId       = wo.AccountId;
             dto.accountName     = (wo.Account != null ? wo.Account.Name : null);
@@ -1049,6 +1108,7 @@ public with sharing class FslTechnicianOnlineController {
                 opportunityRecordTypeByWo.containsKey(wo.Id))
                     ? opportunityRecordTypeByWo.get(wo.Id)
                     : null;
+            dto.recordTypeName   = wo.RecordType != null ? wo.RecordType.Name : null;
             dto.hasQuoteAttachment =
                 workOrdersWithAttachment != null &&
                 workOrdersWithAttachment.contains(wo.Id);
