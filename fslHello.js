@@ -3740,17 +3740,72 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     handleTrayCardClick(event) {
-        // If we started a drag, ignore the click
-        if (this.dragHasMoved) {
+        // Cancel any pending long-press drag so a quick tap does not start a drag
+        this.clearLongPressTimer();
+        this.isPressingForDrag = false;
+        this._pendingDrag = null;
+
+        // If we already transitioned into drag mode, ignore the click
+        if (this.dragMode === 'wo' || this.dragHasMoved) {
             this.dragHasMoved = false;
             return;
         }
 
-        this.showToast(
-            'Drag to schedule',
-            'Drag this card onto a day in the calendar to create a new appointment.',
-            'info'
-        );
+        const workOrderId =
+            event && event.currentTarget && event.currentTarget.dataset
+                ? event.currentTarget.dataset.woid
+                : null;
+
+        if (!workOrderId) {
+            return;
+        }
+
+        this.navigateToWorkOrderInformation(workOrderId);
+    }
+
+    navigateToWorkOrderInformation(workOrderId) {
+        if (!workOrderId) {
+            return;
+        }
+
+        try {
+            if (this.isDesktopFormFactor) {
+                // Hint the lightning record page to show the Information tab.
+                this[NavigationMixin.Navigate]({
+                    type: 'standard__recordPage',
+                    attributes: {
+                        recordId: workOrderId,
+                        objectApiName: 'WorkOrder',
+                        actionName: 'view'
+                    },
+                    state: {
+                        // Some orgs label the primary tab "Information"; when present, this
+                        // deep-link lands the user there while still working for custom layouts.
+                        tabsetName: 'Information'
+                    }
+                });
+                return;
+            }
+
+            // In the mobile app, deep-link directly to the Information tab for consistency with
+            // the dispatcher experience shown in the work order tray.
+            const infoUrl = `com.salesforce.fieldservice://v1/sObject/${workOrderId}/information`;
+
+            this[NavigationMixin.Navigate]({
+                type: 'standard__webPage',
+                attributes: {
+                    url: infoUrl
+                }
+            });
+        } catch (err) {
+            const message =
+                (err &&
+                    (err.message ||
+                        (err.body && err.body.message))) ||
+                'Unable to open the work order details.';
+
+            this.showToast('Navigation failed', message, 'error');
+        }
     }
 
     createAppointmentFromWorkOrder(workOrderId, isoStart, isoEnd) {
