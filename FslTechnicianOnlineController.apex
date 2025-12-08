@@ -66,6 +66,8 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public String workOrderNumber;
         @AuraEnabled public String subject;
         @AuraEnabled public String status;
+        @AuraEnabled public Integer serviceAppointmentCount;
+        @AuraEnabled public Boolean needsReturnVisitScheduling;
         @AuraEnabled public Boolean hasCrewAssignment;
         @AuraEnabled public Id accountId;
         @AuraEnabled public String accountName;
@@ -897,6 +899,37 @@ public with sharing class FslTechnicianOnlineController {
 
         Map<Id, Boolean> saHasSchedule = new Map<Id, Boolean>();
 
+        // Track total Service Appointments and whether the most recently created
+        // appointment requested a return visit.
+        Map<Id, Integer> saCountByWo = new Map<Id, Integer>();
+        Map<Id, Datetime> latestSaCreatedByWo = new Map<Id, Datetime>();
+        Map<Id, Boolean> latestSaReturnVisitByWo = new Map<Id, Boolean>();
+
+        for (ServiceAppointment sa : [
+            SELECT Id,
+                Work_Order__c,
+                Return_Visit_Required__c,
+                CreatedDate
+            FROM ServiceAppointment
+            WHERE Work_Order__c IN :candidateWoIds
+        ]) {
+            if (sa.Work_Order__c == null) continue;
+
+            Integer count = saCountByWo.containsKey(sa.Work_Order__c)
+                ? saCountByWo.get(sa.Work_Order__c)
+                : 0;
+            saCountByWo.put(sa.Work_Order__c, count + 1);
+
+            Datetime currentLatest = latestSaCreatedByWo.get(sa.Work_Order__c);
+            if (currentLatest == null || sa.CreatedDate > currentLatest) {
+                latestSaCreatedByWo.put(sa.Work_Order__c, sa.CreatedDate);
+                latestSaReturnVisitByWo.put(
+                    sa.Work_Order__c,
+                    sa.Return_Visit_Required__c == true
+                );
+            }
+        }
+
         List<ServiceAppointment> candidateSAs = [
             SELECT Id,
                 Work_Order__c,
@@ -1042,6 +1075,12 @@ public with sharing class FslTechnicianOnlineController {
             dto.workOrderNumber = wo.WorkOrderNumber;
             dto.subject         = wo.Subject;
             dto.status          = wo.Status;
+            dto.serviceAppointmentCount = saCountByWo.containsKey(wo.Id)
+                ? saCountByWo.get(wo.Id)
+                : 0;
+            dto.needsReturnVisitScheduling = latestSaReturnVisitByWo.containsKey(wo.Id)
+                ? latestSaReturnVisitByWo.get(wo.Id)
+                : false;
             dto.hasCrewAssignment = workOrdersWithCrewAssignment.contains(wo.Id);
             dto.accountId       = wo.AccountId;
             dto.accountName     = (wo.Account != null ? wo.Account.Name : null);

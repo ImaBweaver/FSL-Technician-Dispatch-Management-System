@@ -1271,6 +1271,32 @@
     box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.16);
 }
 
+.sfs-tray-section {
+    margin-bottom: 0.85rem;
+}
+
+.sfs-tray-section:last-of-type {
+    margin-bottom: 0.35rem;
+}
+
+.sfs-tray-section__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0.2rem 0 0.35rem;
+}
+
+.sfs-tray-section__title {
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.sfs-tray-section__count {
+    color: #706e6b;
+    font-size: 0.75rem;
+}
+
 /* Cards in the tray */
 .sfs-tray-card {
     border-radius: 0.5rem;

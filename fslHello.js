@@ -828,6 +828,26 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             : 0;
     }
 
+    get firstTimeWorkOrders() {
+        const workOrders = this.unscheduledWorkOrders || [];
+        return workOrders.filter(
+            wo => wo.serviceAppointmentCount === 1 && !wo.needsReturnVisitScheduling
+        );
+    }
+
+    get returnVisitWorkOrders() {
+        const workOrders = this.unscheduledWorkOrders || [];
+        return workOrders.filter(wo => wo.needsReturnVisitScheduling);
+    }
+
+    get firstTimeCount() {
+        return this.firstTimeWorkOrders.length;
+    }
+
+    get returnVisitCount() {
+        return this.returnVisitWorkOrders.length;
+    }
+
     get hasUnscheduled() {
         return this.unscheduledCount > 0;
     }
@@ -2039,6 +2059,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 this.unscheduledWorkOrders = unscheduled.map(wo => {
                     const clone = { ...wo };
                     clone.isCrewAppointment = Boolean(wo.hasCrewAssignment);
+                    clone.serviceAppointmentCount = wo.serviceAppointmentCount || 0;
+                    clone.needsReturnVisitScheduling = Boolean(
+                        wo.needsReturnVisitScheduling
+                    );
                     const parts = [
                         wo.street,
                         wo.city,

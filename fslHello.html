@@ -989,37 +989,105 @@
                         <template if:true={pullTrayOpen}>
                             <div class="sfs-tray-body">
                                 <template if:true={hasUnscheduled}>
-                                    <template
-                                        for:each={unscheduledWorkOrders}
-                                        for:item="wo"
-                                    >
-                                        <article
-                                            key={wo.workOrderId}
-                                            class="sfs-tray-card"
-                                            data-woid={wo.workOrderId}
-                                            ontouchstart={handleTrayCardDragStart}
-                                            onmousedown={handleTrayCardDragStart}
-                                            onclick={handleTrayCardClick}
-                                        >
-                                            <div class="sfs-tray-card-title">
-                                                <template if:true={wo.workOrderNumber}>
-                                                    {wo.workOrderNumber} — {wo.subject}
-                                                </template>
-                                                <template if:false={wo.workOrderNumber}>
-                                                    {wo.subject}
-                                                </template>
+                                    <div class="sfs-tray-section">
+                                        <div class="sfs-tray-section__header">
+                                            <div class="sfs-tray-section__title">
+                                                First time schedules
                                             </div>
-                                            <template if:true={wo.isCrewAppointment}>
-                                                <div class="sfs-tray-card-pill">Crew / Queue</div>
+                                            <span class="sfs-tray-section__count">
+                                                ({firstTimeCount})
+                                            </span>
+                                        </div>
+
+                                        <template if:true={firstTimeCount}>
+                                            <template
+                                                for:each={firstTimeWorkOrders}
+                                                for:item="wo"
+                                            >
+                                                <article
+                                                    key={wo.workOrderId}
+                                                    class="sfs-tray-card"
+                                                    data-woid={wo.workOrderId}
+                                                    ontouchstart={handleTrayCardDragStart}
+                                                    onmousedown={handleTrayCardDragStart}
+                                                    onclick={handleTrayCardClick}
+                                                >
+                                                    <div class="sfs-tray-card-title">
+                                                        <template if:true={wo.workOrderNumber}>
+                                                            {wo.workOrderNumber} — {wo.subject}
+                                                        </template>
+                                                        <template if:false={wo.workOrderNumber}>
+                                                            {wo.subject}
+                                                        </template>
+                                                    </div>
+                                                    <template if:true={wo.isCrewAppointment}>
+                                                        <div class="sfs-tray-card-pill">Crew / Queue</div>
+                                                    </template>
+                                                    <div class="sfs-tray-card-subtitle">
+                                                        {wo.accountName}
+                                                    </div>
+                                                    <div class="sfs-tray-card-status">
+                                                        {wo.status}
+                                                    </div>
+                                                </article>
                                             </template>
-                                            <div class="sfs-tray-card-subtitle">
-                                                {wo.accountName}
+                                        </template>
+                                        <template if:false={firstTimeCount}>
+                                            <p class="sfs-tray-empty">
+                                                No first-time schedules need attention.
+                                            </p>
+                                        </template>
+                                    </div>
+
+                                    <div class="sfs-tray-section">
+                                        <div class="sfs-tray-section__header">
+                                            <div class="sfs-tray-section__title">
+                                                Return visit required
                                             </div>
-                                            <div class="sfs-tray-card-status">
-                                                {wo.status}
-                                            </div>
-                                        </article>
-                                    </template>
+                                            <span class="sfs-tray-section__count">
+                                                ({returnVisitCount})
+                                            </span>
+                                        </div>
+
+                                        <template if:true={returnVisitCount}>
+                                            <template
+                                                for:each={returnVisitWorkOrders}
+                                                for:item="wo"
+                                            >
+                                                <article
+                                                    key={wo.workOrderId}
+                                                    class="sfs-tray-card"
+                                                    data-woid={wo.workOrderId}
+                                                    ontouchstart={handleTrayCardDragStart}
+                                                    onmousedown={handleTrayCardDragStart}
+                                                    onclick={handleTrayCardClick}
+                                                >
+                                                    <div class="sfs-tray-card-title">
+                                                        <template if:true={wo.workOrderNumber}>
+                                                            {wo.workOrderNumber} — {wo.subject}
+                                                        </template>
+                                                        <template if:false={wo.workOrderNumber}>
+                                                            {wo.subject}
+                                                        </template>
+                                                    </div>
+                                                    <template if:true={wo.isCrewAppointment}>
+                                                        <div class="sfs-tray-card-pill">Crew / Queue</div>
+                                                    </template>
+                                                    <div class="sfs-tray-card-subtitle">
+                                                        {wo.accountName}
+                                                    </div>
+                                                    <div class="sfs-tray-card-status">
+                                                        {wo.status}
+                                                    </div>
+                                                </article>
+                                            </template>
+                                        </template>
+                                        <template if:false={returnVisitCount}>
+                                            <p class="sfs-tray-empty">
+                                                No return visits are waiting to be scheduled.
+                                            </p>
+                                        </template>
+                                    </div>
                                 </template>
 
                                 <template if:false={hasUnscheduled}>
