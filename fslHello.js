@@ -586,6 +586,32 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return (this.quoteWorkOrders || []).find(wo => wo.cardId === cardId);
     }
 
+    normalizeWorkOrderDetail(workOrder) {
+        if (!workOrder) {
+            return null;
+        }
+
+        const typeClass = this.getEventTypeClass(workOrder.workTypeName);
+
+        return {
+            ...workOrder,
+            appointmentId: null,
+            workOrderId: workOrder.workOrderId,
+            workOrderSubject: workOrder.workOrderSubject || workOrder.subject,
+            workOrderStatus: workOrder.status,
+            workOrderNumber: workOrder.workOrderNumber,
+            workTypeName: workOrder.workTypeName,
+            workTypeClass: `sfs-worktype ${typeClass || ''}`.trim(),
+            schedStart: null,
+            schedEnd: null,
+            newStart: null,
+            disableSave: true,
+            isExpanded: false,
+            hasAppointment: false,
+            cardId: workOrder.cardId || `wo-${workOrder.workOrderId}`
+        };
+    }
+
     findAbsenceById(absenceId) {
         if (!absenceId || !this.absences) {
             return null;
@@ -2113,6 +2139,28 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     clone.needsReturnVisitScheduling = Boolean(
                         wo.needsReturnVisitScheduling
                     );
+                    clone.workOrderSubject = wo.subject;
+                    clone.cardId = `wo-${wo.workOrderId}`;
+                    clone.hasAppointment = false;
+                    clone.workTypeName = wo.workTypeName;
+                    clone.contactPhoneHref = wo.contactPhone
+                        ? `tel:${wo.contactPhone.replace(/\D/g, '')}`
+                        : null;
+                    clone.contactEmailHref = wo.contactEmail
+                        ? `mailto:${encodeURIComponent(wo.contactEmail)}`
+                        : null;
+
+                    const reporter = this.parseReporterInfo(
+                        wo.reporterContactInfo
+                    );
+                    clone.reporterContactInfo = wo.reporterContactInfo;
+                    clone.reporterName = reporter.name;
+                    clone.reporterPhone = reporter.phone;
+                    clone.reporterPhoneDisplay = reporter.phoneDisplay;
+                    clone.reporterPhoneHref = reporter.phoneHref;
+                    clone.reporterEmail = reporter.email;
+                    clone.reporterEmailHref = reporter.emailHref;
+
                     const parts = [
                         wo.street,
                         wo.city,
@@ -3739,6 +3787,18 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.pullTrayOpen = !this.pullTrayOpen;
     }
 
+    handleTrayInfoPointer(event) {
+        if (event && typeof event.stopPropagation === 'function') {
+            event.stopPropagation();
+        }
+        if (event && typeof event.preventDefault === 'function') {
+            event.preventDefault();
+        }
+        this.clearLongPressTimer();
+        this.isPressingForDrag = false;
+        this._pendingDrag = null;
+    }
+
     handleTrayCardClick(event) {
         // Cancel any pending long-press drag so a quick tap does not start a drag
         this.clearLongPressTimer();
@@ -3761,6 +3821,39 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         this.navigateToWorkOrderInformation(workOrderId);
+    }
+
+    handleTrayCardInfoClick(event) {
+        this.handleTrayInfoPointer(event);
+
+        const workOrderId =
+            event && event.currentTarget && event.currentTarget.dataset
+                ? event.currentTarget.dataset.woid
+                : null;
+
+        if (!workOrderId) {
+            return;
+        }
+
+        const workOrder = (this.unscheduledWorkOrders || []).find(
+            wo => wo.workOrderId === workOrderId
+        );
+
+        if (!workOrder) {
+            return;
+        }
+
+        const detail = this.normalizeWorkOrderDetail(workOrder);
+
+        if (!detail) {
+            return;
+        }
+
+        this.safeClearTimeout(this._closeTimeout);
+        this.isDetailClosing = false;
+        this.selectedAbsence = null;
+        this.selectedAppointment = detail;
+        this.updateSelectedEventStyles();
     }
 
     navigateToWorkOrderInformation(workOrderId) {

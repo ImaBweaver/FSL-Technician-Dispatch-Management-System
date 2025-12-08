@@ -1012,13 +1012,27 @@
                                                     onmousedown={handleTrayCardDragStart}
                                                     onclick={handleTrayCardClick}
                                                 >
-                                                    <div class="sfs-tray-card-title">
-                                                        <template if:true={wo.workOrderNumber}>
-                                                            {wo.workOrderNumber} — {wo.subject}
-                                                        </template>
-                                                        <template if:false={wo.workOrderNumber}>
-                                                            {wo.subject}
-                                                        </template>
+                                                    <div class="sfs-tray-card-header">
+                                                        <div class="sfs-tray-card-title">
+                                                            <template if:true={wo.workOrderNumber}>
+                                                                {wo.workOrderNumber} — {wo.subject}
+                                                            </template>
+                                                            <template if:false={wo.workOrderNumber}>
+                                                                {wo.subject}
+                                                            </template>
+                                                        </div>
+
+                                                        <lightning-button-icon
+                                                            icon-name="utility:info"
+                                                            alternative-text="View details"
+                                                            variant="bare"
+                                                            size="small"
+                                                            class="sfs-tray-card-info"
+                                                            data-woid={wo.workOrderId}
+                                                            onmousedown={handleTrayInfoPointer}
+                                                            ontouchstart={handleTrayInfoPointer}
+                                                            onclick={handleTrayCardInfoClick}
+                                                        ></lightning-button-icon>
                                                     </div>
                                                     <template if:true={wo.isCrewAppointment}>
                                                         <div class="sfs-tray-card-pill">Crew / Queue</div>
@@ -1062,13 +1076,27 @@
                                                     onmousedown={handleTrayCardDragStart}
                                                     onclick={handleTrayCardClick}
                                                 >
-                                                    <div class="sfs-tray-card-title">
-                                                        <template if:true={wo.workOrderNumber}>
-                                                            {wo.workOrderNumber} — {wo.subject}
-                                                        </template>
-                                                        <template if:false={wo.workOrderNumber}>
-                                                            {wo.subject}
-                                                        </template>
+                                                    <div class="sfs-tray-card-header">
+                                                        <div class="sfs-tray-card-title">
+                                                            <template if:true={wo.workOrderNumber}>
+                                                                {wo.workOrderNumber} — {wo.subject}
+                                                            </template>
+                                                            <template if:false={wo.workOrderNumber}>
+                                                                {wo.subject}
+                                                            </template>
+                                                        </div>
+
+                                                        <lightning-button-icon
+                                                            icon-name="utility:info"
+                                                            alternative-text="View details"
+                                                            variant="bare"
+                                                            size="small"
+                                                            class="sfs-tray-card-info"
+                                                            data-woid={wo.workOrderId}
+                                                            onmousedown={handleTrayInfoPointer}
+                                                            ontouchstart={handleTrayInfoPointer}
+                                                            onclick={handleTrayCardInfoClick}
+                                                        ></lightning-button-icon>
                                                     </div>
                                                     <template if:true={wo.isCrewAppointment}>
                                                         <div class="sfs-tray-card-pill">Crew / Queue</div>
