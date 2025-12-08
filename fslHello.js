@@ -3559,6 +3559,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     handleCalendarTabClick() {
+        const tabset = this.template.querySelector('lightning-tabset');
+        if (tabset && tabset.activeTabValue !== 'calendar') {
+            tabset.activeTabValue = 'calendar';
+        }
+
+        this.updateActiveTabState('calendar');
         this.handleCalendarToday();
     }
 
