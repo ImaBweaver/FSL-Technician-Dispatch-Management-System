@@ -845,6 +845,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
             return saCount === 1 && unscheduledCount === 1;
         });
+        return workOrders.filter(
+            wo => wo.serviceAppointmentCount === 1 && !wo.needsReturnVisitScheduling
+        );
     }
 
     get returnVisitWorkOrders() {
@@ -872,6 +875,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return (allReturnRequired && unscheduledCount === 0) ||
                 hasUnscheduledNonReturn;
         });
+        return workOrders.filter(wo => wo.needsReturnVisitScheduling);
     }
 
     get firstTimeCount() {
@@ -2106,6 +2110,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                         wo.hasAnyReturnVisitRequired
                     );
                     clone.recordTypeName = wo.recordTypeName;
+                    clone.needsReturnVisitScheduling = Boolean(
+                        wo.needsReturnVisitScheduling
+                    );
                     const parts = [
                         wo.street,
                         wo.city,
