@@ -953,6 +953,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         try {
             this.registerGlobalErrorHandlers();
             this.checkOnline();
+            this.handleCalendarToday();
             if (!this.isOffline) {
                 this.loadAppointments();
             }
