@@ -3793,11 +3793,19 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 'com.salesforce.fieldservice://v1/sObject/' +
                 workOrderId +
                 '/information';
+            const infoUrl = `com.salesforce.fieldservice://v1/sObject/${workOrderId}/information`;
 
             this[NavigationMixin.Navigate]({
                 type: 'standard__webPage',
                 attributes: {
                     url: infoUrl
+        try {
+            this[NavigationMixin.Navigate]({
+                type: 'standard__recordPage',
+                attributes: {
+                    recordId: workOrderId,
+                    objectApiName: 'WorkOrder',
+                    actionName: 'view'
                 }
             });
         } catch (err) {
