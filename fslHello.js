@@ -3795,6 +3795,13 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 type: 'standard__webPage',
                 attributes: {
                     url: infoUrl
+        try {
+            this[NavigationMixin.Navigate]({
+                type: 'standard__recordPage',
+                attributes: {
+                    recordId: workOrderId,
+                    objectApiName: 'WorkOrder',
+                    actionName: 'view'
                 }
             });
         } catch (err) {
