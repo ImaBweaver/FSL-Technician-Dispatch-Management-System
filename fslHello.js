@@ -938,7 +938,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             if (!isCalendarActive) {
                 this.pullTrayOpen = false;
             } else if (!wasCalendarActive && !suppressCalendarToday) {
-            } else if (!wasCalendarActive) {
                 // Ensure the calendar recenters on today whenever the user
                 // switches into the calendar tab (keyboard, click, or
                 // programmatic activation).
@@ -972,6 +971,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
             if (
                 this.isTimelineMode &&
+                this.isCalendarTabActive &&
                 this._needsCenterOnToday &&
                 this.calendarDays &&
                 this.calendarDays.length > 0
@@ -3615,11 +3615,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         if (isCalendarTab && !wasCalendarTabActive) {
             this.handleCalendarToday();
         } else if (!isCalendarTab) {
-        if (!isCalendarTab) {
             this.pullTrayOpen = false;
         }
-    }
-
     }
 
     handleCalendarPrev() {
