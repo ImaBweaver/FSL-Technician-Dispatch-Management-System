@@ -3740,17 +3740,44 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     handleTrayCardClick(event) {
-        // If we started a drag, ignore the click
-        if (this.dragHasMoved) {
+        // Cancel any pending long-press drag so a quick tap does not start a drag
+        this.clearLongPressTimer();
+        this.isPressingForDrag = false;
+        this._pendingDrag = null;
+
+        // If we already transitioned into drag mode, ignore the click
+        if (this.dragMode === 'wo' || this.dragHasMoved) {
             this.dragHasMoved = false;
             return;
         }
 
-        this.showToast(
-            'Drag to schedule',
-            'Drag this card onto a day in the calendar to create a new appointment.',
-            'info'
-        );
+        const workOrderId =
+            event && event.currentTarget && event.currentTarget.dataset
+                ? event.currentTarget.dataset.woid
+                : null;
+
+        if (!workOrderId) {
+            return;
+        }
+
+        try {
+            this[NavigationMixin.Navigate]({
+                type: 'standard__recordPage',
+                attributes: {
+                    recordId: workOrderId,
+                    objectApiName: 'WorkOrder',
+                    actionName: 'view'
+                }
+            });
+        } catch (err) {
+            const message =
+                (err &&
+                    (err.message ||
+                        (err.body && err.body.message))) ||
+                'Unable to open the work order details.';
+
+            this.showToast('Navigation failed', message, 'error');
+        }
     }
 
     createAppointmentFromWorkOrder(workOrderId, isoStart, isoEnd) {
