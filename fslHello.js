@@ -1206,6 +1206,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     // ======= DRAG HANDLERS (events) =======
 
     handleEventDragStart(event) {
+        // Allow action buttons inside an event (e.g., remove/unschedule) to work on touch
+        // devices without being intercepted by drag handlers.
+        if (event.target && event.target.closest('.sfs-unassign-btn')) {
+            return;
+        }
+
         // Do not start another drag if one is already running
         if (this.dragMode || this.isPressingForDrag) {
             return;
