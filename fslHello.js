@@ -3793,30 +3793,45 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 'com.salesforce.fieldservice://v1/sObject/' +
                 workOrderId +
                 '/information';
-            const infoUrl = `com.salesforce.fieldservice://v1/sObject/${workOrderId}/information`;
+            infoUrl = `com.salesforce.fieldservice://v1/sObject/${workOrderId}/information`;
 
+            // Navigate to the info URL
             this[NavigationMixin.Navigate]({
                 type: 'standard__webPage',
                 attributes: {
                     url: infoUrl
-        try {
-            this[NavigationMixin.Navigate]({
-                type: 'standard__recordPage',
-                attributes: {
-                    recordId: workOrderId,
-                    objectApiName: 'WorkOrder',
-                    actionName: 'view'
                 }
             });
-        } catch (err) {
-            const message =
-                (err &&
-                    (err.message ||
-                        (err.body && err.body.message))) ||
-                'Unable to open the work order details.';
 
-            this.showToast('Navigation failed', message, 'error');
+            try {
+                // Navigate to the Work Order record page
+                this[NavigationMixin.Navigate]({
+                    type: 'standard__recordPage',
+                    attributes: {
+                        recordId: workOrderId,
+                        objectApiName: 'WorkOrder',
+                        actionName: 'view'
+                    }
+                });
+            } catch (err) {
+                const message =
+                    (err &&
+                        (err.message ||
+                            (err.body && err.body.message))) ||
+                    'Unable to open the work order details.';
+
+                this.showToast('Navigation failed', message, 'error');
+            }
         }
+        catch (err) {
+                const message =
+                    (err &&
+                        (err.message ||
+                            (err.body && err.body.message))) ||
+                    'Unable to open the work order details.';
+
+                this.showToast('Navigation failed', message, 'error');
+            }
     }
 
     createAppointmentFromWorkOrder(workOrderId, isoStart, isoEnd) {
