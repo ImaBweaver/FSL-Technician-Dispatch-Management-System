@@ -3797,9 +3797,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         if (event && typeof event.stopPropagation === 'function') {
             event.stopPropagation();
         }
-        if (event && typeof event.preventDefault === 'function') {
-            event.preventDefault();
-        }
         this.clearLongPressTimer();
         this.isPressingForDrag = false;
         this._pendingDrag = null;
