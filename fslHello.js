@@ -3741,6 +3741,23 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const wasCalendarTabActive = this.isCalendarTabActive;
         this.updateActiveTabState(activeTab, { suppressCalendarToday: true });
 
+        // Some platforms do not populate the active tab value on the event.
+        // When that happens, re-read the tabset once it has updated so the
+        // "Calendar tab is active" state reflects the user's click immediately.
+        if (!activeTab) {
+            requestAnimationFrame(() => {
+                const previouslyActive = this.isCalendarTabActive;
+                this.updateActiveTabState(undefined, { suppressCalendarToday: true });
+
+                if (this.isCalendarTabActive && !previouslyActive) {
+                    this.handleCalendarToday();
+                } else if (!this.isCalendarTabActive) {
+                    this.pullTrayOpen = false;
+                }
+            });
+            return;
+        }
+
         if (isCalendarTab && !wasCalendarTabActive) {
             this.handleCalendarToday();
         } else if (!isCalendarTab) {
