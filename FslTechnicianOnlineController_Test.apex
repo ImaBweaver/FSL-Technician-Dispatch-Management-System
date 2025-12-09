@@ -127,10 +127,25 @@ public class FslTechnicianOnlineController_Test {
 
     @isTest
     static void testRequestRescheduleAndMarkQuoteSent() {
+        ServiceTerritoryMember stm = [
+            SELECT Id, ServiceResourceId, ServiceTerritoryId, ServiceResource.RelatedRecordId
+            FROM ServiceTerritoryMember
+            WHERE ServiceResource.RelatedRecordId != null
+              AND EffectiveStartDate != null
+              AND EffectiveStartDate <= :Date.today()
+              AND (EffectiveEndDate = null OR EffectiveEndDate >= :Date.today())
+              AND ServiceTerritoryId IN (
+                  SELECT ServiceTerritoryId
+                  FROM WorkOrder
+                  WHERE ServiceTerritoryId != null
+              )
+            LIMIT 1
+        ];
+
         ServiceResource resource = [
-            SELECT Id
+            SELECT Id, RelatedRecordId
             FROM ServiceResource
-            WHERE RelatedRecordId != null
+            WHERE Id = :stm.ServiceResourceId
             LIMIT 1
         ];
 
@@ -138,6 +153,7 @@ public class FslTechnicianOnlineController_Test {
             SELECT Id, OwnerId
             FROM WorkOrder
             WHERE OwnerId = :resource.RelatedRecordId
+              AND ServiceTerritoryId = :stm.ServiceTerritoryId
             LIMIT 1
         ];
 
