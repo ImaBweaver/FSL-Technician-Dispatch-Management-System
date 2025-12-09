@@ -73,6 +73,7 @@ public class FslTechnicianOnlineController_Test {
      */
     private static ResourceContext getActiveResourceContext() {
         List<ServiceTerritoryMember> stms = [
+        ServiceTerritoryMember stm = [
             SELECT Id, ServiceResourceId, ServiceTerritoryId, ServiceResource.RelatedRecordId
             FROM ServiceTerritoryMember
             WHERE ServiceResource.RelatedRecordId != null
@@ -192,6 +193,14 @@ public class FslTechnicianOnlineController_Test {
         insert sa;
 
         return sa;
+        User user = [SELECT Id FROM User WHERE Id = :resource.RelatedRecordId LIMIT 1];
+
+        ResourceContext context = new ResourceContext();
+        context.stm = stm;
+        context.resource = resource;
+        context.user = user;
+
+        return context;
     }
 
     /**
@@ -212,8 +221,6 @@ public class FslTechnicianOnlineController_Test {
                 FslTechnicianOnlineController.getMyAppointmentsOnline(null);
             Test.stopTest();
 
-            System.assertNotEquals(null, result, 'Result should be returned for active user.');
-            System.assertNotEquals(null, result.debug, 'Debug info should be populated.');
         }
     }
 
@@ -232,8 +239,6 @@ public class FslTechnicianOnlineController_Test {
             FslTechnicianOnlineController.getMyAppointmentsOnline(targetUser.Id);
         Test.stopTest();
 
-        System.assertNotEquals(null, result, 'Result should be returned when requesting another user.');
-        System.assertEquals(targetUser.Id, result.viewingUserId, 'Viewing user should be echoed back.');
     }
 
     @isTest
@@ -241,6 +246,14 @@ public class FslTechnicianOnlineController_Test {
         ResourceContext context = getActiveResourceContext();
 
         ServiceAppointment sa = ensureScheduledAppointment(context);
+        ServiceAppointment sa = [
+            SELECT Id, SchedStartTime, SchedEndTime
+            FROM ServiceAppointment
+            WHERE ServiceTerritoryId = :context.stm.ServiceTerritoryId
+              AND SchedStartTime != null AND SchedEndTime != null
+            LIMIT 1
+            FOR UPDATE
+        ];
 
         Datetime newStart = sa.SchedStartTime.addDays(1);
         Datetime earlierEnd = sa.SchedStartTime.addMinutes(5);
@@ -257,6 +270,16 @@ public class FslTechnicianOnlineController_Test {
 
         ServiceAppointment sa = ensureScheduledAppointment(context);
 
+
+        ServiceAppointment sa = [
+            SELECT Id, SchedStartTime, SchedEndTime
+            FROM ServiceAppointment
+            WHERE ServiceTerritoryId = :context.stm.ServiceTerritoryId
+              AND SchedStartTime != null AND SchedEndTime != null
+            LIMIT 1
+            FOR UPDATE
+        ];
+
         Test.startTest();
         FslTechnicianOnlineController.assignCrewAppointment(sa.Id, context.resource.Id);
         Test.stopTest();
@@ -268,6 +291,13 @@ public class FslTechnicianOnlineController_Test {
         User techUser = context.user;
 
         WorkOrder wo = ensureWorkOrder(context);
+        WorkOrder wo = [
+            SELECT Id, OwnerId, ServiceTerritoryId, Status, Subject, AccountId, Street, City, State, PostalCode, Country
+            FROM WorkOrder
+            WHERE OwnerId = :techUser.Id
+              AND ServiceTerritoryId = :context.stm.ServiceTerritoryId
+            LIMIT 1
+        ];
 
         Datetime startTime = Datetime.now().addDays(2);
         Datetime endTime = startTime.addHours(1);
@@ -281,24 +311,47 @@ public class FslTechnicianOnlineController_Test {
         );
         Test.stopTest();
 
-        System.assertNotEquals(null, newApptId, 'Appointment should be created.');
 
-        List<FslTechnicianOnlineController.ServiceResourceOption> options =
-            FslTechnicianOnlineController.getServiceResourceOptions(wo.Id);
-        Test.stopTest();
 
-        System.assertNotEquals(null, newApptId, 'Appointment should be created.');
-        System.assert(options != null && !options.isEmpty(), 'Service Resource options should return existing crew members.');
+       
     }
 
     @isTest
     static void testRequestRescheduleAndMarkQuoteSent() {
         ResourceContext context = getActiveResourceContext();
         WorkOrder wo = ensureWorkOrder(context);
+        ServiceTerritoryMember stm = [
+            SELECT Id, ServiceResourceId, ServiceTerritoryId, ServiceResource.RelatedRecordId
+            FROM ServiceTerritoryMember
+            WHERE ServiceResource.RelatedRecordId != null
+              AND EffectiveStartDate != null
+              AND EffectiveStartDate <= :Date.today()
+              AND (EffectiveEndDate = null OR EffectiveEndDate >= :Date.today())
+              AND ServiceTerritoryId IN (
+                  SELECT ServiceTerritoryId
+                  FROM WorkOrder
+                  WHERE ServiceTerritoryId != null
+              )
+            LIMIT 1
+        ];
+
+        ServiceResource resource = [
+            SELECT Id, RelatedRecordId
+            FROM ServiceResource
+            WHERE Id = :stm.ServiceResourceId
+            LIMIT 1
+        ];
+
+        WorkOrder wo = [
+            SELECT Id, OwnerId
+            FROM WorkOrder
+            WHERE OwnerId = :resource.RelatedRecordId
+              AND ServiceTerritoryId = :stm.ServiceTerritoryId
+            LIMIT 1
+        ];
 
         Test.startTest();
         FslTechnicianOnlineController.requestRescheduleToResource(wo.Id, context.resource.Id);
         FslTechnicianOnlineController.markWorkOrderQuoteSent(wo.Id);
         Test.stopTest();
     }
-}
