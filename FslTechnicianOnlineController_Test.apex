@@ -113,6 +113,9 @@ public class FslTechnicianOnlineController_Test {
             endTime,
             techUser.Id
         );
+        Test.stopTest();
+
+        System.assertNotEquals(null, newApptId, 'Appointment should be created.');
 
         List<FslTechnicianOnlineController.ServiceResourceOption> options =
             FslTechnicianOnlineController.getServiceResourceOptions(wo.Id);
