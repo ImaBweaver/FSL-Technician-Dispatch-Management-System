@@ -2,18 +2,62 @@
 public class FslTechnicianOnlineController_Test {
 
     /**
+     * Wraps a resource, its active territory membership, and the backing User.
+     */
+    private class ResourceContext {
+        ServiceTerritoryMember stm;
+        ServiceResource resource;
+        User user;
+    }
+
+    /**
+     * Locate an active Service Resource with an active territory assignment and matching Work Orders.
+     * This helps ensure downstream tests work with consistent real data.
+     */
+    private static ResourceContext getActiveResourceContext() {
+        ServiceTerritoryMember stm = [
+            SELECT Id, ServiceResourceId, ServiceTerritoryId, ServiceResource.RelatedRecordId
+            FROM ServiceTerritoryMember
+            WHERE ServiceResource.RelatedRecordId != null
+              AND EffectiveStartDate != null
+              AND EffectiveStartDate <= :Date.today()
+              AND (EffectiveEndDate = null OR EffectiveEndDate >= :Date.today())
+              AND ServiceTerritoryId IN (
+                  SELECT ServiceTerritoryId
+                  FROM WorkOrder
+                  WHERE ServiceTerritoryId != null
+              )
+              AND ServiceTerritoryId IN (
+                  SELECT ServiceTerritoryId
+                  FROM ServiceAppointment
+                  WHERE SchedStartTime != null AND SchedEndTime != null
+              )
+            LIMIT 1
+        ];
+
+        ServiceResource resource = [
+            SELECT Id, RelatedRecordId
+            FROM ServiceResource
+            WHERE Id = :stm.ServiceResourceId
+            LIMIT 1
+        ];
+
+        User user = [SELECT Id FROM User WHERE Id = :resource.RelatedRecordId LIMIT 1];
+
+        ResourceContext context = new ResourceContext();
+        context.stm = stm;
+        context.resource = resource;
+        context.user = user;
+
+        return context;
+    }
+
+    /**
      * Locate a Service Resource and User that already exist in the org so we can
      * exercise the queries without inserting synthetic data.
      */
     private static User getExistingTechnicianUser() {
-        ServiceResource sr = [
-            SELECT Id, RelatedRecordId
-            FROM ServiceResource
-            WHERE RelatedRecordId != null
-            LIMIT 1
-        ];
-
-        return [SELECT Id FROM User WHERE Id = :sr.RelatedRecordId LIMIT 1];
+        return getActiveResourceContext().user;
     }
 
     @isTest
@@ -48,10 +92,13 @@ public class FslTechnicianOnlineController_Test {
 
     @isTest
     static void testRescheduleAndEndTimeUpdate() {
+        ResourceContext context = getActiveResourceContext();
+
         ServiceAppointment sa = [
             SELECT Id, SchedStartTime, SchedEndTime
             FROM ServiceAppointment
-            WHERE SchedStartTime != null AND SchedEndTime != null
+            WHERE ServiceTerritoryId = :context.stm.ServiceTerritoryId
+              AND SchedStartTime != null AND SchedEndTime != null
             LIMIT 1
             FOR UPDATE
         ];
@@ -67,35 +114,32 @@ public class FslTechnicianOnlineController_Test {
 
     @isTest
     static void testAssignCrewAppointment() {
+        ResourceContext context = getActiveResourceContext();
+
         ServiceAppointment sa = [
             SELECT Id, SchedStartTime, SchedEndTime
             FROM ServiceAppointment
-            WHERE SchedStartTime != null AND SchedEndTime != null
+            WHERE ServiceTerritoryId = :context.stm.ServiceTerritoryId
+              AND SchedStartTime != null AND SchedEndTime != null
             LIMIT 1
             FOR UPDATE
         ];
 
-        ServiceResource resource = [
-            SELECT Id
-            FROM ServiceResource
-            WHERE RelatedRecordId != null
-            LIMIT 1
-        ];
-
         Test.startTest();
-        FslTechnicianOnlineController.assignCrewAppointment(sa.Id, resource.Id);
+        FslTechnicianOnlineController.assignCrewAppointment(sa.Id, context.resource.Id);
         Test.stopTest();
     }
 
     @isTest
     static void testCreateAppointmentAndOptions() {
-        User techUser = getExistingTechnicianUser();
+        ResourceContext context = getActiveResourceContext();
+        User techUser = context.user;
 
         WorkOrder wo = [
             SELECT Id, OwnerId, ServiceTerritoryId, Status, Subject, AccountId, Street, City, State, PostalCode, Country
             FROM WorkOrder
             WHERE OwnerId = :techUser.Id
-            AND ServiceTerritoryId != null
+              AND ServiceTerritoryId = :context.stm.ServiceTerritoryId
             LIMIT 1
         ];
 
