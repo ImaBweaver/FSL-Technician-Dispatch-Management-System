@@ -684,35 +684,6 @@
                     <div class="sfs-viewing-pill">{viewingAsLabel}</div>
                 </template>
 
-                <!-- Pull-up bar readiness checklist -->
-                <div class="sfs-tray-debug">
-                    <div class="sfs-tray-debug__header">
-                        <div class="sfs-tray-debug__title">Pull-up bar readiness</div>
-                        <div class={trayStatusClass}>{trayStatusLabel}</div>
-                    </div>
-                    <p class="sfs-tray-debug__summary">
-                        {trayReadinessSummary}
-                    </p>
-                    <ul class="sfs-tray-debug__list">
-                        <template
-                            for:each={pullUpTrayCriteria}
-                            for:item="criterion"
-                        >
-                            <li key={criterion.key} class={criterion.itemClass}>
-                                <span class="sfs-tray-debug__icon">
-                                    {criterion.statusSymbol}
-                                </span>
-                                <span class="sfs-tray-debug__label">
-                                    {criterion.label}
-                                </span>
-                                <span class="sfs-tray-debug__value">
-                                    {criterion.statusText}
-                                </span>
-                            </li>
-                        </template>
-                    </ul>
-                </div>
-
                 <template if:true={isOffline}>
                     <div class="sfs-offline-banner">
                         <lightning-icon
