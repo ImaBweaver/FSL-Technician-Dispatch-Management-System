@@ -116,6 +116,13 @@ public class FslTechnicianOnlineController_Test {
         Test.stopTest();
 
         System.assertNotEquals(null, newApptId, 'Appointment should be created.');
+
+        List<FslTechnicianOnlineController.ServiceResourceOption> options =
+            FslTechnicianOnlineController.getServiceResourceOptions(wo.Id);
+        Test.stopTest();
+
+        System.assertNotEquals(null, newApptId, 'Appointment should be created.');
+        System.assert(options != null && !options.isEmpty(), 'Service Resource options should return existing crew members.');
     }
 
     @isTest
