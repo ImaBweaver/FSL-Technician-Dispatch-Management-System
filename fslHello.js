@@ -1273,8 +1273,15 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             this.beginDragFromPending();
         }, this.dragHoldDelayMs);
 
-        event.preventDefault();
-        event.stopPropagation();
+        // On touch devices, allow the synthetic click event to fire so a quick tap
+        // opens the info drawer. Prevent default only for mouse/pen interactions to
+        // avoid suppressing the click on mobile while still stopping accidental
+        // text selection when dragging with a mouse.
+        const isTouchStart = event.type === 'touchstart';
+        if (!isTouchStart) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
     }
 
     handleEventPressEnd() {
