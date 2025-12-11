@@ -959,6 +959,14 @@
 
                         <template if:true={pullTrayOpen}>
                             <div class="sfs-tray-body">
+                                <template if:true={showTrayCancelZone}>
+                                    <div
+                                        class={trayCancelZoneClass}
+                                        data-cancel-zone="true"
+                                    >
+                                        Return here to cancel scheduling
+                                    </div>
+                                </template>
                                 <template if:true={hasUnscheduled}>
                                     <div class="sfs-tray-section">
                                         <div class="sfs-tray-section__header">
