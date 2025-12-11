@@ -853,6 +853,8 @@
     align-items: flex-end;
     justify-content: center;
     z-index: 9999;
+    padding: 0.75rem;
+    box-sizing: border-box;
 }
 
 .sfs-detail-card {
@@ -867,6 +869,9 @@
     transform: translateY(100%);
     opacity: 0;
     transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+    max-height: 90vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .sfs-detail-card_open {
