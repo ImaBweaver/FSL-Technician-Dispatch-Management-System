@@ -85,6 +85,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     dragDurationHours = null;
     dragHasMoved = false;
     defaultWorkOrderDurationHours = 6;
+    showTrayCancelZone = false;
+    isHoveringCancelZone = false;
 
     // Reschedule with another tech modal
     isRescheduleModalOpen = false;
@@ -112,6 +114,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     dragHoldDelayMs = 600;
     isPressingForDrag = false;
     _pendingDrag = null;          // holds data until long press triggers
+    _boundGlobalPointerMove = null;
+    _boundGlobalPointerEnd = null;
 
     // Floating ghost under the finger
     // Floating ghost under the finger (clone of the event)
@@ -174,6 +178,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             : 'sfs-calendar-days-wrapper';
     }
 
+    get trayCancelZoneClass() {
+        return this.isHoveringCancelZone
+            ? 'sfs-tray-cancel-zone sfs-tray-cancel-zone_active'
+            : 'sfs-tray-cancel-zone';
+    }
+
     get isViewingAsOther() {
         return (
             this.activeUserId &&
@@ -197,6 +207,71 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     get managerApplyDisabled() {
         return !this.selectedManagerUserId;
+    }
+
+    registerGlobalDragListeners() {
+        if (!this._boundGlobalPointerMove) {
+            this._boundGlobalPointerMove = this.handleCalendarPointerMove.bind(this);
+        }
+        if (!this._boundGlobalPointerEnd) {
+            this._boundGlobalPointerEnd = this.handleCalendarPointerEnd.bind(this);
+        }
+
+        window.addEventListener('mousemove', this._boundGlobalPointerMove);
+        window.addEventListener('mouseup', this._boundGlobalPointerEnd);
+        window.addEventListener('touchmove', this._boundGlobalPointerMove, {
+            passive: false
+        });
+        window.addEventListener('touchend', this._boundGlobalPointerEnd);
+    }
+
+    unregisterGlobalDragListeners() {
+        if (this._boundGlobalPointerMove) {
+            window.removeEventListener('mousemove', this._boundGlobalPointerMove);
+            window.removeEventListener('touchmove', this._boundGlobalPointerMove);
+        }
+
+        if (this._boundGlobalPointerEnd) {
+            window.removeEventListener('mouseup', this._boundGlobalPointerEnd);
+            window.removeEventListener('touchend', this._boundGlobalPointerEnd);
+        }
+    }
+
+    updateTrayCancelHover(clientX, clientY) {
+        if (!this.showTrayCancelZone || this.dragMode !== 'wo') {
+            this.isHoveringCancelZone = false;
+            return;
+        }
+
+        const zone = this.template.querySelector('[data-cancel-zone="true"]');
+        if (!zone) {
+            this.isHoveringCancelZone = false;
+            return;
+        }
+
+        const rect = zone.getBoundingClientRect();
+        const inside =
+            clientX >= rect.left &&
+            clientX <= rect.right &&
+            clientY >= rect.top &&
+            clientY <= rect.bottom;
+
+        this.isHoveringCancelZone = inside;
+    }
+
+    isPointInTrayCancelZone(clientX, clientY) {
+        const zone = this.template.querySelector('[data-cancel-zone="true"]');
+        if (!zone) {
+            return false;
+        }
+
+        const rect = zone.getBoundingClientRect();
+        return (
+            clientX >= rect.left &&
+            clientX <= rect.right &&
+            clientY >= rect.top &&
+            clientY <= rect.bottom
+        );
     }
 
     get managerResetDisabled() {
@@ -1383,6 +1458,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         );
 
         this.updateSelectedEventStyles();
+        this.showTrayCancelZone = false;
+        this.registerGlobalDragListeners();
 
         if (typeof event.stopPropagation === 'function') {
             event.stopPropagation();
@@ -1540,14 +1617,16 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     pending.clientY,
                     pending.title,
                     timeLabel,
-                    typeClass,
-                    width,
-                    height
-                );
+                typeClass,
+                width,
+                height
+            );
 
-                this.updateSelectedEventStyles();
-                return;
-            }
+            this.updateSelectedEventStyles();
+            this.showTrayCancelZone = false;
+            this.registerGlobalDragListeners();
+            return;
+        }
 
             const timeLabel = pending.localStart.toLocaleTimeString([], {
                 hour: 'numeric',
@@ -1615,6 +1694,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 height
             );
         }
+
+        this.showTrayCancelZone = pending.type === 'wo';
+        this.registerGlobalDragListeners();
 
 
 
@@ -1693,6 +1775,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
         const { clientX, clientY } = clientPoint;
+
+        this.updateTrayCancelHover(clientX, clientY);
 
         const dx = clientX - this.dragStartClientX;
         const dy = clientY - this.dragStartClientY;
@@ -1786,6 +1870,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             previewLocal.setMinutes(roundedMinutes, 0, 0);
 
             this.dragPreviewLocal = new Date(previewLocal);
+
+        }
 
         const totalHours = this.calendarEndHour - this.calendarStartHour;
 
@@ -1893,7 +1979,13 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
-        const clientY = clientPoint.clientY;
+        const { clientX, clientY } = clientPoint;
+
+        if (this.dragMode === 'wo' && this.isPointInTrayCancelZone(clientX, clientY)) {
+            this.resetDragState();
+            event.preventDefault();
+            return;
+        }
 
         const dy = clientY - this.dragStartClientY;
         const hoursDelta = (dy / this.dragDayBodyHeight) * 24;
@@ -2076,6 +2168,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.clearLongPressTimer();
         this.hideDragGhost();
         this.dragDayBodyTop = null;
+        this.showTrayCancelZone = false;
+        this.isHoveringCancelZone = false;
+        this.unregisterGlobalDragListeners();
         this.updateSelectedEventStyles();
     }
 
