@@ -13,7 +13,6 @@
     top: 0.5rem;
     z-index: 5;
     margin-bottom: 0.35rem;
-    padding-right: 2.5rem;
 }
 
 .sfs-tabset {
@@ -22,9 +21,11 @@
 }
 
 .sfs-gear-menu {
-    position: absolute;
-    top: 0;
-    right: 0;
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+    padding: 0.1rem;
 }
 
 .sfs-gear-button.slds-button {
