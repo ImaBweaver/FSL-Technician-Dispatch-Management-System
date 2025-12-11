@@ -1140,6 +1140,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.isScalePanelOpen = !this.isScalePanelOpen;
     }
 
+    closeScalePanel() {
+        this.isScalePanelOpen = false;
+    }
+
     persistDisplayScale() {
         try {
             if (typeof window === 'undefined' || !window.localStorage) {
