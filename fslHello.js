@@ -1961,8 +1961,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 this.dragGhostHeight
             );
         }
-        }
-
         event.preventDefault();
     }
 
