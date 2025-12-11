@@ -137,6 +137,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     displayScale = 1;
     scaleMin = 0.8;
     scaleMax = 1.1;
+    scaleStep = 0.01;
+    scaleStorageKey = 'sfsDisplayScale';
+
+    // Display controls
+    isScalePanelOpen = false;
+
     scaleStep = 0.05;
     scaleStorageKey = 'sfsDisplayScale';
 
@@ -1128,6 +1134,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const clamped = Math.min(this.scaleMax, Math.max(this.scaleMin, parsed));
         this.displayScale = clamped;
         this.persistDisplayScale();
+    }
+
+    toggleScalePanel() {
+        this.isScalePanelOpen = !this.isScalePanelOpen;
     }
 
     persistDisplayScale() {
