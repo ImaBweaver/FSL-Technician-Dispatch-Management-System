@@ -936,16 +936,22 @@
 .sfs-detail-line {
     display: flex;
     justify-content: space-between;
+    align-items: flex-start;
     gap: 0.5rem;
     margin: 0.1rem 0;
 }
 
 .sfs-detail-label {
     font-weight: 600;
+    flex: 1 1 50%;
+    text-align: left;
 }
 
 .sfs-detail-value {
+    flex: 1 1 50%;
+    max-width: 50%;
     text-align: right;
+    word-break: break-word;
 }
 
 .sfs-detail-reschedule {
@@ -1015,7 +1021,7 @@
 }
 
 .sfs-detail-value_multiline {
-    text-align: left;
+    text-align: right;
     white-space: pre-wrap;
 }
 
