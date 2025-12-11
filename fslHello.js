@@ -149,9 +149,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     isAbsenceDetailClosing = false;
     _absenceCloseTimeout;
 
-    // swipe-to-close support
-    touchStartY = null;
-
     // ======= GETTERS =======
 
     get hasAppointments() {
@@ -3612,29 +3609,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     handleDetailCardClick(event) {
         event.stopPropagation();
-    }
-
-    handleDetailTouchStart(event) {
-        const clientPoint = this.getClientPoint(event);
-        this.touchStartY = clientPoint ? clientPoint.clientY : null;
-    }
-
-    handleDetailTouchEnd(event) {
-        if (this.touchStartY === null) {
-            return;
-        }
-        const clientPoint = this.getClientPoint(event);
-        if (clientPoint) {
-            const deltaY = clientPoint.clientY - this.touchStartY;
-            if (deltaY > 40) {
-                if (this.selectedAbsence) {
-                    this.handleCloseAbsenceDetails(event);
-                } else {
-                    this.handleCloseDetails(event);
-                }
-            }
-        }
-        this.touchStartY = null;
     }
 
     // ======= ABSENCE EDITING =======
