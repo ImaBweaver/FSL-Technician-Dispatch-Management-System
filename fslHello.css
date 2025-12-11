@@ -6,8 +6,9 @@
 }
 
 .sfs-tabset-container {
-    display: flex;
-    align-items: flex-start;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
     gap: 0.75rem;
     position: sticky;
     top: 0.5rem;
