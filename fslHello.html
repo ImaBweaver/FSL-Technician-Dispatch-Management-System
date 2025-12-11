@@ -1,14 +1,10 @@
 <template>
     <section class="sfs-container">
-        <div class="sfs-scale-wrapper" style={scaleStyle}>
-            <div class="sfs-scaled-content">
-                <div class="sfs-tabset-container">
-                    <div class="sfs-tabset-header">
-                        <lightning-tabset
-                            variant="scoped"
-                            class="sfs-tabset"
-                            onactive={handleTabActive}
-                        >
+        <lightning-tabset
+            variant="scoped"
+            class="sfs-tabset"
+            onactive={handleTabActive}
+        >
             <!-- LIST TAB (default) -->
             <lightning-tab label="List" value="list">
                 <div class="sfs-header">
@@ -1145,59 +1141,7 @@
                     </div>
                 </lightning-tab>
             </template>
-                        </lightning-tabset>
-
-                        <div class="sfs-gear-menu">
-                            <button
-                                type="button"
-                                class="sfs-gear-tab-button"
-                                onclick={toggleScalePanel}
-                                aria-expanded={isScalePanelOpen}
-                                aria-label="Display size settings"
-                            >
-                                <lightning-icon icon-name="utility:settings" size="x-small"></lightning-icon>
-                            </button>
-                        </div>
-                    </div>
-
-                    <template if:true={isScalePanelOpen}>
-                        <div class="sfs-scale-controls" role="dialog" aria-label="Display size settings">
-                            <div class="sfs-scale-controls__header">
-                                <div>
-                                    <p class="sfs-scale-controls__title">Display size</p>
-                                    <p class="sfs-scale-controls__helper">
-                                        Reduce the scale if content feels clipped on your device. We’ll
-                                        remember your choice on this device.
-                                    </p>
-                                </div>
-                                <div class="sfs-scale-controls__actions">
-                                    <span class="sfs-scale-value">{displayScalePercent}%</span>
-                                    <lightning-button-icon
-                                        icon-name="utility:close"
-                                        variant="bare"
-                                        alternative-text="Close display size"
-                                        title="Close display size"
-                                        size="x-small"
-                                        class="sfs-scale-close-button"
-                                        onclick={closeScalePanel}
-                                    ></lightning-button-icon>
-                                </div>
-                            </div>
-                            <lightning-input
-                                type="range"
-                                name="displayScale"
-                                label="Display size"
-                                variant="label-hidden"
-                                min={scaleMin}
-                                max={scaleMax}
-                                step={scaleStep}
-                                value={displayScale}
-                                onchange={handleScaleChange}
-                                class="sfs-scale-slider"
-                            ></lightning-input>
-                        </div>
-                    </template>
-                </div>
+        </lightning-tabset>
 
         <!-- DETAIL OVERLAY / BOTTOM SHEET -->
         <template if:true={hasSelectedAppointment}>
@@ -1654,7 +1598,5 @@
                 </div>
             </div>
         </template>
-            </div>
-        </div>
     </section>
 </template>
