@@ -143,6 +143,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     // Display controls
     isScalePanelOpen = false;
 
+    scaleStep = 0.05;
+    scaleStorageKey = 'sfsDisplayScale';
+
     quoteStatuses = ['Need Quote', 'PO Requested', 'Quote Sent', 'Quote Attached'];
 
     // My-tab status filter (WorkOrder.Status)

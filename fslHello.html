@@ -39,6 +39,29 @@
                     </div>
                 </template>
             </div>
+        <div class="sfs-scale-controls">
+            <div class="sfs-scale-controls__header">
+                <div>
+                    <p class="sfs-scale-controls__title">Display size</p>
+                    <p class="sfs-scale-controls__helper">
+                        Reduce the scale if content feels clipped on your device. We’ll
+                        remember your choice on this device.
+                    </p>
+                </div>
+                <span class="sfs-scale-value">{displayScalePercent}%</span>
+            </div>
+            <lightning-input
+                type="range"
+                name="displayScale"
+                label="Display size"
+                variant="label-hidden"
+                min={scaleMin}
+                max={scaleMax}
+                step={scaleStep}
+                value={displayScale}
+                onchange={handleScaleChange}
+                class="sfs-scale-slider"
+            ></lightning-input>
         </div>
 
         <div class="sfs-scale-wrapper" style={scaleStyle}>
