@@ -133,19 +133,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     // list sub-modes: 'my', 'needQuote', 'poRequested', 'quoteSent', 'quotes', 'quoteAttached', 'crew', 'partsReady', 'fulfilling'
     listMode = 'my';
 
-    // UI scaling for smaller screens
-    displayScale = 1;
-    scaleMin = 0.8;
-    scaleMax = 1.1;
-    scaleStep = 0.01;
-    scaleStorageKey = 'sfsDisplayScale';
-
-    // Display controls
-    isScalePanelOpen = false;
-
-    scaleStep = 0.05;
-    scaleStorageKey = 'sfsDisplayScale';
-
     quoteStatuses = ['Need Quote', 'PO Requested', 'Quote Sent', 'Quote Attached'];
 
     // My-tab status filter (WorkOrder.Status)
@@ -172,14 +159,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     get isMyMode() {
         return this.listMode === 'my';
-    }
-
-    get scaleStyle() {
-        return `--sfs-scale:${this.displayScale}`;
-    }
-
-    get displayScalePercent() {
-        return Math.round(this.displayScale * 100);
     }
 
     get isDragGhostVisible() {
@@ -1124,69 +1103,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
     }
 
-    handleScaleChange(event) {
-        const parsed = Number(event.detail.value);
-
-        if (Number.isNaN(parsed)) {
-            return;
-        }
-
-        const clamped = Math.min(this.scaleMax, Math.max(this.scaleMin, parsed));
-        this.displayScale = clamped;
-        this.persistDisplayScale();
-    }
-
-    toggleScalePanel() {
-        this.isScalePanelOpen = !this.isScalePanelOpen;
-    }
-
-    closeScalePanel() {
-        this.isScalePanelOpen = false;
-    }
-
-    persistDisplayScale() {
-        try {
-            if (typeof window === 'undefined' || !window.localStorage) {
-                return;
-            }
-
-            window.localStorage.setItem(this.scaleStorageKey, String(this.displayScale));
-        } catch (error) {
-            this.captureError(error, 'persistDisplayScale');
-        }
-    }
-
-    restoreDisplayScale() {
-        try {
-            if (typeof window === 'undefined' || !window.localStorage) {
-                return;
-            }
-
-            const stored = window.localStorage.getItem(this.scaleStorageKey);
-
-            if (!stored) {
-                return;
-            }
-
-            const parsed = Number(stored);
-
-            if (Number.isNaN(parsed)) {
-                return;
-            }
-
-            this.displayScale = Math.min(this.scaleMax, Math.max(this.scaleMin, parsed));
-        } catch (error) {
-            this.captureError(error, 'restoreDisplayScale');
-        }
-    }
-
     // ======= LIFECYCLE =======
 
     connectedCallback() {
         try {
             this.registerGlobalErrorHandlers();
             this.checkOnline();
-            this.restoreDisplayScale();
             this.handleCalendarToday();
             if (!this.isOffline) {
                 this.loadAppointments();
