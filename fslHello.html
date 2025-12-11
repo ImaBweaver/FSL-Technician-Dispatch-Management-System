@@ -71,6 +71,17 @@
                     class="sfs-tabset"
                     onactive={handleTabActive}
                 >
+                    <!-- LIST TAB (default) -->
+                    <lightning-tab label="List" value="list">
+                        <div class="sfs-header">
+                            <h2 class="sfs-title">My Service Appointments</h2>
+                            <lightning-button
+                                variant="neutral"
+                                label="Refresh"
+                                onclick={handleRefresh}
+                                class="sfs-refresh-btn"
+                            ></lightning-button>
+                        </div>
             <!-- LIST TAB (default) -->
             <lightning-tab label="List" value="list">
                 <div class="sfs-header">
