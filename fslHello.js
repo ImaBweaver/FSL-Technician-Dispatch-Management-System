@@ -1232,7 +1232,31 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         );
 
         wrapper.scrollLeft = targetScrollLeft;
+        this.centerTimelineOnElevenAmLine(todayCol);
         this._needsCenterOnToday = false;
+    }
+
+    centerTimelineOnElevenAmLine(todayCol) {
+        if (typeof window === 'undefined') {
+            return;
+        }
+
+        const dayBody =
+            todayCol?.querySelector('.sfs-calendar-day-body') ||
+            this.template.querySelector('.sfs-calendar-day-body');
+
+        if (!dayBody) {
+            return;
+        }
+
+        const bodyRect = dayBody.getBoundingClientRect();
+        const elevenAmOffset = (11 / 24) * bodyRect.height;
+        const targetScrollTop =
+            bodyRect.top + window.scrollY + elevenAmOffset - window.innerHeight / 2;
+
+        window.scrollTo({
+            top: Math.max(targetScrollTop, 0)
+        });
     }
 
     shiftCalendar(offsetDays) {
