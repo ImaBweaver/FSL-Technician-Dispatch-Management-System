@@ -3832,62 +3832,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.loadAppointments();
     }
 
-    handleCalendarTabClick() {
-        const tabset = this.template.querySelector('lightning-tabset');
-        if (tabset && tabset.activeTabValue !== 'calendar') {
-            tabset.activeTabValue = 'calendar';
-        }
-
-        this.updateActiveTabState('calendar');
-    }
-
-    handleCalendarTabKeydown(event) {
-        const isActivationKey = event.key === 'Enter' || event.key === ' ';
-        if (!isActivationKey) {
-            return;
-        }
-
-        event.preventDefault();
-        this.handleCalendarTabClick();
-    }
-
-    handleTabActive(event) {
-        // lightning-tabset fires an active event whose detail contains the
-        // activated tab component. The tab value can surface in multiple
-        // places depending on the platform, so check all supported shapes.
-        const activeTab =
-            event.detail.value ||
-            (event.detail.tab && event.detail.tab.value) ||
-            event.target.value ||
-            event.target.activeTabValue;
-
-        const isCalendarTab = activeTab === 'calendar';
-        const wasCalendarTabActive = this.isCalendarTabActive;
-        this.updateActiveTabState(activeTab, { suppressCalendarToday: true });
-
-        // Some platforms do not populate the active tab value on the event.
-        // When that happens, re-read the tabset once it has updated so the
-        // "Calendar tab is active" state reflects the user's click immediately.
-        if (!activeTab) {
-            requestAnimationFrame(() => {
-                const previouslyActive = this.isCalendarTabActive;
-                this.updateActiveTabState(undefined, { suppressCalendarToday: true });
-
-                if (this.isCalendarTabActive && !previouslyActive) {
-                    this.handleCalendarToday();
-                } else if (!this.isCalendarTabActive) {
-                    this.pullTrayOpen = false;
-                }
-            });
-            return;
-        }
-
-        if (isCalendarTab && !wasCalendarTabActive) {
-            this.handleCalendarToday();
-        } else if (!isCalendarTab) {
-            this.pullTrayOpen = false;
-        }
-    }
 
     handleCalendarPrev() {
         const step = this.isTimelineMode ? -1 : -7;
