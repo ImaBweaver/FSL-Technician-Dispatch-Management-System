@@ -5,18 +5,33 @@
     box-sizing: border-box;
 }
 
-.sfs-calendar-tab-button {
-    border: 0;
-    background: none;
-    padding: 0;
-    margin: 0;
-    color: inherit;
-    font: inherit;
-    cursor: pointer;
+.sfs-tab-bar {
+    display: flex;
+    gap: 0.25rem;
+    margin: 0 0 0.75rem;
 }
 
-.sfs-calendar-tab-button:focus {
-    outline: none;
+.sfs-tab-btn {
+    border: 1px solid #d4d4d4;
+    border-bottom: 0;
+    background: #f3f2f2;
+    color: #444;
+    font-weight: 600;
+    padding: 0.45rem 1rem 0.35rem;
+    border-radius: 0.5rem 0.5rem 0 0;
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease;
+}
+
+.sfs-tab-btn_active {
+    background: #ffffff;
+    color: #1a1a1a;
+    box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.sfs-tab-btn:focus {
+    outline: 2px solid #0176d3;
+    outline-offset: 2px;
 }
 
 /* COMMON HEADER / EMPTY / LOADING */
