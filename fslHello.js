@@ -3811,7 +3811,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             tabset.activeTabValue = 'calendar';
         }
 
-        this.updateActiveTabState('calendar', { suppressCalendarToday: true });
         this.updateActiveTabState('calendar');
     }
 
