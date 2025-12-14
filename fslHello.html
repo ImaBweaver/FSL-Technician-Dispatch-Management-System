@@ -1,11 +1,10 @@
 <template>
-    <section class="sfs-container" style={containerStyle}>
-        <div class="sfs-tabset-row">
-            <lightning-tabset
-                variant="scoped"
-                class="sfs-tabset"
-                onactive={handleTabActive}
-            >
+    <section class="sfs-container">
+        <lightning-tabset
+            variant="scoped"
+            class="sfs-tabset"
+            onactive={handleTabActive}
+        >
             <!-- LIST TAB (default) -->
             <lightning-tab label="List" value="list">
                 <div class="sfs-header">
@@ -1142,39 +1141,7 @@
                     </div>
                 </lightning-tab>
             </template>
-            </lightning-tabset>
-
-            <div class="sfs-layout-control">
-                <lightning-button-icon
-                    icon-name="utility:settings"
-                    variant="bare"
-                    alternative-text="Layout settings"
-                    class={layoutButtonClass}
-                    onclick={toggleLayoutSettings}
-                ></lightning-button-icon>
-
-                <template if:true={layoutSettingsOpen}>
-                    <div class="sfs-layout-popover">
-                        <div class="sfs-layout-popover-header">
-                            <span class="sfs-layout-popover-title">Adjust aspect ratio</span>
-                            <span class="sfs-layout-popover-value">{aspectRatioDisplay}</span>
-                        </div>
-                        <lightning-slider
-                            name="aspectRatio"
-                            label="Aspect ratio"
-                            value={aspectRatioValue}
-                            min="80"
-                            max="130"
-                            step="5"
-                            onchange={handleAspectRatioChange}
-                        ></lightning-slider>
-                        <p class="sfs-layout-help">
-                            Tweak the screen ratio so the layout fits your display. Your choice will be remembered.
-                        </p>
-                    </div>
-                </template>
-            </div>
-        </div>
+        </lightning-tabset>
 
         <!-- DETAIL OVERLAY / BOTTOM SHEET -->
         <template if:true={hasSelectedAppointment}>
