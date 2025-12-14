@@ -26,34 +26,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     get hasVisibleAppointments() {
         return this.visibleAppointments.length > 0;
     }
-
-    get isCalendarTabActive() {
-        return this.activeView === 'calendar';
-    }
-
-    get hasCalendarBody() {
-        return Array.isArray(this.calendarDays) && this.calendarDays.length > 0;
-    }
-
-    get isListView() {
-        return this.activeView === 'list';
-    }
-
-    get isManagerView() {
-        return this.activeView === 'manager';
-    }
-
-    get listViewButtonClass() {
-        return this.composeViewButtonClass(this.isListView);
-    }
-
-    get calendarViewButtonClass() {
-        return this.composeViewButtonClass(this.isCalendarTabActive);
-    }
-
-    get managerViewButtonClass() {
-        return this.composeViewButtonClass(this.isManagerView);
-    }
     currentUserId = null;
     activeUserId = null;
     viewingUserName = 'Me';
@@ -68,8 +40,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     @track submittedTransferRequests = [];
     pullTrayOpen = false;
     isDesktopFormFactor = FORM_FACTOR === 'Large';
-    @track activeView = 'list';
-    @track isCalendarInitialized = false;
+    isCalendarTabActive = false;
+    lastKnownActiveTab = null;
 
     // Global "now" line state
     showNowLine = false;
@@ -183,50 +155,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const apptCount = this.appointments ? this.appointments.length : 0;
         const absenceCount = this.absences ? this.absences.length : 0;
         return apptCount + absenceCount > 0;
-    }
-
-    get calendarChecklistItems() {
-        const items = [
-            {
-                id: 'online',
-                ready: !this.isOffline,
-                label: 'You are online',
-                helpText: 'Reconnect to Salesforce to load calendar data.',
-            },
-            {
-                id: 'resource',
-                ready: !!this.activeUserId,
-                label: 'A resource is selected',
-                helpText: 'Select yourself or a team member to view their schedule.',
-            },
-            {
-                id: 'appointments',
-                ready: this.hasAppointments,
-                label: 'Appointments or absences are available',
-                helpText: 'Tap Refresh or adjust filters if nothing is scheduled.',
-            },
-            {
-                id: 'timezone',
-                ready: !!this.userTimeZoneShort,
-                label: 'Time zone detected',
-                helpText: 'Reload the page if your Salesforce time zone is missing.',
-            },
-        ];
-
-        return items.map((item) => ({
-            ...item,
-            iconName: item.ready ? 'utility:success' : 'utility:warning',
-            iconVariant: item.ready ? 'success' : 'warning',
-            cssClass: `sfs-checklist-item ${
-                item.ready ? 'sfs-checklist-item_ready' : 'sfs-checklist-item_pending'
-            }`,
-        }));
-    }
-
-    markCalendarInitialized() {
-        if (!this.isCalendarInitialized) {
-            this.isCalendarInitialized = true;
-        }
     }
 
     get isMyMode() {
@@ -1134,39 +1062,45 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return this.isTrayReady;
     }
 
-    setActiveView(view, options = {}) {
+    updateActiveTabState(explicitValue, options = {}) {
         const { suppressCalendarToday = false } = options;
-        const previousView = this.activeView;
+        const tabset = this.template.querySelector('lightning-tabset');
 
-        if (view === 'manager' && !this.isManager) {
-            return;
+        let resolvedTabValue = null;
+
+        if (explicitValue !== undefined && explicitValue !== null) {
+            resolvedTabValue = explicitValue;
+        } else if (tabset) {
+            const activeFromTabset =
+                tabset.activeTabValue !== undefined && tabset.activeTabValue !== null
+                    ? tabset.activeTabValue
+                    : tabset.value;
+            resolvedTabValue = activeFromTabset;
         }
 
-        if (!view) {
-            return;
+        if (resolvedTabValue === null || resolvedTabValue === undefined) {
+            resolvedTabValue = this.lastKnownActiveTab;
         }
 
-        const isSameView = view === previousView;
-        this.activeView = view;
-
-        if (!this.isCalendarTabActive) {
-            this.pullTrayOpen = false;
-            return;
+        if (resolvedTabValue) {
+            this.lastKnownActiveTab = resolvedTabValue;
         }
 
-        if (!suppressCalendarToday) {
-            this.handleCalendarToday();
-        }
+        const isCalendarActive = resolvedTabValue === 'calendar';
+        const wasCalendarActive = this.isCalendarTabActive;
 
-        if (isSameView) {
-            this.prepareCalendarOnOpen();
-        }
-    }
+        if (isCalendarActive !== this.isCalendarTabActive) {
+            this.isCalendarTabActive = isCalendarActive;
 
-    composeViewButtonClass(isActive) {
-        return isActive
-            ? 'sfs-view-switch__btn sfs-view-switch__btn_active'
-            : 'sfs-view-switch__btn';
+            if (!isCalendarActive) {
+                this.pullTrayOpen = false;
+            } else if (!wasCalendarActive && !suppressCalendarToday) {
+                // Ensure the calendar recenters on today whenever the user
+                // switches into the calendar tab (keyboard, click, or
+                // programmatic activation).
+                this.handleCalendarToday();
+            }
+        }
     }
 
     // ======= LIFECYCLE =======
@@ -1190,6 +1124,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     renderedCallback() {
         try {
+            this.updateActiveTabState();
+
             if (
                 this.isTimelineMode &&
                 this.isCalendarTabActive &&
@@ -2998,7 +2934,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         this.calendarDays = days;
-        this.markCalendarInitialized();
         this.updateSelectedEventStyles();
         this.scheduleNowLinePositionUpdate();
     }
@@ -3845,41 +3780,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.navigateToRecord(this.selectedAppointment.contactId, 'Contact');
     }
 
-    // ======= VIEW SWITCH HANDLERS =======
-
-    handleListViewClick() {
-        this.setActiveView('list', { suppressCalendarToday: true });
-    }
-
-    handleCalendarTabClick() {
-        this.setActiveView('calendar');
-
-        this.prepareCalendarOnOpen();
-    }
-
-    handleManagerViewClick() {
-        this.setActiveView('manager', { suppressCalendarToday: true });
-    }
-
-    prepareCalendarOnOpen() {
-        this.markCalendarInitialized();
-
-        if (!this.timelineStartDate || !this.weekStartDate) {
-        if (!this.calendarDays || this.calendarDays.length === 0) {
-            this.centerCalendarOnToday();
-            return;
-        }
-
-        if (!this.calendarDays || this.calendarDays.length === 0) {
-            this.buildCalendarModel();
-        if (!this.timelineStartDate || !this.weekStartDate) {
-            this.centerCalendarOnToday();
-            return;
-        }
-
-        this.buildCalendarModel();
-    }
-
     // ======= CALENDAR TAB HANDLERS =======
 
     handleManagerUserChange(event) {
@@ -3905,6 +3805,63 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.loadAppointments();
     }
 
+    handleCalendarTabClick() {
+        const tabset = this.template.querySelector('lightning-tabset');
+        if (tabset && tabset.activeTabValue !== 'calendar') {
+            tabset.activeTabValue = 'calendar';
+        }
+
+        this.updateActiveTabState('calendar', { suppressCalendarToday: true });
+        this.updateActiveTabState('calendar');
+    }
+
+    handleCalendarTabKeydown(event) {
+        const isActivationKey = event.key === 'Enter' || event.key === ' ';
+        if (!isActivationKey) {
+            return;
+        }
+
+        event.preventDefault();
+        this.handleCalendarTabClick();
+    }
+
+    handleTabActive(event) {
+        // lightning-tabset fires an active event whose detail contains the
+        // activated tab component. The tab value can surface in multiple
+        // places depending on the platform, so check all supported shapes.
+        const activeTab =
+            event.detail.value ||
+            (event.detail.tab && event.detail.tab.value) ||
+            event.target.value ||
+            event.target.activeTabValue;
+
+        const isCalendarTab = activeTab === 'calendar';
+        const wasCalendarTabActive = this.isCalendarTabActive;
+        this.updateActiveTabState(activeTab, { suppressCalendarToday: true });
+
+        // Some platforms do not populate the active tab value on the event.
+        // When that happens, re-read the tabset once it has updated so the
+        // "Calendar tab is active" state reflects the user's click immediately.
+        if (!activeTab) {
+            requestAnimationFrame(() => {
+                const previouslyActive = this.isCalendarTabActive;
+                this.updateActiveTabState(undefined, { suppressCalendarToday: true });
+
+                if (this.isCalendarTabActive && !previouslyActive) {
+                    this.handleCalendarToday();
+                } else if (!this.isCalendarTabActive) {
+                    this.pullTrayOpen = false;
+                }
+            });
+            return;
+        }
+
+        if (isCalendarTab && !wasCalendarTabActive) {
+            this.handleCalendarToday();
+        } else if (!isCalendarTab) {
+            this.pullTrayOpen = false;
+        }
+    }
 
     handleCalendarPrev() {
         const step = this.isTimelineMode ? -1 : -7;
