@@ -3865,12 +3865,15 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.markCalendarInitialized();
 
         if (!this.timelineStartDate || !this.weekStartDate) {
+        if (!this.calendarDays || this.calendarDays.length === 0) {
             this.centerCalendarOnToday();
             return;
         }
 
         if (!this.calendarDays || this.calendarDays.length === 0) {
             this.buildCalendarModel();
+        if (!this.timelineStartDate || !this.weekStartDate) {
+            this.centerCalendarOnToday();
             return;
         }
 
