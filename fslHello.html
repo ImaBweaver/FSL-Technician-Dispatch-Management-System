@@ -627,23 +627,36 @@
                         ></lightning-button>
                     </div>
 
-                    <div class="sfs-calendar-mode">
-                        <button
-                            class={timelineModeClass}
-                            type="button"
-                            data-mode="timeline"
-                            onclick={handleCalendarMode}
-                        >
-                            Timeline
-                        </button>
-                        <button
-                            class={weekModeClass}
-                            type="button"
-                            data-mode="week"
-                            onclick={handleCalendarMode}
-                        >
-                            Weeks
-                        </button>
+                    <div class="sfs-calendar-mode-row">
+                        <div class="sfs-calendar-mode">
+                            <button
+                                class={timelineModeClass}
+                                type="button"
+                                data-mode="timeline"
+                                onclick={handleCalendarMode}
+                            >
+                                Timeline
+                            </button>
+                            <button
+                                class={weekModeClass}
+                                type="button"
+                                data-mode="week"
+                                onclick={handleCalendarMode}
+                            >
+                                Weeks
+                            </button>
+                        </div>
+                        <template if:false={isDesktopFormFactor}>
+                            <button
+                                class={calendarPanButtonClass}
+                                type="button"
+                                aria-pressed={isCalendarPanMode}
+                                onclick={handleCalendarPanToggle}
+                            >
+                                <span class="sfs-calendar-pan-label">Pan calendar</span>
+                                <span class="sfs-calendar-pan-state">{calendarPanStateLabel}</span>
+                            </button>
+                        </template>
                     </div>
                 </div>
 
@@ -703,7 +716,7 @@
 
                             <div class={calendarDaysWrapperClass}>
                                 <div
-                                    class="sfs-calendar-days"
+                                    class={calendarDaysClass}
                                     onmousemove={handleCalendarPointerMove}
                                     onmouseup={handleCalendarPointerEnd}
                                     ontouchmove={handleCalendarPointerMove}

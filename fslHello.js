@@ -133,6 +133,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     // 'timeline' or 'week'
     calendarMode = 'timeline';
+    isCalendarPanMode = false;
     // list sub-modes: 'my', 'needQuote', 'poRequested', 'quoteSent', 'quotes', 'quoteAttached', 'crew', 'partsReady', 'fulfilling'
     listMode = 'my';
 
@@ -204,9 +205,34 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     get calendarDaysWrapperClass() {
-        return this.isDragging
-            ? 'sfs-calendar-days-wrapper sfs-calendar-days-wrapper_dragging'
-            : 'sfs-calendar-days-wrapper';
+        const classes = ['sfs-calendar-days-wrapper'];
+
+        if (this.isCalendarPanMode) {
+            classes.push('sfs-calendar-days-wrapper_pan');
+        }
+
+        if (this.isDragging) {
+            classes.push('sfs-calendar-days-wrapper_dragging');
+        }
+
+        return classes.join(' ');
+    }
+
+    get calendarDaysClass() {
+        return this.isCalendarPanMode
+            ? 'sfs-calendar-days sfs-calendar-days_pan'
+            : 'sfs-calendar-days';
+    }
+
+    get calendarPanButtonClass() {
+        const base = 'sfs-calendar-pan-toggle';
+        return this.isCalendarPanMode
+            ? `${base} sfs-calendar-pan-toggle_active`
+            : base;
+    }
+
+    get calendarPanStateLabel() {
+        return this.isCalendarPanMode ? 'Panning' : 'Drag to move';
     }
 
     get trayCancelZoneClass() {
@@ -1391,6 +1417,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
+        if (this.isCalendarPanMode) {
+            return;
+        }
+
         // Do not start another drag if one is already running
         if (this.dragMode || this.isPressingForDrag) {
             return;
@@ -1474,6 +1504,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     handleEventResizeStart(event) {
         if (!event) {
+            return;
+        }
+
+        if (this.isCalendarPanMode) {
             return;
         }
 
@@ -1875,6 +1909,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
 
     handleCalendarPointerMove(event) {
+        if (this.isCalendarPanMode) {
+            return;
+        }
+
         if (!this.dragMode || this.dragStartClientX === null) {
             return;
         }
@@ -2075,6 +2113,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
 
     handleCalendarPointerEnd(event) {
+        if (this.isCalendarPanMode) {
+            this.resetDragState();
+            return;
+        }
+
         if (!this.dragMode || this.dragStartClientX === null) {
             this.resetDragState();
             return;
@@ -3967,6 +4010,17 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         if (this.calendarMode === 'timeline') {
             this._needsCenterOnToday = true;
+        }
+    }
+
+    handleCalendarPanToggle() {
+        this.isCalendarPanMode = !this.isCalendarPanMode;
+
+        if (this.isCalendarPanMode) {
+            this.resetDragState();
+            this.isPressingForDrag = false;
+            this._pendingDrag = null;
+            this.clearLongPressTimer();
         }
     }
 
