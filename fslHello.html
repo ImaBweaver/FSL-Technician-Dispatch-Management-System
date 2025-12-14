@@ -690,6 +690,28 @@
                     </div>
                 </template>
 
+                <div class="sfs-calendar-checklist">
+                    <div class="sfs-calendar-checklist__title">Calendar checklist</div>
+                    <div class="sfs-calendar-checklist__items">
+                        <template for:each={calendarChecklistItems} for:item="item">
+                            <div key={item.id} class={item.cssClass}>
+                                <lightning-icon
+                                    icon-name={item.iconName}
+                                    variant={item.iconVariant}
+                                    size="small"
+                                    class="sfs-checklist-icon"
+                                ></lightning-icon>
+                                <div>
+                                    <div class="sfs-checklist-label">{item.label}</div>
+                                    <template if:false={item.ready}>
+                                        <div class="sfs-checklist-help">{item.helpText}</div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
                 <template if:true={isManager}>
                     <div class="sfs-viewing-pill">{viewingAsLabel}</div>
                 </template>
