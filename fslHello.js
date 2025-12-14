@@ -3848,13 +3848,25 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     handleCalendarTabClick() {
         this.setActiveView('calendar');
 
-        if (!this.calendarDays || this.calendarDays.length === 0) {
-            this.centerCalendarOnToday();
-        }
+        this.prepareCalendarOnOpen();
     }
 
     handleManagerViewClick() {
         this.setActiveView('manager', { suppressCalendarToday: true });
+    }
+
+    prepareCalendarOnOpen() {
+        if (!this.calendarDays || this.calendarDays.length === 0) {
+            this.centerCalendarOnToday();
+            return;
+        }
+
+        if (!this.timelineStartDate || !this.weekStartDate) {
+            this.centerCalendarOnToday();
+            return;
+        }
+
+        this.buildCalendarModel();
     }
 
     // ======= CALENDAR TAB HANDLERS =======
