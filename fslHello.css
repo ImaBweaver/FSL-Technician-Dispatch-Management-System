@@ -403,6 +403,48 @@
     padding: 0.1rem;
 }
 
+.sfs-calendar-mode-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+}
+
+.sfs-calendar-pan-toggle {
+    display: none;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
+    border: 1px solid #d8dde6;
+    background: #ffffff;
+    color: #080707;
+    font-size: 0.8rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    touch-action: manipulation;
+}
+
+.sfs-calendar-pan-toggle_active {
+    background: #0b5cab;
+    color: #ffffff;
+    border-color: #0b5cab;
+}
+
+.sfs-calendar-pan-label {
+    font-weight: 700;
+}
+
+.sfs-calendar-pan-state {
+    font-size: 0.75rem;
+    opacity: 0.8;
+}
+
+@media (max-width: 768px) {
+    .sfs-calendar-pan-toggle {
+        display: inline-flex;
+    }
+}
+
 .sfs-tray-debug {
     margin: 0.75rem 0;
     padding: 0.75rem;
@@ -610,8 +652,17 @@
 .sfs-calendar-days-wrapper {
     flex: 1;
     overflow-x: auto;
+    overflow-y: hidden;
     padding-bottom: 0.5rem;
     scroll-snap-type: x mandatory;
+}
+
+.sfs-calendar-days-wrapper_pan {
+    overflow-y: auto;
+    scroll-snap-type: none;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 1rem;
 }
 
 .sfs-calendar-days-wrapper_dragging {
@@ -622,6 +673,10 @@
 .sfs-calendar-days {
     display: flex;
     min-height: 720px; /* match day-body height */
+}
+
+.sfs-calendar-days_pan {
+    touch-action: pan-x pan-y;
 }
 
 .sfs-calendar-day {
