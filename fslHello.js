@@ -530,6 +530,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }));
 
         const quoteWorkOrders = this.quoteWorkOrders;
+        const unscheduledWorkOrders = this.unscheduledListItems;
 
         switch (this.listMode) {
             case 'crew':
@@ -592,6 +593,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     );
                 break;
 
+            case 'unscheduled':
+                baseList = unscheduledWorkOrders;
+                break;
+
             case 'my':
             default: {
                 baseList = ownedAppointments;
@@ -650,6 +655,39 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 workTypeName: 'Work Order',
                 workTypeClass: 'sfs-worktype'
             }));
+    }
+
+    get unscheduledListItems() {
+        if (!this.unscheduledWorkOrders) {
+            return [];
+        }
+
+        return this.unscheduledWorkOrders.map(wo => {
+            const typeClass = this.getEventTypeClass(wo.workTypeName);
+            return {
+                ...wo,
+                cardId: wo.cardId || `wo-${wo.workOrderId}`,
+                workOrderId: wo.workOrderId,
+                workOrderSubject: wo.workOrderSubject || wo.subject,
+                workOrderStatus: wo.workOrderStatus || wo.status,
+                workOrderNumber: wo.workOrderNumber,
+                workTypeName: wo.workTypeName,
+                workTypeClass: `sfs-worktype ${typeClass || ''}`.trim(),
+                opportunityRecordType: wo.opportunityRecordType,
+                quoteAttachmentUrl: wo.quoteAttachmentDownloadUrl || null,
+                quoteAttachmentDocumentId: wo.quoteAttachmentDocumentId || null,
+                hasQuoteAttachment: Boolean(
+                    wo.hasQuoteAttachment ||
+                        wo.quoteAttachmentDownloadUrl ||
+                        wo.quoteAttachmentDocumentId
+                ),
+                showQuoteActions:
+                    wo.status === 'Quote Sent' ||
+                    this.isQuoteAttachedAppointment(wo),
+                showMarkQuoteSentAction: this.isQuoteAttachedAppointment(wo),
+                hasAppointment: false
+            };
+        });
     }
 
     isQuoteAttachedAppointment(appt) {
@@ -743,6 +781,16 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             );
         }
         return labels;
+    }
+
+    get isUnscheduledMode() {
+        return this.listMode === 'unscheduled';
+    }
+
+    get listUnscheduledModeClass() {
+        return this.isUnscheduledMode
+            ? 'sfs-mode-btn sfs-mode-btn_active'
+            : 'sfs-mode-btn';
     }
 
     get listMyModeClass() {

@@ -52,6 +52,14 @@
                 <div class="sfs-list-mode">
                     <button
                         type="button"
+                        class={listUnscheduledModeClass}
+                        data-mode="unscheduled"
+                        onclick={handleListModeChange}
+                    >
+                        Unscheduled ({unscheduledCount})
+                    </button>
+                    <button
+                        type="button"
                         class={listMyModeClass}
                         data-mode="my"
                         onclick={handleListModeChange}
