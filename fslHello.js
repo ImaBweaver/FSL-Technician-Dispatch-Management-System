@@ -64,7 +64,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     @track submittedTransferRequests = [];
     pullTrayOpen = false;
     isDesktopFormFactor = FORM_FACTOR === 'Large';
-    activeView = 'list';
+    @track activeView = 'list';
 
     // Global "now" line state
     showNowLine = false;
