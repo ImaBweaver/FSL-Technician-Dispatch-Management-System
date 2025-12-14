@@ -933,6 +933,20 @@
 
                         <template if:true={pullTrayOpen}>
                             <div class="sfs-tray-body">
+                                <template if:true={showTrayPeekToggle}>
+                                    <div class="sfs-tray-peek-row">
+                                        <span class="sfs-tray-peek-text">
+                                            {trayPeekHelperText}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            class="sfs-tray-peek-toggle"
+                                            onclick={handleTrayPeekToggle}
+                                        >
+                                            {trayPeekToggleLabel}
+                                        </button>
+                                    </div>
+                                </template>
                                 <template if:true={showTrayCancelZone}>
                                     <div
                                         class={trayCancelZoneClass}
