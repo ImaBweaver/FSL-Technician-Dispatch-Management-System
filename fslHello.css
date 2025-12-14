@@ -1285,6 +1285,19 @@
     transform: translateY(0);
 }
 
+.sfs-tray_peek .sfs-tray-body {
+    max-height: 11rem;
+}
+
+.sfs-tray_dragging .sfs-tray-handle {
+    padding: 0.25rem 0.5rem;
+}
+
+.sfs-tray_dragging .sfs-tray-grip {
+    width: 24px;
+    height: 3px;
+}
+
 /* Handle / tab at the top of the tray */
 .sfs-tray-handle {
     background: #ffffff;
@@ -1341,6 +1354,35 @@
     max-height: 260px;
     overflow-y: auto;
     box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.16);
+}
+
+.sfs-tray-peek-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.15rem 0.25rem 0.35rem;
+}
+
+.sfs-tray-peek-text {
+    font-size: 0.75rem;
+    color: #706e6b;
+    flex: 1;
+}
+
+.sfs-tray-peek-toggle {
+    border: 1px solid #0176d3;
+    background: #ffffff;
+    color: #0176d3;
+    border-radius: 999px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.sfs-tray-peek-toggle:active {
+    background: #eef4ff;
 }
 
 .sfs-tray-cancel-zone {
@@ -1446,6 +1488,20 @@
     font-size: 0.75rem;
     color: #706e6b;
     margin: 0.25rem 0;
+}
+
+@media (max-width: 768px) {
+    .sfs-tray-body {
+        max-height: 40vh;
+    }
+
+    .sfs-tray-handle {
+        padding: 0.3rem 0.5rem;
+    }
+
+    .sfs-tray-handle .sfs-tray-grip {
+        width: 28px;
+    }
 }
 
 /* Give main content bottom padding so it isn't hidden under the tray */

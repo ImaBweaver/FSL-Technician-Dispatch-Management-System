@@ -39,6 +39,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     @track transferRequests = [];
     @track submittedTransferRequests = [];
     pullTrayOpen = false;
+    pullTrayPeek = false;
+    _trayWasExpandedBeforeDrag = false;
     isDesktopFormFactor = FORM_FACTOR === 'Large';
     activeTab = 'list';
     isCalendarTabActive = false;
@@ -974,7 +976,35 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     // Tray helpers
     get trayContainerClass() {
-        return this.pullTrayOpen ? 'sfs-tray sfs-tray_open' : 'sfs-tray';
+        const classes = ['sfs-tray'];
+
+        if (this.pullTrayOpen) {
+            classes.push('sfs-tray_open');
+        }
+
+        if (this.pullTrayPeek) {
+            classes.push('sfs-tray_peek');
+        }
+
+        if (this.pullTrayOpen && (this.dragMode || this.isPressingForDrag)) {
+            classes.push('sfs-tray_dragging');
+        }
+
+        return classes.join(' ');
+    }
+
+    get showTrayPeekToggle() {
+        return this.pullTrayOpen && this.shouldUseCompactTray();
+    }
+
+    get trayPeekToggleLabel() {
+        return this.pullTrayPeek ? 'Expand full tray' : 'Peek to view';
+    }
+
+    get trayPeekHelperText() {
+        return this.pullTrayPeek
+            ? 'Peek view keeps the calendar visible.'
+            : 'Peek to keep the calendar in view while browsing.';
     }
 
     get unscheduledCount() {
@@ -1574,6 +1604,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         if (!dayEl || !dayBodyEl) {
             return;
+        }
+
+        if (this.pullTrayOpen && this.shouldUseCompactTray()) {
+            this._trayWasExpandedBeforeDrag = !this.pullTrayPeek;
+            this.pullTrayPeek = true;
         }
 
         const startIndex =
@@ -2244,6 +2279,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.isHoveringCancelZone = false;
         this.unregisterGlobalDragListeners();
         this.updateSelectedEventStyles();
+
+        if (this.pullTrayOpen && this._trayWasExpandedBeforeDrag) {
+            this.pullTrayPeek = false;
+        }
+
+        this._trayWasExpandedBeforeDrag = false;
     }
 
 
@@ -3932,7 +3973,25 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     // ======= TRAY HANDLERS =======
 
     toggleTray() {
-        this.pullTrayOpen = !this.pullTrayOpen;
+        const willOpen = !this.pullTrayOpen;
+        this.pullTrayOpen = willOpen;
+
+        if (willOpen) {
+            this.pullTrayPeek = this.shouldUseCompactTray();
+        }
+    }
+
+    handleTrayPeekToggle() {
+        this.pullTrayPeek = !this.pullTrayPeek;
+        this._trayWasExpandedBeforeDrag = false;
+    }
+
+    shouldUseCompactTray() {
+        if (typeof window !== 'undefined' && window.matchMedia) {
+            return window.matchMedia('(max-width: 768px)').matches;
+        }
+
+        return !this.isDesktopFormFactor;
     }
 
     handleTrayInfoPointer(event) {
