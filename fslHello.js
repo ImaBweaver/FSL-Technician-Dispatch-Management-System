@@ -783,116 +783,93 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return labels;
     }
 
-    get isUnscheduledMode() {
-        return this.listMode === 'unscheduled';
-    }
-
-    get listUnscheduledModeClass() {
-        return this.isUnscheduledMode
-            ? 'sfs-mode-btn sfs-mode-btn_active'
-            : 'sfs-mode-btn';
-    }
-
-    get listMyModeClass() {
-        return this.listMode === 'my'
-            ? 'sfs-mode-btn sfs-mode-btn_active'
-            : 'sfs-mode-btn';
-    }
-
-    get isQuotesMode() {
-        return this.listMode === 'quotes';
-    }
-
-    get listQuotesModeClass() {
-        return this.isQuotesMode
-            ? 'sfs-mode-btn sfs-mode-btn_active'
-            : 'sfs-mode-btn';
-    }
-
-    get isNeedQuoteMode() {
-        return this.listMode === 'needQuote';
-    }
-
-    get listNeedQuoteModeClass() {
-        return this.isNeedQuoteMode
-            ? 'sfs-mode-btn sfs-mode-btn_active'
-            : 'sfs-mode-btn';
-    }
-
-    get isPoRequestedMode() {
-        return this.listMode === 'poRequested';
-    }
-
-    get listPoRequestedModeClass() {
-        return this.isPoRequestedMode
-            ? 'sfs-mode-btn sfs-mode-btn_active'
-            : 'sfs-mode-btn';
-    }
-
-    get isQuoteSentMode() {
-        return this.listMode === 'quoteSent';
-    }
-
-    get listQuoteSentModeClass() {
-        return this.isQuoteSentMode
-            ? 'sfs-mode-btn sfs-mode-btn_active'
-            : 'sfs-mode-btn';
-    }
-
-    get isQuoteAttachedMode() {
-        return this.listMode === 'quoteAttached';
-    }
-
-    get listQuoteAttachedModeClass() {
-        return this.isQuoteAttachedMode
-            ? 'sfs-mode-btn sfs-mode-btn_active'
-            : 'sfs-mode-btn';
-    }
-
     get isCrewMode() {
         return this.listMode === 'crew';
-    }
-
-    get listCrewModeClass() {
-        let classes = 'sfs-mode-btn';
-
-        if (this.isCrewCountUrgent) {
-            classes += ' sfs-mode-btn_alert';
-        }
-        if (this.listMode === 'crew') {
-            classes += ' sfs-mode-btn_active';
-        }
-        return classes;
     }
 
     get isTransferMode() {
         return this.listMode === 'transferRequests';
     }
 
-    get listTransferModeClass() {
-        let classes = 'sfs-mode-btn';
+    get listModeOptions() {
+        return [
+            this.buildListModeOption(
+                'unscheduled',
+                'Unscheduled',
+                this.unscheduledCount
+            ),
+            this.buildListModeOption('my', 'Scheduled', this.myCount),
+            this.buildListModeOption(
+                'transferRequests',
+                'Transfer Requests',
+                this.transferRequestCount
+            ),
+            this.buildListModeOption('crew', 'Crew Pool', this.crewCount),
+            this.buildListModeOption(
+                'needQuote',
+                'Quote Needed',
+                this.needQuoteCount
+            ),
+            this.buildListModeOption(
+                'poRequested',
+                'PO Requested',
+                this.poRequestedCount
+            ),
+            this.buildListModeOption(
+                'quoteAttached',
+                'Quote Attached',
+                this.quoteAttachedCount
+            ),
+            this.buildListModeOption(
+                'quoteSent',
+                'Quote Sent',
+                this.quoteSentCount
+            ),
+            this.buildListModeOption(
+                'partsReady',
+                'Parts Ready',
+                this.partsReadyCount
+            ),
+            this.buildListModeOption(
+                'fulfilling',
+                'Currently Fulfilling',
+                this.fulfillingCount
+            )
+        ];
+    }
 
-        if (this.transferRequestCount > 0) {
-            classes += ' sfs-mode-btn_transfer-alert';
+    get listModeChips() {
+        return this.listModeOptions
+            .filter(opt => opt.count > 0 || opt.value === this.listMode)
+            .map(opt => ({
+                value: opt.value,
+                label: opt.label,
+                className: this.getListModeChipClass(opt.value, opt.count),
+                isActive: opt.value === this.listMode
+            }));
+    }
+
+    buildListModeOption(value, label, count) {
+        return {
+            value,
+            label: `${label} (${count})`,
+            count
+        };
+    }
+
+    getListModeChipClass(modeValue, count) {
+        let classes = 'sfs-mode-chip';
+
+        if (modeValue === this.listMode) {
+            classes += ' sfs-mode-chip_active';
         }
-
-        if (this.isTransferMode) {
-            classes += ' sfs-mode-btn_active';
+        if (modeValue === 'transferRequests' && count > 0) {
+            classes += ' sfs-mode-chip_alert';
         }
-
+        if (modeValue === 'crew' && this.isCrewCountUrgent) {
+            classes += ' sfs-mode-chip_warning';
+        }
         return classes;
-    }
-
-    get listPartsReadyModeClass() {
-        return this.listMode === 'partsReady'
-            ? 'sfs-mode-btn sfs-mode-btn_active'
-            : 'sfs-mode-btn';
-    }
-
-    get listFulfillingModeClass() {
-        return this.listMode === 'fulfilling'
-            ? 'sfs-mode-btn sfs-mode-btn_active'
-            : 'sfs-mode-btn';
     }
 
     get isTimelineMode() {
@@ -3127,8 +3104,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     // ======= LIST TAB HANDLERS =======
 
     handleListModeChange(event) {
-        const mode = event.target.dataset.mode;
-        if (!mode) {
+        const mode = event?.detail?.value || event.target?.dataset?.mode;
+        this.setListMode(mode);
+    }
+
+    setListMode(mode) {
+        if (!mode || mode === this.listMode) {
             return;
         }
         this.listMode = mode;

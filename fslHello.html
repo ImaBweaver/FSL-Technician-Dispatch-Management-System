@@ -50,86 +50,33 @@
                 </template>
 
                 <div class="sfs-list-mode">
-                    <button
-                        type="button"
-                        class={listUnscheduledModeClass}
-                        data-mode="unscheduled"
-                        onclick={handleListModeChange}
-                    >
-                        Unscheduled ({unscheduledCount})
-                    </button>
-                    <button
-                        type="button"
-                        class={listMyModeClass}
-                        data-mode="my"
-                        onclick={handleListModeChange}
-                    >
-                        Scheduled ({myCount})
-                    </button>
-                    <button
-                        type="button"
-                        class={listTransferModeClass}
-                        data-mode="transferRequests"
-                        onclick={handleListModeChange}
-                    >
-                        Transfer Requests ({transferRequestCount})
-                    </button>
-                    <button
-                        type="button"
-                        class={listCrewModeClass}
-                        data-mode="crew"
-                        onclick={handleListModeChange}
-                    >
-                        Crew Pool ({crewCount})
-                    </button>
-                    <button
-                        type="button"
-                        class={listNeedQuoteModeClass}
-                        data-mode="needQuote"
-                        onclick={handleListModeChange}
-                    >
-                        Quote Needed ({needQuoteCount})
-                    </button>
-                    <button
-                        type="button"
-                        class={listPoRequestedModeClass}
-                        data-mode="poRequested"
-                        onclick={handleListModeChange}
-                    >
-                        PO Requested ({poRequestedCount})
-                    </button>
-                    <button
-                        type="button"
-                        class={listQuoteAttachedModeClass}
-                        data-mode="quoteAttached"
-                        onclick={handleListModeChange}
-                    >
-                        Quote Attached ({quoteAttachedCount})
-                    </button>
-                    <button
-                        type="button"
-                        class={listQuoteSentModeClass}
-                        data-mode="quoteSent"
-                        onclick={handleListModeChange}
-                    >
-                        Quote Sent ({quoteSentCount})
-                    </button>
-                    <button
-                        type="button"
-                        class={listPartsReadyModeClass}
-                        data-mode="partsReady"
-                        onclick={handleListModeChange}
-                    >
-                        Parts Ready ({partsReadyCount})
-                    </button>
-                    <button
-                        type="button"
-                        class={listFulfillingModeClass}
-                        data-mode="fulfilling"
-                        onclick={handleListModeChange}
-                    >
-                        Currently Fulfilling ({fulfillingCount})
-                    </button>
+                    <div class="sfs-list-mode__picker">
+                        <lightning-combobox
+                            name="listMode"
+                            label="View"
+                            value={listMode}
+                            options={listModeOptions}
+                            onchange={handleListModeChange}
+                        ></lightning-combobox>
+                        <p class="sfs-list-mode__hint">
+                            Switch queues without overwhelming the header.
+                        </p>
+                    </div>
+                    <div class="sfs-list-mode-chips" role="list">
+                        <template for:each={listModeChips} for:item="chip">
+                            <button
+                                key={chip.value}
+                                type="button"
+                                class={chip.className}
+                                data-mode={chip.value}
+                                onclick={handleListModeChange}
+                                aria-pressed={chip.isActive}
+                                role="listitem"
+                            >
+                                {chip.label}
+                            </button>
+                        </template>
+                    </div>
                 </div>
 
                 <!-- Status filter only shows when My tab is active -->
