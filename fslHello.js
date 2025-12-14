@@ -41,6 +41,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     pullTrayOpen = false;
     pullTrayPeek = false;
     _trayWasExpandedBeforeDrag = false;
+    _trayOpenBeforeDrag = false;
     isDesktopFormFactor = FORM_FACTOR === 'Large';
     activeTab = 'list';
     isCalendarTabActive = false;
@@ -119,6 +120,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     _pendingDrag = null;          // holds data until long press triggers
     _boundGlobalPointerMove = null;
     _boundGlobalPointerEnd = null;
+
+    // Auto-scroll while dragging near viewport edges
+    _autoScrollPoint = null;
+    _autoScrollFrame = null;
 
     // Floating ghost under the finger
     // Floating ghost under the finger (clone of the event)
@@ -388,6 +393,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return this.dragGhostTypeClass
             ? `${base} ${this.dragGhostTypeClass}`
             : base;
+    }
+
+    get dragHelperText() {
+        return 'Keep holding to auto-scroll';
     }
 
 
@@ -1683,6 +1692,25 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
     }
 
+    compactTrayForDrag() {
+        if (!this.pullTrayOpen) {
+            this._trayOpenBeforeDrag = false;
+            return;
+        }
+
+        this._trayOpenBeforeDrag = true;
+
+        if (this.shouldUseCompactTray()) {
+            if (!this.pullTrayPeek) {
+                this._trayWasExpandedBeforeDrag = true;
+            }
+            this.pullTrayPeek = true;
+        } else {
+            this._trayWasExpandedBeforeDrag = true;
+            this.pullTrayOpen = false;
+        }
+    }
+
     beginDragFromPending() {
         const pending = this._pendingDrag;
         this.isPressingForDrag = false;
@@ -1760,16 +1788,18 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     pending.clientY,
                     pending.title,
                     timeLabel,
-                typeClass,
-                width,
-                height
-            );
+                    typeClass,
+                    width,
+                    height
+                );
 
-            this.updateSelectedEventStyles();
-            this.showTrayCancelZone = false;
-            this.registerGlobalDragListeners();
-            return;
-        }
+                this.compactTrayForDrag();
+
+                this.updateSelectedEventStyles();
+                this.showTrayCancelZone = false;
+                this.registerGlobalDragListeners();
+                return;
+            }
 
             const timeLabel = pending.localStart.toLocaleTimeString([], {
                 hour: 'numeric',
@@ -1785,6 +1815,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 width,
                 height
             );
+
+            this.compactTrayForDrag();
 
             this.updateSelectedEventStyles();
         } else if (pending.type === 'wo') {
@@ -1838,6 +1870,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             );
         }
 
+        this.compactTrayForDrag();
         this.showTrayCancelZone = pending.type === 'wo';
         this.registerGlobalDragListeners();
 
@@ -1906,6 +1939,76 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
 
+    stopAutoScrollLoop() {
+        if (this._autoScrollFrame) {
+            cancelAnimationFrame(this._autoScrollFrame);
+            this._autoScrollFrame = null;
+        }
+
+        this._autoScrollPoint = null;
+    }
+
+    updateAutoScroll(clientX, clientY) {
+        this._autoScrollPoint = { clientX, clientY };
+
+        if (!this._autoScrollFrame) {
+            this._autoScrollFrame = requestAnimationFrame(() =>
+                this.performAutoScroll()
+            );
+        }
+    }
+
+    performAutoScroll() {
+        this._autoScrollFrame = null;
+
+        if (!this.dragMode || !this._autoScrollPoint) {
+            return;
+        }
+
+        const { clientX, clientY } = this._autoScrollPoint;
+        const edgeThreshold = 80;
+        const maxStep = 18;
+        const viewportWidth = window.innerWidth || 0;
+        const viewportHeight = window.innerHeight || 0;
+
+        const computeStep = distance => {
+            const overlap = Math.max(edgeThreshold - distance, 0);
+            if (!overlap) {
+                return 0;
+            }
+            return Math.round((overlap / edgeThreshold) * maxStep);
+        };
+
+        let deltaX = 0;
+        let deltaY = 0;
+
+        const leftDistance = clientX;
+        const rightDistance = viewportWidth - clientX;
+        const topDistance = clientY;
+        const bottomDistance = viewportHeight - clientY;
+
+        deltaX -= computeStep(leftDistance);
+        deltaX += computeStep(rightDistance);
+        deltaY -= computeStep(topDistance);
+        deltaY += computeStep(bottomDistance);
+
+        const wrapper = this.template.querySelector('.sfs-calendar-days-wrapper');
+        if (wrapper && deltaX !== 0) {
+            wrapper.scrollLeft += deltaX;
+        }
+
+        if (deltaY !== 0) {
+            window.scrollBy({ top: deltaY, behavior: 'auto' });
+        }
+
+        if (deltaX !== 0 || deltaY !== 0) {
+            this._autoScrollFrame = requestAnimationFrame(() =>
+                this.performAutoScroll()
+            );
+        }
+    }
+
+
 
 
     handleCalendarPointerMove(event) {
@@ -1923,6 +2026,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
         const { clientX, clientY } = clientPoint;
 
+        this.updateAutoScroll(clientX, clientY);
         this.updateTrayCancelHover(clientX, clientY);
 
         const dx = clientX - this.dragStartClientX;
@@ -2132,6 +2236,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const { clientX, clientY } = clientPoint;
 
         if (this.dragMode === 'wo' && this.isPointInTrayCancelZone(clientX, clientY)) {
+            this.stopAutoScrollLoop();
             this.resetDragState();
             event.preventDefault();
             return;
@@ -2150,6 +2255,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         // If user did not move enough, treat as no drag
         if (!this.dragHasMoved) {
+            this.stopAutoScrollLoop();
             this.resetDragState();
             event.preventDefault();
             return;
@@ -2320,14 +2426,20 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.dragDayBodyTop = null;
         this.showTrayCancelZone = false;
         this.isHoveringCancelZone = false;
+        this.stopAutoScrollLoop();
         this.unregisterGlobalDragListeners();
         this.updateSelectedEventStyles();
+
+        if (this._trayOpenBeforeDrag) {
+            this.pullTrayOpen = true;
+        }
 
         if (this.pullTrayOpen && this._trayWasExpandedBeforeDrag) {
             this.pullTrayPeek = false;
         }
 
         this._trayWasExpandedBeforeDrag = false;
+        this._trayOpenBeforeDrag = false;
     }
 
 
