@@ -31,6 +31,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return this.activeView === 'calendar';
     }
 
+    get hasCalendarBody() {
+        return Array.isArray(this.calendarDays) && this.calendarDays.length > 0;
+    }
+
     get isListView() {
         return this.activeView === 'list';
     }
@@ -65,6 +69,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     pullTrayOpen = false;
     isDesktopFormFactor = FORM_FACTOR === 'Large';
     @track activeView = 'list';
+    @track isCalendarInitialized = false;
 
     // Global "now" line state
     showNowLine = false;
@@ -178,6 +183,50 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const apptCount = this.appointments ? this.appointments.length : 0;
         const absenceCount = this.absences ? this.absences.length : 0;
         return apptCount + absenceCount > 0;
+    }
+
+    get calendarChecklistItems() {
+        const items = [
+            {
+                id: 'online',
+                ready: !this.isOffline,
+                label: 'You are online',
+                helpText: 'Reconnect to Salesforce to load calendar data.',
+            },
+            {
+                id: 'resource',
+                ready: !!this.activeUserId,
+                label: 'A resource is selected',
+                helpText: 'Select yourself or a team member to view their schedule.',
+            },
+            {
+                id: 'appointments',
+                ready: this.hasAppointments,
+                label: 'Appointments or absences are available',
+                helpText: 'Tap Refresh or adjust filters if nothing is scheduled.',
+            },
+            {
+                id: 'timezone',
+                ready: !!this.userTimeZoneShort,
+                label: 'Time zone detected',
+                helpText: 'Reload the page if your Salesforce time zone is missing.',
+            },
+        ];
+
+        return items.map((item) => ({
+            ...item,
+            iconName: item.ready ? 'utility:success' : 'utility:warning',
+            iconVariant: item.ready ? 'success' : 'warning',
+            cssClass: `sfs-checklist-item ${
+                item.ready ? 'sfs-checklist-item_ready' : 'sfs-checklist-item_pending'
+            }`,
+        }));
+    }
+
+    markCalendarInitialized() {
+        if (!this.isCalendarInitialized) {
+            this.isCalendarInitialized = true;
+        }
     }
 
     get isMyMode() {
@@ -1093,13 +1142,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
-        if (!view || view === previousView) {
-            if (view === 'calendar' && !suppressCalendarToday) {
-                this.handleCalendarToday();
-            }
+        if (!view) {
             return;
         }
 
+        const isSameView = view === previousView;
         this.activeView = view;
 
         if (!this.isCalendarTabActive) {
@@ -1109,6 +1156,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         if (!suppressCalendarToday) {
             this.handleCalendarToday();
+        }
+
+        if (isSameView) {
+            this.prepareCalendarOnOpen();
         }
     }
 
@@ -2947,6 +2998,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         this.calendarDays = days;
+        this.markCalendarInitialized();
         this.updateSelectedEventStyles();
         this.scheduleNowLinePositionUpdate();
     }
@@ -3802,13 +3854,27 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     handleCalendarTabClick() {
         this.setActiveView('calendar');
 
-        if (!this.calendarDays || this.calendarDays.length === 0) {
-            this.centerCalendarOnToday();
-        }
+        this.prepareCalendarOnOpen();
     }
 
     handleManagerViewClick() {
         this.setActiveView('manager', { suppressCalendarToday: true });
+    }
+
+    prepareCalendarOnOpen() {
+        this.markCalendarInitialized();
+
+        if (!this.timelineStartDate || !this.weekStartDate) {
+            this.centerCalendarOnToday();
+            return;
+        }
+
+        if (!this.calendarDays || this.calendarDays.length === 0) {
+            this.buildCalendarModel();
+            return;
+        }
+
+        this.buildCalendarModel();
     }
 
     // ======= CALENDAR TAB HANDLERS =======
