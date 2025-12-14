@@ -643,6 +643,23 @@
     color: #3e3e3c;
 }
 
+.sfs-calendar-empty {
+    background: #ffffff;
+    border: 1px solid #d8dde6;
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.sfs-calendar-empty p {
+    margin: 0;
+    color: #1f1f1f;
+}
+
 .sfs-calendar-checklist__title {
     font-size: 0.95rem;
     font-weight: 700;

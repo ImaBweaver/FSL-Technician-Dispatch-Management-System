@@ -31,6 +31,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return this.activeView === 'calendar';
     }
 
+    get hasCalendarBody() {
+        return Array.isArray(this.calendarDays) && this.calendarDays.length > 0;
+    }
+
     get isListView() {
         return this.activeView === 'list';
     }
@@ -1138,13 +1142,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
-        if (!view || view === previousView) {
-            if (view === 'calendar' && !suppressCalendarToday) {
-                this.handleCalendarToday();
-            }
+        if (!view) {
             return;
         }
 
+        const isSameView = view === previousView;
         this.activeView = view;
 
         if (!this.isCalendarTabActive) {
@@ -1154,6 +1156,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         if (!suppressCalendarToday) {
             this.handleCalendarToday();
+        }
+
+        if (isSameView) {
+            this.prepareCalendarOnOpen();
         }
     }
 
@@ -3856,11 +3862,16 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     prepareCalendarOnOpen() {
+        this.markCalendarInitialized();
+
+        if (!this.timelineStartDate || !this.weekStartDate) {
         if (!this.calendarDays || this.calendarDays.length === 0) {
             this.centerCalendarOnToday();
             return;
         }
 
+        if (!this.calendarDays || this.calendarDays.length === 0) {
+            this.buildCalendarModel();
         if (!this.timelineStartDate || !this.weekStartDate) {
             this.centerCalendarOnToday();
             return;

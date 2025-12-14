@@ -750,6 +750,17 @@
                 </template>
 
                 <template if:false={isLoading}>
+                    <template if:false={hasCalendarBody}>
+                        <div class="sfs-calendar-empty">
+                            <p>Calendar is warming up. Hang tight while we build the schedule view.</p>
+                            <lightning-button
+                                variant="brand"
+                                label="Retry"
+                                onclick={handleCalendarTabClick}
+                            ></lightning-button>
+                        </div>
+                    </template>
+
                     <!-- TIMELINE MODE -->
                     <template if:true={isTimelineMode}>
                         <div class="sfs-calendar">
