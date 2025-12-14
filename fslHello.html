@@ -690,6 +690,44 @@
                     </div>
                 </template>
 
+                <template if:false={isCalendarInitialized}>
+                    <div class="sfs-calendar-init">
+                        <lightning-icon
+                            icon-name="utility:info"
+                            size="small"
+                            class="sfs-calendar-init__icon"
+                        ></lightning-icon>
+                        <div>
+                            <div class="sfs-calendar-init__title">Preparing calendar</div>
+                            <div class="sfs-calendar-init__copy">
+                                Hang tight—loading your schedule, resource context, and time zone. The checklist below will update as soon as data arrives.
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <div class="sfs-calendar-checklist">
+                    <div class="sfs-calendar-checklist__title">Calendar checklist</div>
+                    <div class="sfs-calendar-checklist__items">
+                        <template for:each={calendarChecklistItems} for:item="item">
+                            <div key={item.id} class={item.cssClass}>
+                                <lightning-icon
+                                    icon-name={item.iconName}
+                                    variant={item.iconVariant}
+                                    size="small"
+                                    class="sfs-checklist-icon"
+                                ></lightning-icon>
+                                <div>
+                                    <div class="sfs-checklist-label">{item.label}</div>
+                                    <template if:false={item.ready}>
+                                        <div class="sfs-checklist-help">{item.helpText}</div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
                 <template if:true={isManager}>
                     <div class="sfs-viewing-pill">{viewingAsLabel}</div>
                 </template>
