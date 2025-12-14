@@ -617,6 +617,32 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
+.sfs-calendar-init {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+    padding: 0.6rem 0.75rem;
+    margin: 0.5rem 0;
+    border: 1px solid #d8dff1;
+    background: #f3f6ff;
+    border-radius: 0.5rem;
+}
+
+.sfs-calendar-init__icon {
+    margin-top: 0.1rem;
+    --sds-c-icon-color-foreground-default: #1b4f9c;
+}
+
+.sfs-calendar-init__title {
+    font-weight: 700;
+    color: #1b4f9c;
+}
+
+.sfs-calendar-init__copy {
+    font-size: 0.85rem;
+    color: #3e3e3c;
+}
+
 .sfs-calendar-checklist__title {
     font-size: 0.95rem;
     font-weight: 700;

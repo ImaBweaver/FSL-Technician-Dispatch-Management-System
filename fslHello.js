@@ -65,6 +65,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     pullTrayOpen = false;
     isDesktopFormFactor = FORM_FACTOR === 'Large';
     @track activeView = 'list';
+    @track isCalendarInitialized = false;
 
     // Global "now" line state
     showNowLine = false;
@@ -216,6 +217,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 item.ready ? 'sfs-checklist-item_ready' : 'sfs-checklist-item_pending'
             }`,
         }));
+    }
+
+    markCalendarInitialized() {
+        if (!this.isCalendarInitialized) {
+            this.isCalendarInitialized = true;
+        }
     }
 
     get isMyMode() {
@@ -2985,6 +2992,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         this.calendarDays = days;
+        this.markCalendarInitialized();
         this.updateSelectedEventStyles();
         this.scheduleNowLinePositionUpdate();
     }
