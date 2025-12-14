@@ -3852,17 +3852,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }, 200);
     }
 
-    handleOverlayClick() {
-        if (this.selectedAbsence) {
-            this.handleCloseAbsenceDetails();
-        } else {
-            this.handleCloseDetails();
-        }
-    }
-
     handleDetailCardClick(event) {
         event.stopPropagation();
     }
+
 
     // ======= ABSENCE EDITING =======
 

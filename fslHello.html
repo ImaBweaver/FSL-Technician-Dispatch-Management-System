@@ -1144,10 +1144,9 @@
 
         <!-- DETAIL OVERLAY / BOTTOM SHEET -->
         <template if:true={hasSelectedAppointment}>
-            <div class="sfs-detail-overlay" onclick={handleOverlayClick}>
+            <div class="sfs-detail-overlay">
                 <article
                     class={detailCardClass}
-                    onclick={handleDetailCardClick}
                 >
                     <div class="sfs-detail-header">
                         <div class="sfs-detail-drag-handle"></div>
@@ -1394,10 +1393,9 @@
         </template>
 
         <template if:true={hasSelectedAbsence}>
-            <div class="sfs-detail-overlay" onclick={handleOverlayClick}>
+            <div class="sfs-detail-overlay">
                 <article
                     class={absenceDetailCardClass}
-                    onclick={handleDetailCardClick}
                 >
                     <div class="sfs-detail-header">
                         <div class="sfs-detail-drag-handle"></div>
