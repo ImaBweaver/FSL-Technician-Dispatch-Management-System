@@ -40,8 +40,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     @track submittedTransferRequests = [];
     pullTrayOpen = false;
     isDesktopFormFactor = FORM_FACTOR === 'Large';
+    activeTab = 'list';
     isCalendarTabActive = false;
-    lastKnownActiveTab = null;
+    lastKnownActiveTab = 'list';
 
     // Global "now" line state
     showNowLine = false;
@@ -159,6 +160,37 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     get isMyMode() {
         return this.listMode === 'my';
+    }
+
+    get isListTabActive() {
+        return this.activeTab === 'list';
+    }
+
+    get isManagerTabActive() {
+        return this.activeTab === 'manager';
+    }
+
+    get isManagerTabVisible() {
+        return this.isManager && this.isManagerTabActive;
+    }
+
+    get listTabButtonClass() {
+        return this.getTabButtonClass('list');
+    }
+
+    get calendarTabButtonClass() {
+        return this.getTabButtonClass('calendar');
+    }
+
+    get managerTabButtonClass() {
+        return this.getTabButtonClass('manager');
+    }
+
+    getTabButtonClass(tabValue) {
+        const baseClass = 'sfs-tab-btn';
+        return this.activeTab === tabValue
+            ? `${baseClass} sfs-tab-btn_active`
+            : baseClass;
     }
 
     get isDragGhostVisible() {
@@ -1064,25 +1096,21 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     updateActiveTabState(explicitValue, options = {}) {
         const { suppressCalendarToday = false } = options;
-        const tabset = this.template.querySelector('lightning-tabset');
+        let resolvedTabValue = explicitValue;
 
-        let resolvedTabValue = null;
-
-        if (explicitValue !== undefined && explicitValue !== null) {
-            resolvedTabValue = explicitValue;
-        } else if (tabset) {
-            const activeFromTabset =
-                tabset.activeTabValue !== undefined && tabset.activeTabValue !== null
-                    ? tabset.activeTabValue
-                    : tabset.value;
-            resolvedTabValue = activeFromTabset;
+        if (resolvedTabValue === undefined || resolvedTabValue === null) {
+            resolvedTabValue =
+                this.activeTab ||
+                this.lastKnownActiveTab ||
+                'list';
         }
 
-        if (resolvedTabValue === null || resolvedTabValue === undefined) {
-            resolvedTabValue = this.lastKnownActiveTab;
+        if (resolvedTabValue === 'manager' && !this.isManager) {
+            resolvedTabValue = 'list';
         }
 
         if (resolvedTabValue) {
+            this.activeTab = resolvedTabValue;
             this.lastKnownActiveTab = resolvedTabValue;
         }
 
@@ -3805,13 +3833,21 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.loadAppointments();
     }
 
-    handleCalendarTabClick() {
-        const tabset = this.template.querySelector('lightning-tabset');
-        if (tabset && tabset.activeTabValue !== 'calendar') {
-            tabset.activeTabValue = 'calendar';
+    handleTabButtonClick(event) {
+        const tabValue = event.currentTarget.dataset.tab;
+        if (!tabValue) {
+            return;
         }
 
-        this.updateActiveTabState('calendar', { suppressCalendarToday: true });
+        if (tabValue === 'manager' && !this.isManager) {
+            this.updateActiveTabState('list');
+            return;
+        }
+
+        this.updateActiveTabState(tabValue);
+    }
+
+    handleCalendarTabClick() {
         this.updateActiveTabState('calendar');
     }
 
@@ -3823,44 +3859,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         event.preventDefault();
         this.handleCalendarTabClick();
-    }
-
-    handleTabActive(event) {
-        // lightning-tabset fires an active event whose detail contains the
-        // activated tab component. The tab value can surface in multiple
-        // places depending on the platform, so check all supported shapes.
-        const activeTab =
-            event.detail.value ||
-            (event.detail.tab && event.detail.tab.value) ||
-            event.target.value ||
-            event.target.activeTabValue;
-
-        const isCalendarTab = activeTab === 'calendar';
-        const wasCalendarTabActive = this.isCalendarTabActive;
-        this.updateActiveTabState(activeTab, { suppressCalendarToday: true });
-
-        // Some platforms do not populate the active tab value on the event.
-        // When that happens, re-read the tabset once it has updated so the
-        // "Calendar tab is active" state reflects the user's click immediately.
-        if (!activeTab) {
-            requestAnimationFrame(() => {
-                const previouslyActive = this.isCalendarTabActive;
-                this.updateActiveTabState(undefined, { suppressCalendarToday: true });
-
-                if (this.isCalendarTabActive && !previouslyActive) {
-                    this.handleCalendarToday();
-                } else if (!this.isCalendarTabActive) {
-                    this.pullTrayOpen = false;
-                }
-            });
-            return;
-        }
-
-        if (isCalendarTab && !wasCalendarTabActive) {
-            this.handleCalendarToday();
-        } else if (!isCalendarTab) {
-            this.pullTrayOpen = false;
-        }
     }
 
     handleCalendarPrev() {
