@@ -149,33 +149,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     isAbsenceDetailClosing = false;
     _absenceCloseTimeout;
 
-    // Layout adjustments
-    layoutSettingsOpen = false;
-    aspectRatioValue = 100;
-    aspectRatioStorageKey = 'fslLayoutAspectRatio';
-
     // ======= GETTERS =======
-
-    get containerStyle() {
-        const scale = this.aspectRatioScale;
-
-        return `transform: scale(${scale}); transform-origin: top left; width: calc(100% / ${scale});`;
-    }
-
-    get aspectRatioScale() {
-        const parsed = Number(this.aspectRatioValue);
-        return Number.isFinite(parsed) && parsed > 0 ? parsed / 100 : 1;
-    }
-
-    get layoutButtonClass() {
-        return this.layoutSettingsOpen
-            ? 'sfs-layout-button sfs-layout-button_active'
-            : 'sfs-layout-button';
-    }
-
-    get aspectRatioDisplay() {
-        return `${Math.round(this.aspectRatioValue)}%`;
-    }
 
     get hasAppointments() {
         const apptCount = this.appointments ? this.appointments.length : 0;
@@ -230,52 +204,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     get managerApplyDisabled() {
         return !this.selectedManagerUserId;
-    }
-
-    // ======= LAYOUT SETTINGS =======
-
-    toggleLayoutSettings() {
-        this.layoutSettingsOpen = !this.layoutSettingsOpen;
-    }
-
-    handleAspectRatioChange(event) {
-        const newValue = Number(event?.detail?.value ?? event?.target?.value);
-
-        if (!Number.isFinite(newValue)) {
-            return;
-        }
-
-        this.aspectRatioValue = newValue;
-        this.persistAspectRatioSetting();
-    }
-
-    persistAspectRatioSetting() {
-        try {
-            window.localStorage.setItem(
-                this.aspectRatioStorageKey,
-                String(this.aspectRatioValue)
-            );
-        } catch (error) {
-            this.captureError(error, 'persistAspectRatioSetting');
-        }
-    }
-
-    loadAspectRatioSetting() {
-        try {
-            const saved = window.localStorage.getItem(this.aspectRatioStorageKey);
-
-            if (!saved) {
-                return;
-            }
-
-            const parsed = Number(saved);
-
-            if (Number.isFinite(parsed) && parsed > 0) {
-                this.aspectRatioValue = parsed;
-            }
-        } catch (error) {
-            this.captureError(error, 'loadAspectRatioSetting');
-        }
     }
 
     registerGlobalDragListeners() {
@@ -1181,7 +1109,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         try {
             this.registerGlobalErrorHandlers();
             this.checkOnline();
-            this.loadAspectRatioSetting();
             this.handleCalendarToday();
             if (!this.isOffline) {
                 this.loadAppointments();
