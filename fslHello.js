@@ -3801,6 +3801,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     handleCalendarTabClick() {
         this.setActiveView('calendar');
+
+        if (!this.calendarDays || this.calendarDays.length === 0) {
+            this.centerCalendarOnToday();
+        }
     }
 
     handleManagerViewClick() {
