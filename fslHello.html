@@ -1,21 +1,41 @@
 <template>
     <section class="sfs-container">
-        <lightning-tabset
-            variant="scoped"
-            class="sfs-tabset"
-            onactive={handleTabActive}
-        >
-            <!-- LIST TAB (default) -->
-            <lightning-tab label="List" value="list">
-                <div class="sfs-header">
-                    <h2 class="sfs-title">My Service Appointments</h2>
-                    <lightning-button
-                        variant="neutral"
-                        label="Refresh"
-                        onclick={handleRefresh}
-                        class="sfs-refresh-btn"
-                    ></lightning-button>
-                </div>
+        <div class="sfs-view-switch">
+            <button
+                type="button"
+                class={listViewButtonClass}
+                onclick={handleListViewClick}
+            >
+                List
+            </button>
+            <button
+                type="button"
+                class={calendarViewButtonClass}
+                onclick={handleCalendarTabClick}
+            >
+                Calendar
+            </button>
+            <template if:true={isManager}>
+                <button
+                    type="button"
+                    class={managerViewButtonClass}
+                    onclick={handleManagerViewClick}
+                >
+                    Manager Console
+                </button>
+            </template>
+        </div>
+
+        <template if:true={isListView}>
+            <div class="sfs-header">
+                <h2 class="sfs-title">My Service Appointments</h2>
+                <lightning-button
+                    variant="neutral"
+                    label="Refresh"
+                    onclick={handleRefresh}
+                    class="sfs-refresh-btn"
+                ></lightning-button>
+            </div>
 
                 <template if:true={isManager}>
                     <div class="sfs-viewing-pill">{viewingAsLabel}</div>
@@ -615,19 +635,10 @@
                         </template>
                     </template>
                 </template>
-            </lightning-tab>
+        </template>
 
-            <!-- CALENDAR TAB -->
-            <lightning-tab label="Calendar" value="calendar">
-                <button
-                    slot="title"
-                    class="sfs-calendar-tab-button"
-                    type="button"
-                    onclick={handleCalendarTabClick}
-                    onkeydown={handleCalendarTabKeydown}
-                >
-                    Calendar
-                </button>
+        <!-- CALENDAR VIEW -->
+        <template if:true={isCalendarTabActive}>
                 <div class="sfs-header sfs-header-calendar">
                     <div class="sfs-calendar-nav">
                         <lightning-button-icon
@@ -1106,42 +1117,40 @@
                         </template>
                     </div>
                 </template>
-            </lightning-tab>
-
-            <template if:true={isManager}>
-                <lightning-tab label="Manager Console" value="manager">
-                    <div class="sfs-manager-panel">
-                        <h3 class="sfs-manager-title">Manager console</h3>
-                        <p class="sfs-manager-copy">
-                            Select a team member to view their lists and calendar.
-                        </p>
-
-                        <lightning-combobox
-                            name="managerUser"
-                            label="Team member"
-                            options={managerOptions}
-                            value={selectedManagerUserId}
-                            onchange={handleManagerUserChange}
-                        ></lightning-combobox>
-
-                        <div class="sfs-actions sfs-manager-actions">
-                            <lightning-button
-                                variant="brand"
-                                label="View as team member"
-                                onclick={handleManagerApply}
-                                disabled={managerApplyDisabled}
-                            ></lightning-button>
-                            <lightning-button
-                                variant="neutral"
-                                label="Return to my view"
-                                onclick={handleManagerReset}
-                                disabled={managerResetDisabled}
-                            ></lightning-button>
-                        </div>
-                    </div>
-                </lightning-tab>
             </template>
-        </lightning-tabset>
+        </template>
+
+        <template if:true={isManagerView}>
+            <div class="sfs-manager-panel">
+                <h3 class="sfs-manager-title">Manager console</h3>
+                <p class="sfs-manager-copy">
+                    Select a team member to view their lists and calendar.
+                </p>
+
+                <lightning-combobox
+                    name="managerUser"
+                    label="Team member"
+                    options={managerOptions}
+                    value={selectedManagerUserId}
+                    onchange={handleManagerUserChange}
+                ></lightning-combobox>
+
+                <div class="sfs-actions sfs-manager-actions">
+                    <lightning-button
+                        variant="brand"
+                        label="View as team member"
+                        onclick={handleManagerApply}
+                        disabled={managerApplyDisabled}
+                    ></lightning-button>
+                    <lightning-button
+                        variant="neutral"
+                        label="Return to my view"
+                        onclick={handleManagerReset}
+                        disabled={managerResetDisabled}
+                    ></lightning-button>
+                </div>
+            </div>
+        </template>
 
         <!-- DETAIL OVERLAY / BOTTOM SHEET -->
         <template if:true={hasSelectedAppointment}>
