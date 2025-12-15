@@ -415,6 +415,23 @@
     gap: 0.4rem;
 }
 
+.sfs-card_compact {
+    padding: 0.85rem;
+    gap: 0.35rem;
+}
+
+.sfs-card_compact .sfs-card-body {
+    gap: 0.35rem;
+}
+
+.sfs-card_compact .sfs-quote-bar {
+    margin: 0.25rem 0;
+}
+
+.sfs-card_compact .sfs-actions {
+    justify-content: space-between;
+}
+
 /* CALENDAR TAB HEADER */
 
 .sfs-header-calendar {
