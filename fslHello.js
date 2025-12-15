@@ -394,7 +394,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     // Position + size of the floating event
     get dragGhostStyle() {
         const position = this.dragGhostAnchoredToCalendar ? 'absolute' : 'fixed';
-        return `position:${position};top:${this.dragGhostY}px;left:${this.dragGhostX}px;width:${this.dragGhostWidth}px;height:${this.dragGhostHeight}px;transform:translateX(-50%);`;
+        return `${position === 'absolute' ? 'position:absolute;' : ''}top:${this.dragGhostY}px;left:${this.dragGhostX}px;width:${this.dragGhostWidth}px;height:${this.dragGhostHeight}px;transform:translateX(-50%);`;
     }
 
     get dragGhostWrapperClass() {
@@ -2652,6 +2652,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
+        const calendarEl = this.template.querySelector('.sfs-calendar');
         const dayEl = this.template.querySelector(
             `.sfs-calendar-day[data-day-index="${targetDayIndex}"]`
         );
@@ -2659,10 +2660,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             ? dayEl.querySelector('.sfs-calendar-day-body')
             : null;
 
-        if (!dayEl || !dayBodyEl || !startLocal || !endLocal) {
+        if (!dayEl || !dayBodyEl || !startLocal || !endLocal || !calendarEl) {
             return;
         }
-        
+
+        const calendarRect = calendarEl.getBoundingClientRect();
         const dayRect = dayEl.getBoundingClientRect();
         const bodyRect = dayBodyEl.getBoundingClientRect();
         const totalHours = this.calendarEndHour - this.calendarStartHour;
@@ -2684,8 +2686,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const yWithinBody = topRatio * bodyHeight;
         const ghostHeight = (ghostDuration / totalHours) * bodyHeight;
 
-        const ghostX = dayRect.left + dayRect.width / 2;
-        const ghostY = bodyRect.top + yWithinBody;
+        const ghostX = dayRect.left - calendarRect.left + dayRect.width / 2;
+        const ghostY = bodyRect.top - calendarRect.top + yWithinBody;
 
         this.showDragGhost(
             ghostX,
@@ -2764,28 +2766,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.detachGhostAnchorUpdater();
         this.pendingSchedulePlacement = null;
         this.isAwaitingScheduleConfirmation = false;
-
-        const startLocal = placement.startIso
-            ? this.convertUtcToUserLocal(placement.startIso)
-            : null;
-        const endLocal = placement.endIso
-            ? this.convertUtcToUserLocal(placement.endIso)
-            : null;
-
-        const dragTimeLabel =
-            startLocal && endLocal
-                ? this.formatTimeRange(startLocal, endLocal)
-                : this.dragGhostTime;
-
-        this.showDragGhost(
-            point.clientX,
-            point.clientY,
-            placement.title || this.dragGhostTitle,
-            dragTimeLabel,
-            placement.typeClass || this.dragGhostTypeClass,
-            this.dragGhostWidth,
-            this.dragGhostHeight
-        );
 
         this.prepareGhostDragFromPlacement(point, placement);
     }
