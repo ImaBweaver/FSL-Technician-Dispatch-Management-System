@@ -700,15 +700,24 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const allowScheduleOnCalendar =
             this.listMode === 'unscheduled' || this.listMode === 'partsReady';
 
-        return baseList.map(item => ({
-            ...item,
-            showScheduleOnCalendar: allowScheduleOnCalendar,
-            quickScheduleStart: this.quickScheduleSelections[item.cardId] || '',
-            quickScheduleExpanded: Boolean(this.quickScheduleExpanded[item.cardId]),
-            cardClass: this.isCompactListView
-                ? 'sfs-card sfs-card_compact'
-                : 'sfs-card'
-        }));
+        return baseList.map(item => {
+            const isQuickScheduleExpanded = Boolean(
+                this.quickScheduleExpanded[item.cardId]
+            );
+
+            return {
+                ...item,
+                showScheduleOnCalendar: allowScheduleOnCalendar,
+                quickScheduleStart: this.quickScheduleSelections[item.cardId] || '',
+                quickScheduleExpanded: isQuickScheduleExpanded,
+                quickScheduleLabel: isQuickScheduleExpanded
+                    ? 'Hide quick schedule'
+                    : 'Quick schedule',
+                cardClass: this.isCompactListView
+                    ? 'sfs-card sfs-card_compact'
+                    : 'sfs-card'
+            };
+        });
     }
 
     isQuoteStatus(status) {
