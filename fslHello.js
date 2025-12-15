@@ -134,6 +134,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     _boundGhostAnchorUpdater = null;
     _ghostAnchorFrame = null;
 
+    // Remember last placement so a quick tap on the ghost can restore it
+    _pendingRegrabPlacement = null;
+
     // Floating ghost under the finger
     // Floating ghost under the finger (clone of the event)
     dragGhostVisible = false;
@@ -2314,7 +2317,16 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         // If user did not move enough, treat as no drag
         if (!this.dragHasMoved) {
             this.stopAutoScrollLoop();
-            if (requiresExplicitPlacement && this.pendingSchedulePlacement) {
+            if (
+                requiresExplicitPlacement &&
+                (this.pendingSchedulePlacement || this._pendingRegrabPlacement)
+            ) {
+                if (this._pendingRegrabPlacement) {
+                    this.cachePendingSchedulePlacement(
+                        this._pendingRegrabPlacement
+                    );
+                    this._pendingRegrabPlacement = null;
+                }
                 this.freezeGhostForConfirmation();
             } else {
                 this.resetDragState();
@@ -2507,6 +2519,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         this.pendingSchedulePlacement = placement;
+        this._pendingRegrabPlacement = placement;
         this.isAwaitingScheduleConfirmation = true;
         this.updateGhostFromPlacement();
         this.attachGhostAnchorUpdater();
@@ -2779,6 +2792,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
+        this._pendingRegrabPlacement = placement;
+
         const point = this.getClientPoint(event);
         if (!point) {
             return;
@@ -3036,6 +3051,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.dragHasMoved = false;
         this.isPressingForDrag = false;
         this._pendingDrag = null;
+        this._pendingRegrabPlacement = null;
         this.clearLongPressTimer();
         this.hideDragGhost();
         this.dragDayBodyTop = null;
