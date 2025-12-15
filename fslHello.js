@@ -132,12 +132,14 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     // Anchor drag ghost to calendar while awaiting confirmation
     _boundGhostAnchorUpdater = null;
+    _ghostAnchorFrame = null;
 
     // Floating ghost under the finger
     // Floating ghost under the finger (clone of the event)
     dragGhostVisible = false;
     dragGhostX = 0;
     dragGhostY = 0;
+    dragGhostAnchoredToCalendar = false;
     dragGhostWidth = 0;
     dragGhostHeight = 0;
     dragGhostTitle = '';
@@ -391,7 +393,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     // Position + size of the floating event
     get dragGhostStyle() {
-        return `top:${this.dragGhostY}px;left:${this.dragGhostX}px;width:${this.dragGhostWidth}px;height:${this.dragGhostHeight}px;transform:translateX(-50%);`;
+        const position = this.dragGhostAnchoredToCalendar ? 'absolute' : 'fixed';
+        return `position:${position};top:${this.dragGhostY}px;left:${this.dragGhostX}px;width:${this.dragGhostWidth}px;height:${this.dragGhostHeight}px;transform:translateX(-50%);`;
     }
 
     get dragGhostWrapperClass() {
@@ -1909,10 +1912,20 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     }
 
-    showDragGhost(x, y, title, timeLabel, typeClass, width, height) {
+    showDragGhost(
+        x,
+        y,
+        title,
+        timeLabel,
+        typeClass,
+        width,
+        height,
+        anchoredToCalendar = false
+    ) {
         this.dragGhostVisible = true;
         this.dragGhostX = x;
         this.dragGhostY = y;
+        this.dragGhostAnchoredToCalendar = anchoredToCalendar;
         this.dragGhostTitle = title || '';
         this.dragGhostTime = timeLabel || '';
         this.dragGhostTypeClass = typeClass || '';
@@ -1922,6 +1935,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     hideDragGhost() {
         this.dragGhostVisible = false;
+        this.dragGhostAnchoredToCalendar = false;
         this.dragGhostTitle = '';
         this.dragGhostTime = '';
         this.dragGhostTypeClass = '';
@@ -2585,6 +2599,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     attachGhostAnchorUpdater() {
         if (this._boundGhostAnchorUpdater) {
+            this.startGhostAnchorLoop();
             return;
         }
 
@@ -2596,6 +2611,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         window.addEventListener('resize', this._boundGhostAnchorUpdater);
+
+        this.startGhostAnchorLoop();
     }
 
     detachGhostAnchorUpdater() {
@@ -2610,6 +2627,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         window.removeEventListener('resize', this._boundGhostAnchorUpdater);
         this._boundGhostAnchorUpdater = null;
+
+        this.stopGhostAnchorLoop();
     }
 
     updateGhostFromPlacement() {
@@ -2643,7 +2662,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         if (!dayEl || !dayBodyEl || !startLocal || !endLocal) {
             return;
         }
-
+        
         const dayRect = dayEl.getBoundingClientRect();
         const bodyRect = dayBodyEl.getBoundingClientRect();
         const totalHours = this.calendarEndHour - this.calendarStartHour;
@@ -2675,8 +2694,32 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             this.formatTimeRange(startLocal, endLocal),
             typeClass || this.dragGhostTypeClass,
             this.dragGhostWidth,
-            ghostHeight || this.dragGhostHeight
+            ghostHeight || this.dragGhostHeight,
+            true
         );
+    }
+
+    startGhostAnchorLoop() {
+        this.stopGhostAnchorLoop();
+
+        const step = () => {
+            if (!this.pendingSchedulePlacement || !this.dragGhostVisible) {
+                this._ghostAnchorFrame = null;
+                return;
+            }
+
+            this.updateGhostFromPlacement();
+            this._ghostAnchorFrame = requestAnimationFrame(step);
+        };
+
+        this._ghostAnchorFrame = requestAnimationFrame(step);
+    }
+
+    stopGhostAnchorLoop() {
+        if (this._ghostAnchorFrame) {
+            cancelAnimationFrame(this._ghostAnchorFrame);
+            this._ghostAnchorFrame = null;
+        }
     }
 
     resolveDayIndexFromDate(date) {
@@ -2700,10 +2743,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
-        if (
-            !this.isAwaitingScheduleConfirmation ||
-            !this.pendingSchedulePlacement
-        ) {
+        // Allow re-grabbing the scheduling ghost even if the awaiting flag was
+        // cleared, as long as a pending placement exists.
+        const placement = this.pendingSchedulePlacement;
+        if (!placement) {
             return;
         }
 
@@ -2715,14 +2758,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         event.preventDefault();
         event.stopPropagation();
 
-        this.prepareGhostDragFromPlacement(point);
-    }
-
-    prepareGhostDragFromPlacement(startPoint) {
-        const placement = this.pendingSchedulePlacement;
-        if (!placement) {
-            return;
-        }
+        // Remove anchoring before converting the pending placement back into a
+        // live drag so the ghost follows the pointer instead of snapping back
+        // to its cached position while dragging again.
+        this.detachGhostAnchorUpdater();
+        this.pendingSchedulePlacement = null;
+        this.isAwaitingScheduleConfirmation = false;
 
         const startLocal = placement.startIso
             ? this.convertUtcToUserLocal(placement.startIso)
@@ -2731,20 +2772,51 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             ? this.convertUtcToUserLocal(placement.endIso)
             : null;
 
-        const durationHours = placement.durationHours
-            ? placement.durationHours
+        const dragTimeLabel =
+            startLocal && endLocal
+                ? this.formatTimeRange(startLocal, endLocal)
+                : this.dragGhostTime;
+
+        this.showDragGhost(
+            point.clientX,
+            point.clientY,
+            placement.title || this.dragGhostTitle,
+            dragTimeLabel,
+            placement.typeClass || this.dragGhostTypeClass,
+            this.dragGhostWidth,
+            this.dragGhostHeight
+        );
+
+        this.prepareGhostDragFromPlacement(point, placement);
+    }
+
+    prepareGhostDragFromPlacement(startPoint, placement = null) {
+        const targetPlacement = placement || this.pendingSchedulePlacement;
+        if (!targetPlacement) {
+            return;
+        }
+
+        const startLocal = targetPlacement.startIso
+            ? this.convertUtcToUserLocal(targetPlacement.startIso)
+            : null;
+        const endLocal = targetPlacement.endIso
+            ? this.convertUtcToUserLocal(targetPlacement.endIso)
+            : null;
+
+        const durationHours = targetPlacement.durationHours
+            ? targetPlacement.durationHours
             : this.computeDurationHours(startLocal, endLocal);
 
         const dayIndex =
-            placement.dayIndex != null
-                ? placement.dayIndex
+            targetPlacement.dayIndex != null
+                ? targetPlacement.dayIndex
                 : this.resolveDayIndexFromDate(startLocal);
 
         if (dayIndex == null) {
             return;
         }
 
-        this.dragMode = placement.type === 'event' ? 'event' : 'wo';
+        this.dragMode = targetPlacement.type === 'event' ? 'event' : 'wo';
         this.dragRequiresExplicitConfirmation = true;
         this.dragStartDayIndex = dayIndex;
         this.dragCurrentDayIndex = dayIndex;
@@ -2758,11 +2830,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.dragHasMoved = false;
         this.isAwaitingScheduleConfirmation = true;
 
-        if (placement.type === 'event') {
-            this.draggingEventId = placement.appointmentId;
+        if (targetPlacement.type === 'event') {
+            this.draggingEventId = targetPlacement.appointmentId;
             this.draggingWorkOrderId = null;
         } else {
-            this.draggingWorkOrderId = placement.workOrderId;
+            this.draggingWorkOrderId = targetPlacement.workOrderId;
             this.draggingEventId = null;
         }
 
@@ -2804,6 +2876,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         this.pendingSchedulePlacement = placement;
         this.isAwaitingScheduleConfirmation = true;
+        this.updateGhostFromPlacement();
+        this.attachGhostAnchorUpdater();
     }
 
     freezeGhostForConfirmation() {
@@ -2815,6 +2889,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.dragHasMoved = false;
         this.showTrayCancelZone = false;
         this.isHoveringCancelZone = false;
+        this.updateGhostFromPlacement();
     }
 
     confirmPendingSchedule() {
@@ -2884,6 +2959,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.pendingSchedulePlacement = null;
         this.isAwaitingScheduleConfirmation = false;
         this.dragRequiresExplicitConfirmation = false;
+        this.detachGhostAnchorUpdater();
         this.resetDragState();
 
         if (listMode) {
