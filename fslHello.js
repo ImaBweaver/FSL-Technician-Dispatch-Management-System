@@ -2842,19 +2842,60 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 ? this.formatTimeRange(startLocal, endLocal)
                 : this.dragGhostTime;
 
-        const ghostRect =
-            event.currentTarget &&
-            typeof event.currentTarget.getBoundingClientRect === 'function'
-                ? event.currentTarget.getBoundingClientRect()
-                : null;
+        // Prefer deriving the pointer offset from the calendar geometry so the
+        // ghost aligns with the actual timeslot, even if CSS transforms or
+        // anchoring apply to the ghost element itself.
+        let offsetWithinGhost = null;
+        let ghostHeight = this.dragGhostHeight;
 
-        const offsetWithinGhost = ghostRect
-            ? point.clientY - ghostRect.top
-            : point.clientY - (this.dragGhostAnchoredToCalendar
-                  ? this.dragGhostY + (this.getGhostAnchorRect()?.top || 0)
-                  : this.dragGhostY);
+        const dayEl = this.template.querySelector(
+            `.sfs-calendar-day[data-day-index="${placement.dayIndex}"]`
+        );
+        const bodyEl = dayEl
+            ? dayEl.querySelector('.sfs-calendar-day-body')
+            : null;
+        const bodyRect = bodyEl
+            ? bodyEl.getBoundingClientRect()
+            : null;
 
-        const ghostHeight = ghostRect?.height || this.dragGhostHeight;
+        if (startLocal && bodyRect) {
+            const totalHours = this.calendarEndHour - this.calendarStartHour;
+            const startHourFraction =
+                startLocal.getHours() + startLocal.getMinutes() / 60;
+            const clampedHour = Math.min(
+                Math.max(startHourFraction, this.calendarStartHour),
+                this.calendarEndHour
+            );
+            const yWithinBody =
+                ((clampedHour - this.calendarStartHour) / totalHours) *
+                (bodyRect.height || 1);
+
+            // Offset between the pointer and the top of the ghost's intended
+            // placement within the calendar column.
+            offsetWithinGhost = point.clientY - (bodyRect.top + yWithinBody);
+            this.dragDayBodyTop = bodyRect.top;
+            this.dragDayBodyHeight = bodyRect.height || this.dragDayBodyHeight;
+            ghostHeight =
+                ((placement.durationHours || this.dragGhostHeight) /
+                    totalHours) *
+                (bodyRect.height || 1);
+        }
+
+        if (offsetWithinGhost == null) {
+            const ghostRect =
+                event.currentTarget &&
+                typeof event.currentTarget.getBoundingClientRect === 'function'
+                    ? event.currentTarget.getBoundingClientRect()
+                    : null;
+
+            offsetWithinGhost = ghostRect
+                ? point.clientY - ghostRect.top
+                : point.clientY - (this.dragGhostAnchoredToCalendar
+                      ? this.dragGhostY + (this.getGhostAnchorRect()?.top || 0)
+                      : this.dragGhostY);
+
+            ghostHeight = ghostRect?.height || this.dragGhostHeight;
+        }
 
         this.dragGhostPointerOffsetY = Math.min(
             Math.max(offsetWithinGhost, 0),
