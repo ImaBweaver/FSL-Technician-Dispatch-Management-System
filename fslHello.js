@@ -2803,6 +2803,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         this.pendingSchedulePlacement = placement;
         this.isAwaitingScheduleConfirmation = true;
+        this.updateGhostFromPlacement();
+        this.attachGhostAnchorUpdater();
     }
 
     freezeGhostForConfirmation() {
@@ -2814,6 +2816,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.dragHasMoved = false;
         this.showTrayCancelZone = false;
         this.isHoveringCancelZone = false;
+        this.updateGhostFromPlacement();
     }
 
     confirmPendingSchedule() {
@@ -2883,6 +2886,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.pendingSchedulePlacement = null;
         this.isAwaitingScheduleConfirmation = false;
         this.dragRequiresExplicitConfirmation = false;
+        this.detachGhostAnchorUpdater();
         this.resetDragState();
 
         if (listMode) {
