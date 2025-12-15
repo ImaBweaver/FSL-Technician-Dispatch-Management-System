@@ -86,6 +86,62 @@
     gap: 0.75rem;
 }
 
+.sfs-list-group {
+    background: #f8fafc;
+    border: 1px solid #e0e6f1;
+    border-radius: 0.65rem;
+    padding: 0.25rem 0.55rem 0.4rem;
+}
+
+.sfs-list-group__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0;
+}
+
+.sfs-list-group__title {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    font-weight: 700;
+    color: #1b2c48;
+}
+
+.sfs-list-group__count {
+    color: #5f6c82;
+    font-size: 0.88rem;
+}
+
+.sfs-list-group__toggle {
+    border: none;
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.4rem;
+    font-weight: 700;
+    color: #0b5cab;
+    cursor: pointer;
+}
+
+.sfs-list-group__toggle:hover {
+    background: #e9f1ff;
+}
+
+.sfs-list-group__toggle-icon {
+    --sds-c-icon-color-foreground: #0b5cab;
+}
+
+.sfs-list-group__cards {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-bottom: 0.35rem;
+}
+
 .sfs-card {
     background: #ffffff;
     border-radius: 0.5rem;
@@ -287,8 +343,31 @@
 /* keep the lightning-input nicely contained */
 .sfs-input-block lightning-input {
     display: block;
-    width: calc(100% - 30px);
-    margin: 0 auto;
+    width: 100%;
+    margin: 0;
+}
+
+.sfs-compact-button {
+    --slds-c-button-font-size: 0.85rem;
+    --slds-c-button-line-height: 1.65rem;
+    --slds-c-button-brand-spacing-inline-start: 0.6rem;
+    --slds-c-button-brand-spacing-inline-end: 0.6rem;
+    --slds-c-button-neutral-spacing-inline-start: 0.6rem;
+    --slds-c-button-neutral-spacing-inline-end: 0.6rem;
+}
+
+.sfs-quick-schedule__actions-inline {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    margin-top: 0.45rem;
+}
+
+.sfs-quick-schedule__input {
+    margin-top: 0.25rem;
+}
+
+.sfs-quick-schedule__footer {
+    justify-content: flex-start;
 }
 
 .sfs-quote-bar {
@@ -331,7 +410,14 @@
 .sfs-actions {
     display: flex;
     justify-content: flex-end;
+    gap: 0.5rem;
     margin-top: 0.5rem;
+}
+
+.sfs-option-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 0.4rem;
 }
 
 .sfs-reschedule-actions {
@@ -340,7 +426,8 @@
 }
 
 .sfs-schedule-actions {
-    justify-content: flex-end;
+    justify-content: flex-start;
+    flex-wrap: wrap;
 }
 
 .sfs-transfer-request-btn {
@@ -348,6 +435,22 @@
     --slds-c-button-destructive-text-line-height: 1.6rem;
     --slds-c-button-destructive-text-spacing-inline-start: 0.35rem;
     --slds-c-button-destructive-text-spacing-inline-end: 0.35rem;
+}
+
+.sfs-option-button {
+    --slds-c-button-radius-border: 999px;
+    --slds-c-button-font-size: 0.82rem;
+    --slds-c-button-line-height: 1.5rem;
+    --slds-c-button-spacing-inline-start: 0.65rem;
+    --slds-c-button-spacing-inline-end: 0.65rem;
+    --slds-c-button-neutral-color-border: #d8dde6;
+    --slds-c-button-neutral-color-background: #ffffff;
+    --slds-c-button-brand-line-height: 1.5rem;
+    --slds-c-button-brand-spacing-inline-start: 0.65rem;
+    --slds-c-button-brand-spacing-inline-end: 0.65rem;
+    --slds-c-button-destructive-text-line-height: 1.5rem;
+    --slds-c-button-destructive-text-spacing-inline-start: 0.65rem;
+    --slds-c-button-destructive-text-spacing-inline-end: 0.65rem;
 }
 
 @media (max-width: 540px) {
@@ -366,6 +469,23 @@
 
 .sfs-transfer-actions {
     gap: 0.4rem;
+}
+
+.sfs-card_compact {
+    padding: 0.85rem;
+    gap: 0.35rem;
+}
+
+.sfs-card_compact .sfs-card-body {
+    gap: 0.35rem;
+}
+
+.sfs-card_compact .sfs-quote-bar {
+    margin: 0.25rem 0;
+}
+
+.sfs-card_compact .sfs-actions {
+    justify-content: space-between;
 }
 
 /* CALENDAR TAB HEADER */
@@ -1165,7 +1285,7 @@
     width: 100%;
     text-align: left;
     padding: 0;
-    margin: 0 0 0.35rem 0;
+    margin: 0;
     border: none;
     background: transparent;
     font-size: 0.9rem;
@@ -1189,6 +1309,31 @@
 
 .sfs-subject-btn:hover {
     text-decoration: underline;
+}
+
+
+.sfs-subject-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    column-gap: 0.35rem;
+    margin-bottom: 0.25rem;
+}
+
+.sfs-info-button lightning-icon {
+    fill: #1b96ff;
+}
+
+.sfs-info-button {
+    --slds-c-icon-color-foreground-default: #1b96ff;
+    --slds-c-icon-color-foreground: #1b96ff;
+    --slds-c-button-color-border: transparent;
+    --slds-c-button-icon-spacing-inline-start: 0;
+    --slds-c-button-icon-spacing-inline-end: 0;
+    --slds-c-button-size: auto;
+    padding: 0;
+    margin: 0;
+    min-height: auto;
 }
 
 .sfs-line_address .sfs-label {
