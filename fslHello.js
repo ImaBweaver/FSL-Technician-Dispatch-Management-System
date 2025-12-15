@@ -3900,6 +3900,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.isAwaitingScheduleConfirmation = false;
         this.pendingSchedulePlacement = null;
 
+        const shouldRequireExplicitConfirmation =
+            this.dragRequiresExplicitConfirmation;
+
         const dayIndex = this.resolveCalendarDayIndex(
             target.hasAppointment ? target.schedStart : null
         );
@@ -3945,6 +3948,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         this.resetDragState();
+        this.dragRequiresExplicitConfirmation = shouldRequireExplicitConfirmation;
         this._pendingDrag = pending;
         this.beginDragFromPending();
     }
