@@ -59,9 +59,6 @@
                             class="sfs-view-combobox"
                             onchange={handleListModeChange}
                         ></lightning-combobox>
-                        <p class="sfs-list-mode__hint">
-                            Switch queues without overwhelming the header.
-                        </p>
                     </div>
                     <div class="sfs-list-mode-chips" role="list">
                         <template for:each={listModeChips} for:item="chip">
@@ -265,12 +262,37 @@
                     <template if:false={isTransferMode}>
                         <template if:true={hasVisibleAppointments}>
                             <div class="sfs-list">
-                                <template for:each={visibleAppointments} for:item="appt">
-                                    <article
-                                        key={appt.cardId}
-                                        class="sfs-card"
-                                        data-card-id={appt.cardId}
-                                    >
+                                <template for:each={appointmentGroups} for:item="group">
+                                    <div key={group.key} class="sfs-list-group">
+                                        <div class="sfs-list-group__header">
+                                            <div class="sfs-list-group__title">
+                                                <span class="sfs-list-group__label">{group.label}</span>
+                                                <span class="sfs-list-group__count">({group.count})</span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                class="sfs-list-group__toggle"
+                                                data-group-key={group.key}
+                                                onclick={handleToggleGroup}
+                                            >
+                                                <lightning-icon
+                                                    icon-name={group.toggleIcon}
+                                                    size="x-small"
+                                                    alternative-text={group.toggleLabel}
+                                                    class="sfs-list-group__toggle-icon"
+                                                ></lightning-icon>
+                                                <span>{group.toggleLabel}</span>
+                                            </button>
+                                        </div>
+
+                                        <template if:false={group.isCollapsed}>
+                                            <div class="sfs-list-group__cards">
+                                                <template for:each={group.appointments} for:item="appt">
+                                                    <article
+                                                        key={appt.cardId}
+                                                        class={appt.cardClass}
+                                                        data-card-id={appt.cardId}
+                                                    >
                                         <template if:true={appt.hasAppointment}>
                                             <button
                                                 class="sfs-unassign-btn"
@@ -314,14 +336,26 @@
                                                 </span>
                                             </div>
 
-                                            <button
-                                                type="button"
-                                                class="sfs-subject-btn"
-                                                data-id={appt.cardId}
-                                                onclick={handleListSubjectClick}
-                                            >
-                                                {appt.workOrderSubject}
-                                            </button>
+                                            <div class="sfs-subject-row">
+                                                <button
+                                                    type="button"
+                                                    class="sfs-subject-btn"
+                                                    data-id={appt.cardId}
+                                                    onclick={handleListSubjectClick}
+                                                >
+                                                    {appt.workOrderSubject}
+                                                </button>
+
+                                                <lightning-button-icon
+                                                    icon-name="utility:info"
+                                                    alternative-text="More info"
+                                                    variant="bare"
+                                                    size="small"
+                                                    data-id={appt.cardId}
+                                                    onclick={handleListSubjectClick}
+                                                    class="sfs-info-button"
+                                                ></lightning-button-icon>
+                                            </div>
 
                                             <template if:true={appt.showQuoteActions}>
                                                 <div class="sfs-quote-bar">
@@ -541,13 +575,14 @@
                                                     </lightning-input>
                                                 </div>
 
-                                                <div class="sfs-actions sfs-reschedule-actions">
+                                                <div class="sfs-actions sfs-reschedule-actions sfs-option-actions">
                                                     <lightning-button
                                                         variant="brand"
                                                         label="Reschedule"
                                                         data-id={appt.appointmentId}
                                                         onclick={handleReschedule}
                                                         disabled={appt.disableSave}
+                                                        class="sfs-option-button"
                                                     >
                                                     </lightning-button>
                                                     <lightning-button
@@ -556,22 +591,56 @@
                                                         data-woid={appt.workOrderId}
                                                         data-id={appt.appointmentId}
                                                         onclick={handleRequestReschedule}
-                                                        class="sfs-transfer-request-btn"
+                                                        class="sfs-transfer-request-btn sfs-option-button"
                                                     >
                                                     </lightning-button>
                                                 </div>
                                             </template>
 
                                             <template if:true={appt.showScheduleOnCalendar}>
-                                                <div class="sfs-actions sfs-schedule-actions">
+                                                <div class="sfs-actions sfs-schedule-actions sfs-quick-schedule__actions-inline sfs-option-actions">
+                                                    <lightning-button
+                                                        variant="neutral"
+                                                        label={appt.quickScheduleLabel}
+                                                        data-id={appt.cardId}
+                                                        onclick={handleToggleQuickSchedulePanel}
+                                                        class="sfs-compact-button sfs-option-button"
+                                                    >
+                                                    </lightning-button>
                                                     <lightning-button
                                                         variant="brand"
                                                         label="Schedule on Calendar"
                                                         data-id={appt.cardId}
                                                         onclick={handleScheduleOnCalendar}
+                                                        class="sfs-compact-button sfs-option-button"
                                                     >
                                                     </lightning-button>
                                                 </div>
+
+                                                <template if:true={appt.quickScheduleExpanded}>
+                                                    <div class="sfs-input-block sfs-quick-schedule__input">
+                                                        <lightning-input
+                                                            type="datetime-local"
+                                                            name="quickScheduleStart"
+                                                            label="Schedule Date/Time"
+                                                            value={appt.quickScheduleStart}
+                                                            data-id={appt.cardId}
+                                                            onchange={handleQuickScheduleChange}
+                                                        >
+                                                        </lightning-input>
+                                                    </div>
+
+                                                    <div class="sfs-actions sfs-schedule-actions sfs-quick-schedule__footer sfs-option-actions">
+                                                        <lightning-button
+                                                            variant="brand"
+                                                            label="Schedule"
+                                                            data-id={appt.cardId}
+                                                            onclick={handleQuickSchedule}
+                                                            class="sfs-compact-button sfs-option-button"
+                                                        >
+                                                        </lightning-button>
+                                                    </div>
+                                                </template>
                                             </template>
 
                                             <!-- Crew assignment controls shown only in Crew Pool mode -->
@@ -604,6 +673,10 @@
                                             </template>
                                         </div>
                                     </article>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
                                 </template>
                             </div>
                         </template>
