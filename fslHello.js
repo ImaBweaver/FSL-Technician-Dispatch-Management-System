@@ -2265,11 +2265,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 this.dragDayWidth = dayRect.width;
             }
 
-            // Top of the event box is the selected time; ghostY is the top
+            // Anchor the ghost to the pointer using the recorded grab offset so
+            // grabbing anywhere on the card (top, middle, or bottom) keeps the
+            // start time aligned with the calendar slot while dragging.
             const ghostY =
-                (this.dragDayBodyTop != null ? this.dragDayBodyTop : 0) +
-                yWithinBody -
-                (this.dragGhostPointerOffsetY || 0); // top edge represents start time
+                clientY - (this.dragGhostPointerOffsetY || 0);
 
             this.showDragGhost(
                 ghostX,
