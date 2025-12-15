@@ -358,6 +358,12 @@
     margin-top: 0.5rem;
 }
 
+.sfs-option-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
 .sfs-reschedule-actions {
     gap: 0.35rem;
     align-items: center;
@@ -373,6 +379,22 @@
     --slds-c-button-destructive-text-line-height: 1.6rem;
     --slds-c-button-destructive-text-spacing-inline-start: 0.35rem;
     --slds-c-button-destructive-text-spacing-inline-end: 0.35rem;
+}
+
+.sfs-option-button {
+    --slds-c-button-radius-border: 999px;
+    --slds-c-button-font-size: 0.82rem;
+    --slds-c-button-line-height: 1.5rem;
+    --slds-c-button-spacing-inline-start: 0.65rem;
+    --slds-c-button-spacing-inline-end: 0.65rem;
+    --slds-c-button-neutral-color-border: #d8dde6;
+    --slds-c-button-neutral-color-background: #ffffff;
+    --slds-c-button-brand-line-height: 1.5rem;
+    --slds-c-button-brand-spacing-inline-start: 0.65rem;
+    --slds-c-button-brand-spacing-inline-end: 0.65rem;
+    --slds-c-button-destructive-text-line-height: 1.5rem;
+    --slds-c-button-destructive-text-spacing-inline-start: 0.65rem;
+    --slds-c-button-destructive-text-spacing-inline-end: 0.65rem;
 }
 
 @media (max-width: 540px) {

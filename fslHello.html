@@ -567,13 +567,14 @@
                                                     </lightning-input>
                                                 </div>
 
-                                                <div class="sfs-actions sfs-reschedule-actions">
+                                                <div class="sfs-actions sfs-reschedule-actions sfs-option-actions">
                                                     <lightning-button
                                                         variant="brand"
                                                         label="Reschedule"
                                                         data-id={appt.appointmentId}
                                                         onclick={handleReschedule}
                                                         disabled={appt.disableSave}
+                                                        class="sfs-option-button"
                                                     >
                                                     </lightning-button>
                                                     <lightning-button
@@ -582,20 +583,20 @@
                                                         data-woid={appt.workOrderId}
                                                         data-id={appt.appointmentId}
                                                         onclick={handleRequestReschedule}
-                                                        class="sfs-transfer-request-btn"
+                                                        class="sfs-transfer-request-btn sfs-option-button"
                                                     >
                                                     </lightning-button>
                                                 </div>
                                             </template>
 
                                             <template if:true={appt.showScheduleOnCalendar}>
-                                                <div class="sfs-actions sfs-schedule-actions sfs-quick-schedule__actions-inline">
+                                                <div class="sfs-actions sfs-schedule-actions sfs-quick-schedule__actions-inline sfs-option-actions">
                                                     <lightning-button
                                                         variant="neutral"
                                                         label={appt.quickScheduleLabel}
                                                         data-id={appt.cardId}
                                                         onclick={handleToggleQuickSchedulePanel}
-                                                        class="sfs-compact-button"
+                                                        class="sfs-compact-button sfs-option-button"
                                                     >
                                                     </lightning-button>
                                                     <lightning-button
@@ -603,7 +604,7 @@
                                                         label="Schedule on Calendar"
                                                         data-id={appt.cardId}
                                                         onclick={handleScheduleOnCalendar}
-                                                        class="sfs-compact-button"
+                                                        class="sfs-compact-button sfs-option-button"
                                                     >
                                                     </lightning-button>
                                                 </div>
@@ -621,13 +622,13 @@
                                                         </lightning-input>
                                                     </div>
 
-                                                    <div class="sfs-actions sfs-schedule-actions sfs-quick-schedule__footer">
+                                                    <div class="sfs-actions sfs-schedule-actions sfs-quick-schedule__footer sfs-option-actions">
                                                         <lightning-button
                                                             variant="brand"
                                                             label="Schedule"
                                                             data-id={appt.cardId}
                                                             onclick={handleQuickSchedule}
-                                                            class="sfs-compact-button"
+                                                            class="sfs-compact-button sfs-option-button"
                                                         >
                                                         </lightning-button>
                                                     </div>
