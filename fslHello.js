@@ -398,7 +398,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     get dragGhostWrapperClass() {
-        return this.showDragConfirmActions
+        return this.showDragConfirmActions ||
+            (this.pendingSchedulePlacement && this.dragGhostVisible)
             ? 'sfs-drag-ghost sfs-drag-ghost_interactive'
             : 'sfs-drag-ghost';
     }
@@ -2686,8 +2687,15 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const yWithinBody = topRatio * bodyHeight;
         const ghostHeight = (ghostDuration / totalHours) * bodyHeight;
 
-        const ghostX = dayRect.left - calendarRect.left + dayRect.width / 2;
-        const ghostY = bodyRect.top - calendarRect.top + yWithinBody;
+        let ghostX = dayRect.left + dayRect.width / 2;
+        let ghostY = bodyRect.top + yWithinBody;
+
+        const anchorRect = this.getGhostAnchorRect();
+
+        if (anchorRect) {
+            ghostX -= anchorRect.left;
+            ghostY -= anchorRect.top;
+        }
 
         this.showDragGhost(
             ghostX,
@@ -2699,6 +2707,16 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             ghostHeight || this.dragGhostHeight,
             true
         );
+    }
+
+    getGhostAnchorRect() {
+        const timeline = this.template.querySelector('.sfs-calendar');
+        if (timeline) {
+            return timeline.getBoundingClientRect();
+        }
+
+        const weekGrid = this.template.querySelector('.sfs-weekgrid');
+        return weekGrid ? weekGrid.getBoundingClientRect() : null;
     }
 
     startGhostAnchorLoop() {
@@ -2766,6 +2784,28 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.detachGhostAnchorUpdater();
         this.pendingSchedulePlacement = null;
         this.isAwaitingScheduleConfirmation = false;
+
+        const startLocal = targetPlacement.startIso
+            ? this.convertUtcToUserLocal(targetPlacement.startIso)
+            : null;
+        const endLocal = targetPlacement.endIso
+            ? this.convertUtcToUserLocal(targetPlacement.endIso)
+            : null;
+
+        const dragTimeLabel =
+            startLocal && endLocal
+                ? this.formatTimeRange(startLocal, endLocal)
+                : this.dragGhostTime;
+
+        this.showDragGhost(
+            point.clientX,
+            point.clientY,
+            placement.title || this.dragGhostTitle,
+            dragTimeLabel,
+            placement.typeClass || this.dragGhostTypeClass,
+            this.dragGhostWidth,
+            this.dragGhostHeight
+        );
 
         this.prepareGhostDragFromPlacement(point, placement);
     }
