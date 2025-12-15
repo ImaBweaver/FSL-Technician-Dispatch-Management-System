@@ -91,6 +91,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     defaultWorkOrderDurationHours = 6;
     showTrayCancelZone = false;
     isHoveringCancelZone = false;
+    dragRequiresExplicitConfirmation = false;
+    isAwaitingScheduleConfirmation = false;
+    pendingSchedulePlacement = null;
+    schedulePreviewCardId = null;
+    schedulePreviewListMode = null;
 
     // Reschedule with another tech modal
     isRescheduleModalOpen = false;
@@ -386,6 +391,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return `top:${this.dragGhostY}px;left:${this.dragGhostX}px;width:${this.dragGhostWidth}px;height:${this.dragGhostHeight}px;transform:translateX(-50%);`;
     }
 
+    get dragGhostWrapperClass() {
+        return this.showDragConfirmActions
+            ? 'sfs-drag-ghost sfs-drag-ghost_interactive'
+            : 'sfs-drag-ghost';
+    }
+
 
     // Classes for the inner event block
     get dragGhostClass() {
@@ -396,7 +407,15 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     get dragHelperText() {
+        if (this.showDragConfirmActions) {
+            return 'Tap ✓ to schedule or ✕ to cancel';
+        }
+
         return 'Keep holding to auto-scroll';
+    }
+
+    get showDragConfirmActions() {
+        return this.isAwaitingScheduleConfirmation && !!this.pendingSchedulePlacement;
     }
 
 
@@ -651,7 +670,13 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             );
         }
 
-        return baseList;
+        const allowScheduleOnCalendar =
+            this.listMode === 'unscheduled' || this.listMode === 'partsReady';
+
+        return baseList.map(item => ({
+            ...item,
+            showScheduleOnCalendar: allowScheduleOnCalendar
+        }));
     }
 
     isQuoteStatus(status) {
@@ -2235,6 +2260,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         const { clientX, clientY } = clientPoint;
 
+        const requiresExplicitPlacement = this.dragRequiresExplicitConfirmation;
+
         if (this.dragMode === 'wo' && this.isPointInTrayCancelZone(clientX, clientY)) {
             this.stopAutoScrollLoop();
             this.resetDragState();
@@ -2282,29 +2309,37 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
             const isoString = this.toUserIsoString(newLocal);
 
-            this.appointments = this.appointments.map(a => {
-                if (a.appointmentId === id) {
-                    return {
-                        ...a,
+            if (requiresExplicitPlacement) {
+                this.cachePendingSchedulePlacement({
+                    type: 'event',
+                    appointmentId: id,
+                    startIso: isoString
+                });
+            } else {
+                this.appointments = this.appointments.map(a => {
+                    if (a.appointmentId === id) {
+                        return {
+                            ...a,
+                            newStart: isoString,
+                            disableSave: false
+                        };
+                    }
+                    return a;
+                });
+
+                if (
+                    this.selectedAppointment &&
+                    this.selectedAppointment.appointmentId === id
+                ) {
+                    this.selectedAppointment = {
+                        ...this.selectedAppointment,
                         newStart: isoString,
                         disableSave: false
                     };
                 }
-                return a;
-            });
 
-            if (
-                this.selectedAppointment &&
-                this.selectedAppointment.appointmentId === id
-            ) {
-                this.selectedAppointment = {
-                    ...this.selectedAppointment,
-                    newStart: isoString,
-                    disableSave: false
-                };
+                this.handleReschedule({ target: { dataset: { id } } });
             }
-
-            this.handleReschedule({ target: { dataset: { id } } });
         } else if (this.dragMode === 'resize') {
             const id = this.draggingEventId;
             if (id && this.dragStartLocal) {
@@ -2391,16 +2426,145 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     dropEnd.getTime() + durationHours * 60 * 60 * 1000
                 );
 
-                this.createAppointmentFromWorkOrder(
-                    workOrderId,
-                    this.toUserIsoString(dropLocal),
-                    this.toUserIsoString(dropEnd)
-                );
+                if (requiresExplicitPlacement) {
+                    this.cachePendingSchedulePlacement({
+                        type: 'wo',
+                        workOrderId,
+                        startIso: this.toUserIsoString(dropLocal),
+                        endIso: this.toUserIsoString(dropEnd)
+                    });
+                } else {
+                    this.createAppointmentFromWorkOrder(
+                        workOrderId,
+                        this.toUserIsoString(dropLocal),
+                        this.toUserIsoString(dropEnd)
+                    );
+                }
             }
         }
 
-        this.resetDragState();
+        if (requiresExplicitPlacement && this.showDragConfirmActions) {
+            this.freezeGhostForConfirmation();
+        } else {
+            this.resetDragState();
+        }
         event.preventDefault();
+    }
+
+    cachePendingSchedulePlacement(placement) {
+        if (!placement) {
+            return;
+        }
+
+        this.pendingSchedulePlacement = placement;
+        this.isAwaitingScheduleConfirmation = true;
+    }
+
+    freezeGhostForConfirmation() {
+        this.stopAutoScrollLoop();
+        this.unregisterGlobalDragListeners();
+        this.dragMode = null;
+        this.dragStartClientX = null;
+        this.dragStartClientY = null;
+        this.dragHasMoved = false;
+        this.showTrayCancelZone = false;
+        this.isHoveringCancelZone = false;
+    }
+
+    confirmPendingSchedule() {
+        const placement = this.pendingSchedulePlacement;
+        if (!placement) {
+            return;
+        }
+
+        this.pendingSchedulePlacement = null;
+        this.isAwaitingScheduleConfirmation = false;
+        this.dragRequiresExplicitConfirmation = false;
+
+        if (placement.type === 'event') {
+            const id = placement.appointmentId;
+            if (!id || !placement.startIso) {
+                this.resetDragState();
+                return;
+            }
+
+            this.appointments = this.appointments.map(a => {
+                if (a.appointmentId === id) {
+                    return {
+                        ...a,
+                        newStart: placement.startIso,
+                        disableSave: false
+                    };
+                }
+                return a;
+            });
+
+            if (
+                this.selectedAppointment &&
+                this.selectedAppointment.appointmentId === id
+            ) {
+                this.selectedAppointment = {
+                    ...this.selectedAppointment,
+                    newStart: placement.startIso,
+                    disableSave: false
+                };
+            }
+
+            this.resetDragState();
+            this.handleReschedule({ target: { dataset: { id } } });
+            this.schedulePreviewCardId = null;
+            this.schedulePreviewListMode = null;
+            return;
+        }
+
+        if (placement.type === 'wo') {
+            const { workOrderId, startIso, endIso } = placement;
+            if (!workOrderId || !startIso || !endIso) {
+                this.resetDragState();
+                return;
+            }
+
+            this.resetDragState();
+            this.createAppointmentFromWorkOrder(workOrderId, startIso, endIso);
+            this.schedulePreviewCardId = null;
+            this.schedulePreviewListMode = null;
+        }
+    }
+
+    cancelPendingSchedule() {
+        const cardId = this.schedulePreviewCardId;
+        const listMode = this.schedulePreviewListMode;
+
+        this.pendingSchedulePlacement = null;
+        this.isAwaitingScheduleConfirmation = false;
+        this.dragRequiresExplicitConfirmation = false;
+        this.resetDragState();
+
+        if (listMode) {
+            this.listMode = listMode;
+        }
+
+        this.updateActiveTabState('list');
+
+        if (cardId) {
+            this.safeSetTimeout(() => this.scrollCardIntoView(cardId), 50);
+        }
+
+        this.schedulePreviewCardId = null;
+        this.schedulePreviewListMode = null;
+    }
+
+    scrollCardIntoView(cardId) {
+        if (!cardId) {
+            return;
+        }
+
+        const cardSelector = `.sfs-card[data-card-id="${cardId}"]`;
+        const cardEl = this.template.querySelector(cardSelector);
+
+        if (cardEl && typeof cardEl.scrollIntoView === 'function') {
+            cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
     }
 
     resetDragState() {
@@ -2426,6 +2590,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.dragDayBodyTop = null;
         this.showTrayCancelZone = false;
         this.isHoveringCancelZone = false;
+        this.dragRequiresExplicitConfirmation = false;
+        this.isAwaitingScheduleConfirmation = false;
+        this.pendingSchedulePlacement = null;
         this.stopAutoScrollLoop();
         this.unregisterGlobalDragListeners();
         this.updateSelectedEventStyles();
@@ -3668,6 +3835,218 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             .finally(() => {
                 this.isLoading = false;
             });
+    }
+
+    handleScheduleOnCalendar(event) {
+        const cardId =
+            event && event.currentTarget && event.currentTarget.dataset
+                ? event.currentTarget.dataset.id
+                : null;
+
+        if (!cardId) {
+            return;
+        }
+
+        const target = this.findAppointmentByCardId(cardId);
+
+        if (!target) {
+            return;
+        }
+
+        this.schedulePreviewCardId = target.cardId || null;
+        this.schedulePreviewListMode = this.listMode;
+        this.isAwaitingScheduleConfirmation = false;
+        this.pendingSchedulePlacement = null;
+        this.dragRequiresExplicitConfirmation = true;
+
+        this.startScheduleOnCalendar(target);
+    }
+
+    startScheduleOnCalendar(target) {
+        if (!target) {
+            return;
+        }
+
+        this.updateActiveTabState('calendar');
+        this.ensureCalendarReadyForScheduling(target);
+    }
+
+    ensureCalendarReadyForScheduling(target, attempt = 0) {
+        const maxAttempts = 6;
+        const dayEl = this.template.querySelector('.sfs-calendar-day');
+        const dayBodyEl = this.template.querySelector('.sfs-calendar-day-body');
+
+        if (!dayEl || !dayBodyEl) {
+            if (attempt >= maxAttempts) {
+                return;
+            }
+
+            this.safeSetTimeout(
+                () => this.ensureCalendarReadyForScheduling(target, attempt + 1),
+                120
+            );
+
+            return;
+        }
+
+        this.beginSchedulingGhost(target);
+    }
+
+    beginSchedulingGhost(target) {
+        if (!target) {
+            return;
+        }
+
+        this.isAwaitingScheduleConfirmation = false;
+        this.pendingSchedulePlacement = null;
+
+        const shouldRequireExplicitConfirmation =
+            this.dragRequiresExplicitConfirmation;
+
+        const dayIndex = this.resolveCalendarDayIndex(
+            target.hasAppointment ? target.schedStart : null
+        );
+
+        const dayEl =
+            this.template.querySelector(
+                `.sfs-calendar-day[data-day-index="${dayIndex}"]`
+            ) || this.template.querySelector('.sfs-calendar-day');
+
+        const dayBodyEl = dayEl
+            ? dayEl.querySelector('.sfs-calendar-day-body')
+            : this.template.querySelector('.sfs-calendar-day-body');
+
+        if (!dayEl || !dayBodyEl) {
+            return;
+        }
+
+        const bodyRect = dayBodyEl.getBoundingClientRect();
+        const clientX = bodyRect.left + bodyRect.width / 2;
+        const clientY = bodyRect.top + bodyRect.height * 0.25;
+        const pending = target.hasAppointment
+            ? this.buildPendingEventFromList(
+                  target,
+                  dayIndex,
+                  dayEl.clientWidth || bodyRect.width || 1,
+                  bodyRect.height || dayBodyEl.clientHeight || 1,
+                  bodyRect.top,
+                  clientX,
+                  clientY
+              )
+            : this.buildPendingWorkOrderFromList(
+                  target,
+                  dayIndex,
+                  dayEl.clientWidth || bodyRect.width || 1,
+                  bodyRect.height || dayBodyEl.clientHeight || 1,
+                  bodyRect.top,
+                  clientX,
+                  clientY
+              );
+
+        if (!pending) {
+            return;
+        }
+
+        this.resetDragState();
+        this.dragRequiresExplicitConfirmation = shouldRequireExplicitConfirmation;
+        this._pendingDrag = pending;
+        this.beginDragFromPending();
+    }
+
+    buildPendingEventFromList(
+        appt,
+        dayIndex,
+        dayWidth,
+        dayBodyHeight,
+        dayBodyTop,
+        clientX,
+        clientY
+    ) {
+        if (!appt || !appt.appointmentId) {
+            return null;
+        }
+
+        const localStart = appt.schedStart
+            ? this.convertUtcToUserLocal(appt.schedStart)
+            : new Date();
+
+        return {
+            type: 'event',
+            id: appt.appointmentId,
+            dayIndex,
+            localStart,
+            clientX,
+            clientY,
+            dayBodyHeight,
+            dayBodyTop,
+            dayWidth,
+            title: appt.workOrderSubject || appt.subject || 'Appointment'
+        };
+    }
+
+    buildPendingWorkOrderFromList(
+        workOrder,
+        dayIndex,
+        dayWidth,
+        dayBodyHeight,
+        dayBodyTop,
+        clientX,
+        clientY
+    ) {
+        if (!workOrder || !workOrder.workOrderId) {
+            return null;
+        }
+
+        const title = workOrder.workOrderNumber
+            ? `${workOrder.workOrderNumber} — ${workOrder.workOrderSubject ||
+                  workOrder.subject ||
+                  'New appointment'}`
+            : workOrder.workOrderSubject || workOrder.subject || 'New appointment';
+
+        return {
+            type: 'wo',
+            workOrderId: workOrder.workOrderId,
+            dayIndex,
+            clientX,
+            clientY,
+            dayBodyHeight,
+            dayBodyTop,
+            dayWidth,
+            title
+        };
+    }
+
+    resolveCalendarDayIndex(startDateLike) {
+        if (this.calendarDays && this.calendarDays.length && startDateLike) {
+            const targetDay = this.normalizeDayStart(
+                this.convertUtcToUserLocal(startDateLike)
+            );
+
+            const index = this.calendarDays.findIndex(day => {
+                const dayDate = this.normalizeDayStart(new Date(day.date));
+                return dayDate && targetDay && dayDate.getTime() === targetDay.getTime();
+            });
+
+            if (index >= 0) {
+                return index;
+            }
+        }
+
+        if (this.todayDayIndex != null) {
+            return this.todayDayIndex;
+        }
+
+        return 0;
+    }
+
+    normalizeDayStart(date) {
+        if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+            return null;
+        }
+
+        const clone = new Date(date);
+        clone.setHours(0, 0, 0, 0);
+        return clone;
     }
 
     updateAppointmentEndTime(appointmentId, newEndIso) {
