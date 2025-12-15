@@ -574,6 +574,12 @@
     gap: 0.75rem;
 }
 
+.sfs-view-combobox {
+    --slds-c-combobox-menu-min-width: 14rem;
+    --slds-c-combobox-sizing-min-width: 14rem;
+    min-width: 14rem;
+}
+
 .sfs-list-mode__hint {
     margin: 0;
     color: #706e6b;
