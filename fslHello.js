@@ -2461,7 +2461,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                         ? new Date(this.dragPreviewLocal)
                         : null;
 
-                if (bodyRect) {
+                if (!dropLocal && bodyRect) {
                     const usableHeight =
                         bodyRect.height || this.dragDayBodyHeight || 1;
                     const startHour = this.calendarStartHour;
