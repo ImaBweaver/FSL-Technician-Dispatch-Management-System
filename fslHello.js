@@ -421,10 +421,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         );
     }
 
-    get showDragConfirmActions() {
-        return this.isAwaitingScheduleConfirmation && !!this.pendingSchedulePlacement;
-    }
-
 
     get isCrewCountUrgent() {
         if (!this.appointments || !this.appointments.length) {
