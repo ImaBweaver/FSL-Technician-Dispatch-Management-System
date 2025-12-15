@@ -4274,6 +4274,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.collapsedDayGroups = {};
     }
 
+    handleCompactToggle(event) {
+        this.isCompactListView = Boolean(event?.detail?.checked);
+    }
+
     handleQuoteAttachmentClick(event) {
         event.preventDefault();
 
@@ -6186,4 +6190,4 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         );
     }
 }
-}
+

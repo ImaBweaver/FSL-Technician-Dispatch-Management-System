@@ -78,6 +78,20 @@
                             </button>
                         </template>
                     </div>
+
+                    <div class="sfs-density-toggle">
+                        <lightning-input
+                            type="toggle"
+                            label="Compact cards"
+                            message-toggle-active="Compact view"
+                            message-toggle-inactive="Roomy view"
+                            checked={isCompactListView}
+                            onchange={handleCompactToggle}
+                        ></lightning-input>
+                        <p class="sfs-density-toggle__hint">
+                            Squeeze more appointments on screen when triaging a large queue.
+                        </p>
+                    </div>
                 </div>
 
                 <!-- Status filter only shows when My tab is active -->
