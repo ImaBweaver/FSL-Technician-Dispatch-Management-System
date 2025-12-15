@@ -2842,14 +2842,23 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 ? this.formatTimeRange(startLocal, endLocal)
                 : this.dragGhostTime;
 
-        const offsetWithinGhost =
-            point.clientY - (this.dragGhostAnchoredToCalendar
-                ? this.dragGhostY + (this.getGhostAnchorRect()?.top || 0)
-                : this.dragGhostY);
+        const ghostRect =
+            event.currentTarget &&
+            typeof event.currentTarget.getBoundingClientRect === 'function'
+                ? event.currentTarget.getBoundingClientRect()
+                : null;
+
+        const offsetWithinGhost = ghostRect
+            ? point.clientY - ghostRect.top
+            : point.clientY - (this.dragGhostAnchoredToCalendar
+                  ? this.dragGhostY + (this.getGhostAnchorRect()?.top || 0)
+                  : this.dragGhostY);
+
+        const ghostHeight = ghostRect?.height || this.dragGhostHeight;
 
         this.dragGhostPointerOffsetY = Math.min(
             Math.max(offsetWithinGhost, 0),
-            this.dragGhostHeight
+            ghostHeight
         );
 
         this.showDragGhost(
@@ -3065,6 +3074,25 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     resetDragState() {
+        // When a pending placement is waiting for explicit confirmation, keep the
+        // ghost visible and anchored so it can only be dismissed via the
+        // confirmation controls. Other gestures (like panning the calendar)
+        // should stop any active drag interactions without clearing the ghost.
+        if (this.pendingSchedulePlacement && this.isAwaitingScheduleConfirmation) {
+            this.stopAutoScrollLoop();
+            this.unregisterGlobalDragListeners();
+            this.dragMode = null;
+            this.dragStartClientX = null;
+            this.dragStartClientY = null;
+            this.dragHasMoved = false;
+            this.showTrayCancelZone = false;
+            this.isHoveringCancelZone = false;
+            this.isPressingForDrag = false;
+            this._pendingDrag = null;
+            this.clearLongPressTimer();
+            return;
+        }
+
         this.dragMode = null;
         this.draggingEventId = null;
         this.draggingWorkOrderId = null;
