@@ -132,6 +132,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     // Anchor drag ghost to calendar while awaiting confirmation
     _boundGhostAnchorUpdater = null;
+    _ghostAnchorFrame = null;
 
     // Floating ghost under the finger
     // Floating ghost under the finger (clone of the event)
@@ -2598,6 +2599,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     attachGhostAnchorUpdater() {
         if (this._boundGhostAnchorUpdater) {
+            this.startGhostAnchorLoop();
             return;
         }
 
@@ -2609,6 +2611,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         window.addEventListener('resize', this._boundGhostAnchorUpdater);
+
+        this.startGhostAnchorLoop();
     }
 
     detachGhostAnchorUpdater() {
@@ -2623,6 +2627,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         window.removeEventListener('resize', this._boundGhostAnchorUpdater);
         this._boundGhostAnchorUpdater = null;
+
+        this.stopGhostAnchorLoop();
     }
 
     updateGhostFromPlacement() {
@@ -2693,6 +2699,29 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             ghostHeight || this.dragGhostHeight,
             true
         );
+    }
+
+    startGhostAnchorLoop() {
+        this.stopGhostAnchorLoop();
+
+        const step = () => {
+            if (!this.pendingSchedulePlacement || !this.dragGhostVisible) {
+                this._ghostAnchorFrame = null;
+                return;
+            }
+
+            this.updateGhostFromPlacement();
+            this._ghostAnchorFrame = requestAnimationFrame(step);
+        };
+
+        this._ghostAnchorFrame = requestAnimationFrame(step);
+    }
+
+    stopGhostAnchorLoop() {
+        if (this._ghostAnchorFrame) {
+            cancelAnimationFrame(this._ghostAnchorFrame);
+            this._ghostAnchorFrame = null;
+        }
     }
 
     resolveDayIndexFromDate(date) {
