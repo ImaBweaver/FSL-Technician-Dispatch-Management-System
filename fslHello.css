@@ -314,49 +314,6 @@
     justify-content: flex-start;
 }
 
-.sfs-quick-schedule {
-    margin-top: 0.75rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.65rem;
-    border: 1px solid #e2e8f3;
-    border-radius: 0.5rem;
-    padding: 0.6rem 0.75rem;
-    background: #f9fbff;
-}
-
-.sfs-quick-schedule__summary {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-}
-
-.sfs-quick-schedule__label {
-    margin: 0;
-    font-weight: 700;
-    font-size: 0.9rem;
-}
-
-.sfs-quick-schedule__hint {
-    margin: 0.1rem 0 0;
-    color: #4b586a;
-    font-size: 0.8rem;
-}
-
-.sfs-quick-schedule__actions {
-    width: 100%;
-    justify-content: flex-start;
-    gap: 0.4rem;
-}
-
-.sfs-quick-schedule__input {
-    margin-top: 0.2rem;
-}
-
-.sfs-quick-schedule__footer {
-    justify-content: flex-start;
-}
-
 .sfs-quote-bar {
     display: flex;
     flex-wrap: wrap;
@@ -1250,7 +1207,7 @@
     width: 100%;
     text-align: left;
     padding: 0;
-    margin: 0 0 0.35rem 0;
+    margin: 0;
     border: none;
     background: transparent;
     font-size: 0.9rem;
@@ -1274,6 +1231,23 @@
 
 .sfs-subject-btn:hover {
     text-decoration: underline;
+}
+
+.sfs-subject-row {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-bottom: 0.35rem;
+}
+
+.sfs-info-button lightning-icon {
+    fill: #1b96ff;
+}
+
+.sfs-info-button {
+    --slds-c-icon-color-foreground-default: #1b96ff;
+    --slds-c-icon-color-foreground: #1b96ff;
+    --slds-c-button-color-border: transparent;
 }
 
 .sfs-line_address .sfs-label {

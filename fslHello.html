@@ -328,14 +328,26 @@
                                                 </span>
                                             </div>
 
-                                            <button
-                                                type="button"
-                                                class="sfs-subject-btn"
-                                                data-id={appt.cardId}
-                                                onclick={handleListSubjectClick}
-                                            >
-                                                {appt.workOrderSubject}
-                                            </button>
+                                            <div class="sfs-subject-row">
+                                                <button
+                                                    type="button"
+                                                    class="sfs-subject-btn"
+                                                    data-id={appt.cardId}
+                                                    onclick={handleListSubjectClick}
+                                                >
+                                                    {appt.workOrderSubject}
+                                                </button>
+
+                                                <lightning-button-icon
+                                                    icon-name="utility:info"
+                                                    alternative-text="More info"
+                                                    variant="bare"
+                                                    size="small"
+                                                    data-id={appt.cardId}
+                                                    onclick={handleListSubjectClick}
+                                                    class="sfs-info-button"
+                                                ></lightning-button-icon>
+                                            </div>
 
                                             <template if:true={appt.showQuoteActions}>
                                                 <div class="sfs-quote-bar">
