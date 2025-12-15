@@ -88,6 +88,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     dragPreviewDurationHours = null;
     dragDurationHours = null;
     dragHasMoved = false;
+    dragGhostPointerOffsetY = 0;
     defaultWorkOrderDurationHours = 6;
     showTrayCancelZone = false;
     isHoveringCancelZone = false;
@@ -1642,9 +1643,15 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const timeLabel = this.formatTimeRange(startLocal, endLocal);
         const typeClass = this.getEventTypeClass(appt.workTypeName);
 
+        const offsetWithinEvent = clientPoint.clientY - eventRect.top;
+        this.dragGhostPointerOffsetY = Math.min(
+            Math.max(offsetWithinEvent, 0),
+            ghostHeight
+        );
+
         this.showDragGhost(
             ghostX,
-            this.dragDayBodyTop + yWithinBody,
+            this.dragDayBodyTop + yWithinBody - this.dragGhostPointerOffsetY,
             appt.workOrderSubject || 'Appointment',
             timeLabel,
             typeClass,
@@ -1797,6 +1804,14 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 const rect = evtEl.getBoundingClientRect();
                 width = rect.width;
                 height = rect.height;
+
+                const offsetWithinEvent = pending.clientY - rect.top;
+                this.dragGhostPointerOffsetY = Math.min(
+                    Math.max(offsetWithinEvent, 0),
+                    height
+                );
+            } else {
+                this.dragGhostPointerOffsetY = height / 2;
             }
 
             // Work out the type class for coloring
@@ -1833,7 +1848,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
                 this.showDragGhost(
                     pending.clientX,
-                    pending.clientY,
+                    pending.clientY - this.dragGhostPointerOffsetY,
                     pending.title,
                     timeLabel,
                     typeClass,
@@ -1854,9 +1869,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 minute: '2-digit'
             });
 
+            this.dragGhostPointerOffsetY = height / 2;
+
             this.showDragGhost(
                 pending.clientX,
-                pending.clientY,
+                pending.clientY - this.dragGhostPointerOffsetY,
                 pending.title,
                 timeLabel,
                 typeClass,
@@ -1893,6 +1910,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             const width = pending.dayWidth * 0.88; // match left/right 6% padding
             const height = sixHourHeight;
 
+            this.dragGhostPointerOffsetY = height / 2;
+
             const dayObj = this.calendarDays[pending.dayIndex];
             const preview = new Date(dayObj.date);
             preview.setHours(9, 0, 0, 0);
@@ -1909,7 +1928,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
             this.showDragGhost(
                 pending.clientX,
-                pending.clientY,
+                pending.clientY - this.dragGhostPointerOffsetY,
                 pending.title,
                 timeLabel,
                 'sfs-event-default',
@@ -2248,7 +2267,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             // Top of the event box is the selected time; ghostY is the top
             const ghostY =
                 (this.dragDayBodyTop != null ? this.dragDayBodyTop : 0) +
-                yWithinBody; // top edge represents start time
+                yWithinBody -
+                (this.dragGhostPointerOffsetY || 0); // top edge represents start time
 
             this.showDragGhost(
                 ghostX,
@@ -2263,7 +2283,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             // Fallback – just move with finger if we somehow lack geometry
             this.showDragGhost(
                 clientX,
-                clientY,
+                clientY - (this.dragGhostPointerOffsetY || 0),
                 this.dragGhostTitle,
                 this.dragGhostTime,
                 this.dragGhostTypeClass,
@@ -2821,9 +2841,19 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 ? this.formatTimeRange(startLocal, endLocal)
                 : this.dragGhostTime;
 
+        const offsetWithinGhost =
+            point.clientY - (this.dragGhostAnchoredToCalendar
+                ? this.dragGhostY + (this.getGhostAnchorRect()?.top || 0)
+                : this.dragGhostY);
+
+        this.dragGhostPointerOffsetY = Math.min(
+            Math.max(offsetWithinGhost, 0),
+            this.dragGhostHeight
+        );
+
         this.showDragGhost(
             point.clientX,
-            point.clientY,
+            point.clientY - this.dragGhostPointerOffsetY,
             placement.title || this.dragGhostTitle,
             dragTimeLabel,
             placement.typeClass || this.dragGhostTypeClass,
@@ -3049,6 +3079,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.dragPreviewDurationHours = null;
         this.dragDurationHours = null;
         this.dragHasMoved = false;
+        this.dragGhostPointerOffsetY = 0;
         this.isPressingForDrag = false;
         this._pendingDrag = null;
         this._pendingRegrabPlacement = null;
