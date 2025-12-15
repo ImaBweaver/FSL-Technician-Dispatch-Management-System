@@ -2879,6 +2879,56 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 ((placement.durationHours || this.dragGhostHeight) /
                     totalHours) *
                 (bodyRect.height || 1);
+        }
+
+        if (offsetWithinGhost == null) {
+            const ghostRect =
+                event.currentTarget &&
+                typeof event.currentTarget.getBoundingClientRect === 'function'
+                    ? event.currentTarget.getBoundingClientRect()
+                    : null;
+
+            offsetWithinGhost = ghostRect
+                ? point.clientY - ghostRect.top
+                : point.clientY - (this.dragGhostAnchoredToCalendar
+                      ? this.dragGhostY + (this.getGhostAnchorRect()?.top || 0)
+                      : this.dragGhostY);
+
+            ghostHeight = ghostRect?.height || this.dragGhostHeight;
+        }
+
+        this.dragGhostPointerOffsetY = Math.min(
+            Math.max(offsetWithinGhost, 0),
+            ghostHeight
+        );
+        const bodyEl = dayEl
+            ? dayEl.querySelector('.sfs-calendar-day-body')
+            : null;
+        const bodyRect = bodyEl
+            ? bodyEl.getBoundingClientRect()
+            : null;
+
+        if (startLocal && bodyRect) {
+            const totalHours = this.calendarEndHour - this.calendarStartHour;
+            const startHourFraction =
+                startLocal.getHours() + startLocal.getMinutes() / 60;
+            const clampedHour = Math.min(
+                Math.max(startHourFraction, this.calendarStartHour),
+                this.calendarEndHour
+            );
+            const yWithinBody =
+                ((clampedHour - this.calendarStartHour) / totalHours) *
+                (bodyRect.height || 1);
+
+            // Offset between the pointer and the top of the ghost's intended
+            // placement within the calendar column.
+            offsetWithinGhost = point.clientY - (bodyRect.top + yWithinBody);
+            this.dragDayBodyTop = bodyRect.top;
+            this.dragDayBodyHeight = bodyRect.height || this.dragDayBodyHeight;
+            ghostHeight =
+                ((placement.durationHours || this.dragGhostHeight) /
+                    totalHours) *
+                (bodyRect.height || 1);
 
             // Keep the ghost sizing in sync with the measured column so the
             // offset math remains accurate during drag.
