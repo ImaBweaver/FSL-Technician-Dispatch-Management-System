@@ -91,6 +91,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     dragGhostPointerOffsetY = 0;
     defaultWorkOrderDurationHours = 6;
     quickScheduleSelections = {};
+    quickScheduleExpanded = {};
+    isCompactListView = false;
     showTrayCancelZone = false;
     isHoveringCancelZone = false;
     dragRequiresExplicitConfirmation = true;
@@ -701,7 +703,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return baseList.map(item => ({
             ...item,
             showScheduleOnCalendar: allowScheduleOnCalendar,
-            quickScheduleStart: this.quickScheduleSelections[item.cardId] || ''
+            quickScheduleStart: this.quickScheduleSelections[item.cardId] || '',
+            quickScheduleExpanded: Boolean(this.quickScheduleExpanded[item.cardId]),
+            cardClass: this.isCompactListView
+                ? 'sfs-card sfs-card_compact'
+                : 'sfs-card'
         }));
     }
 
@@ -4161,6 +4167,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.listMode = mode;
     }
 
+    handleCompactToggle(event) {
+        this.isCompactListView = Boolean(event?.detail?.checked);
+    }
+
     handleQuoteAttachmentClick(event) {
         event.preventDefault();
 
@@ -4509,6 +4519,20 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.dragRequiresExplicitConfirmation = true;
 
         this.startScheduleOnCalendar(target);
+    }
+
+    handleToggleQuickSchedulePanel(event) {
+        const cardId = event?.currentTarget?.dataset?.id;
+
+        if (!cardId) {
+            return;
+        }
+
+        const isExpanded = Boolean(this.quickScheduleExpanded[cardId]);
+        this.quickScheduleExpanded = {
+            ...this.quickScheduleExpanded,
+            [cardId]: !isExpanded
+        };
     }
 
     handleQuickScheduleChange(event) {
