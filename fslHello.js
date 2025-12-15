@@ -130,6 +130,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     _autoScrollPoint = null;
     _autoScrollFrame = null;
 
+    // Anchor drag ghost to calendar while awaiting confirmation
+    _boundGhostAnchorUpdater = null;
+
     // Floating ghost under the finger
     // Floating ghost under the finger (clone of the event)
     dragGhostVisible = false;
@@ -2286,7 +2289,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         // If user did not move enough, treat as no drag
         if (!this.dragHasMoved) {
             this.stopAutoScrollLoop();
-            this.resetDragState();
+            if (requiresExplicitPlacement && this.pendingSchedulePlacement) {
+                this.freezeGhostForConfirmation();
+            } else {
+                this.resetDragState();
+            }
             event.preventDefault();
             return;
         }
@@ -2311,12 +2318,23 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             newLocal.setMinutes(roundedMinutes, 0, 0);
 
             const isoString = this.toUserIsoString(newLocal);
+            const duration =
+                this.dragDurationHours ||
+                this.dragPreviewDurationHours ||
+                this.computeDurationHours(startLocal, this.dragStartEndLocal);
+            const endLocal = new Date(newLocal);
+            endLocal.setTime(endLocal.getTime() + duration * 60 * 60 * 1000);
 
             if (requiresExplicitPlacement) {
                 this.cachePendingSchedulePlacement({
                     type: 'event',
                     appointmentId: id,
-                    startIso: isoString
+                    startIso: isoString,
+                    endIso: this.toUserIsoString(endLocal),
+                    dayIndex: finalDayIndex,
+                    durationHours: duration,
+                    title: this.dragGhostTitle,
+                    typeClass: this.dragGhostTypeClass
                 });
             } else {
                 this.appointments = this.appointments.map(a => {
@@ -2434,7 +2452,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                         type: 'wo',
                         workOrderId,
                         startIso: this.toUserIsoString(dropLocal),
-                        endIso: this.toUserIsoString(dropEnd)
+                        endIso: this.toUserIsoString(dropEnd),
+                        dayIndex: finalDayIndex,
+                        durationHours,
+                        title: this.dragGhostTitle,
+                        typeClass: this.dragGhostTypeClass
                     });
                 } else {
                     this.createAppointmentFromWorkOrder(
@@ -2452,6 +2474,327 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             this.resetDragState();
         }
         event.preventDefault();
+    }
+
+    cachePendingSchedulePlacement(placement) {
+        if (!placement) {
+            return;
+        }
+
+        this.pendingSchedulePlacement = placement;
+        this.isAwaitingScheduleConfirmation = true;
+        this.updateGhostFromPlacement();
+        this.attachGhostAnchorUpdater();
+    }
+
+    freezeGhostForConfirmation() {
+        this.stopAutoScrollLoop();
+        this.unregisterGlobalDragListeners();
+        this.dragMode = null;
+        this.dragStartClientX = null;
+        this.dragStartClientY = null;
+        this.dragHasMoved = false;
+        this.showTrayCancelZone = false;
+        this.isHoveringCancelZone = false;
+        this.updateGhostFromPlacement();
+    }
+
+    confirmPendingSchedule() {
+        const placement = this.pendingSchedulePlacement;
+        if (!placement) {
+            return;
+        }
+
+        this.pendingSchedulePlacement = null;
+        this.isAwaitingScheduleConfirmation = false;
+        this.dragRequiresExplicitConfirmation = false;
+
+        if (placement.type === 'event') {
+            const id = placement.appointmentId;
+            if (!id || !placement.startIso) {
+                this.resetDragState();
+                return;
+            }
+
+            this.appointments = this.appointments.map(a => {
+                if (a.appointmentId === id) {
+                    return {
+                        ...a,
+                        newStart: placement.startIso,
+                        disableSave: false
+                    };
+                }
+                return a;
+            });
+
+            if (
+                this.selectedAppointment &&
+                this.selectedAppointment.appointmentId === id
+            ) {
+                this.selectedAppointment = {
+                    ...this.selectedAppointment,
+                    newStart: placement.startIso,
+                    disableSave: false
+                };
+            }
+
+            this.resetDragState();
+            this.handleReschedule({ target: { dataset: { id } } });
+            this.schedulePreviewCardId = null;
+            this.schedulePreviewListMode = null;
+            return;
+        }
+
+        if (placement.type === 'wo') {
+            const { workOrderId, startIso, endIso } = placement;
+            if (!workOrderId || !startIso || !endIso) {
+                this.resetDragState();
+                return;
+            }
+
+            this.resetDragState();
+            this.createAppointmentFromWorkOrder(workOrderId, startIso, endIso);
+            this.schedulePreviewCardId = null;
+            this.schedulePreviewListMode = null;
+        }
+    }
+
+    cancelPendingSchedule() {
+        const cardId = this.schedulePreviewCardId;
+        const listMode = this.schedulePreviewListMode;
+
+        this.pendingSchedulePlacement = null;
+        this.isAwaitingScheduleConfirmation = false;
+        this.dragRequiresExplicitConfirmation = false;
+        this.detachGhostAnchorUpdater();
+        this.resetDragState();
+
+        if (listMode) {
+            this.listMode = listMode;
+        }
+
+        this.updateActiveTabState('list');
+
+        if (cardId) {
+            this.safeSetTimeout(() => this.scrollCardIntoView(cardId), 50);
+        }
+
+        this.schedulePreviewCardId = null;
+        this.schedulePreviewListMode = null;
+    }
+
+    attachGhostAnchorUpdater() {
+        if (this._boundGhostAnchorUpdater) {
+            return;
+        }
+
+        this._boundGhostAnchorUpdater = () => this.updateGhostFromPlacement();
+
+        const wrapper = this.template.querySelector('.sfs-calendar-days-wrapper');
+        if (wrapper) {
+            wrapper.addEventListener('scroll', this._boundGhostAnchorUpdater);
+        }
+
+        window.addEventListener('resize', this._boundGhostAnchorUpdater);
+    }
+
+    detachGhostAnchorUpdater() {
+        if (!this._boundGhostAnchorUpdater) {
+            return;
+        }
+
+        const wrapper = this.template.querySelector('.sfs-calendar-days-wrapper');
+        if (wrapper) {
+            wrapper.removeEventListener('scroll', this._boundGhostAnchorUpdater);
+        }
+
+        window.removeEventListener('resize', this._boundGhostAnchorUpdater);
+        this._boundGhostAnchorUpdater = null;
+    }
+
+    updateGhostFromPlacement() {
+        if (!this.pendingSchedulePlacement || !this.dragGhostVisible) {
+            return;
+        }
+
+        const placement = this.pendingSchedulePlacement;
+        const { startIso, endIso, dayIndex, durationHours, title, typeClass } =
+            placement;
+
+        const startLocal = startIso
+            ? this.convertUtcToUserLocal(startIso)
+            : null;
+        const endLocal = endIso ? this.convertUtcToUserLocal(endIso) : null;
+
+        const targetDayIndex =
+            dayIndex != null ? dayIndex : this.resolveDayIndexFromDate(startLocal);
+
+        if (targetDayIndex == null || !this.calendarDays[targetDayIndex]) {
+            return;
+        }
+
+        const dayEl = this.template.querySelector(
+            `.sfs-calendar-day[data-day-index="${targetDayIndex}"]`
+        );
+        const dayBodyEl = dayEl
+            ? dayEl.querySelector('.sfs-calendar-day-body')
+            : null;
+
+        if (!dayEl || !dayBodyEl || !startLocal || !endLocal) {
+            return;
+        }
+
+        const dayRect = dayEl.getBoundingClientRect();
+        const bodyRect = dayBodyEl.getBoundingClientRect();
+        const totalHours = this.calendarEndHour - this.calendarStartHour;
+        const ghostDuration =
+            durationHours || this.computeDurationHours(startLocal, endLocal);
+
+        let hourFraction =
+            startLocal.getHours() + startLocal.getMinutes() / 60;
+        if (hourFraction < this.calendarStartHour) {
+            hourFraction = this.calendarStartHour;
+        }
+        if (hourFraction > this.calendarEndHour) {
+            hourFraction = this.calendarEndHour;
+        }
+
+        const bodyHeight = bodyRect.height || 1;
+        const topRatio =
+            (hourFraction - this.calendarStartHour) / totalHours;
+        const yWithinBody = topRatio * bodyHeight;
+        const ghostHeight = (ghostDuration / totalHours) * bodyHeight;
+
+        const ghostX = dayRect.left + dayRect.width / 2;
+        const ghostY = bodyRect.top + yWithinBody;
+
+        this.showDragGhost(
+            ghostX,
+            ghostY,
+            title || this.dragGhostTitle,
+            this.formatTimeRange(startLocal, endLocal),
+            typeClass || this.dragGhostTypeClass,
+            this.dragGhostWidth,
+            ghostHeight || this.dragGhostHeight
+        );
+    }
+
+    resolveDayIndexFromDate(date) {
+        if (!date || !this.calendarDays || !this.calendarDays.length) {
+            return null;
+        }
+
+        const target = `${date.getFullYear()}-${this.pad2(
+            date.getMonth() + 1
+        )}-${this.pad2(date.getDate())}`;
+
+        const matchIndex = this.calendarDays.findIndex(d => d.date === target);
+        return matchIndex >= 0 ? matchIndex : null;
+    }
+
+    handleGhostPointerDown(event) {
+        if (
+            event.target &&
+            event.target.closest('.sfs-drag-ghost__action')
+        ) {
+            return;
+        }
+
+        if (
+            !this.isAwaitingScheduleConfirmation ||
+            !this.pendingSchedulePlacement
+        ) {
+            return;
+        }
+
+        const point = this.getClientPoint(event);
+        if (!point) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        this.prepareGhostDragFromPlacement(point);
+    }
+
+    prepareGhostDragFromPlacement(startPoint) {
+        const placement = this.pendingSchedulePlacement;
+        if (!placement) {
+            return;
+        }
+
+        const startLocal = placement.startIso
+            ? this.convertUtcToUserLocal(placement.startIso)
+            : null;
+        const endLocal = placement.endIso
+            ? this.convertUtcToUserLocal(placement.endIso)
+            : null;
+
+        const durationHours = placement.durationHours
+            ? placement.durationHours
+            : this.computeDurationHours(startLocal, endLocal);
+
+        const dayIndex =
+            placement.dayIndex != null
+                ? placement.dayIndex
+                : this.resolveDayIndexFromDate(startLocal);
+
+        if (dayIndex == null) {
+            return;
+        }
+
+        this.dragMode = placement.type === 'event' ? 'event' : 'wo';
+        this.dragRequiresExplicitConfirmation = true;
+        this.dragStartDayIndex = dayIndex;
+        this.dragCurrentDayIndex = dayIndex;
+        this.dragStartLocal = startLocal;
+        this.dragStartEndLocal = endLocal;
+        this.dragPreviewLocal = startLocal;
+        this.dragPreviewDurationHours = durationHours;
+        this.dragDurationHours = durationHours;
+        this.dragStartClientX = startPoint.clientX;
+        this.dragStartClientY = startPoint.clientY;
+        this.dragHasMoved = false;
+        this.isAwaitingScheduleConfirmation = true;
+
+        if (placement.type === 'event') {
+            this.draggingEventId = placement.appointmentId;
+            this.draggingWorkOrderId = null;
+        } else {
+            this.draggingWorkOrderId = placement.workOrderId;
+            this.draggingEventId = null;
+        }
+
+        const dayEl = this.template.querySelector(
+            `.sfs-calendar-day[data-day-index="${dayIndex}"]`
+        );
+        const bodyEl = dayEl
+            ? dayEl.querySelector('.sfs-calendar-day-body')
+            : null;
+        const dayRect = dayEl ? dayEl.getBoundingClientRect() : null;
+        const bodyRect = bodyEl ? bodyEl.getBoundingClientRect() : null;
+
+        if (dayRect && bodyRect) {
+            this.dragDayBodyHeight = bodyRect.height || this.dragDayBodyHeight;
+            this.dragDayBodyTop = bodyRect.top;
+            this.dragDayWidth = dayRect.width || this.dragDayWidth;
+        }
+
+        this.registerGlobalDragListeners();
+    }
+
+    scrollCardIntoView(cardId) {
+        if (!cardId) {
+            return;
+        }
+
+        const cardSelector = `.sfs-card[data-card-id="${cardId}"]`;
+        const cardEl = this.template.querySelector(cardSelector);
+
+        if (cardEl && typeof cardEl.scrollIntoView === 'function') {
+            cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
     }
 
     cachePendingSchedulePlacement(placement) {
@@ -2598,6 +2941,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.pendingSchedulePlacement = null;
         this.stopAutoScrollLoop();
         this.unregisterGlobalDragListeners();
+        this.detachGhostAnchorUpdater();
         this.updateSelectedEventStyles();
 
         if (this._trayOpenBeforeDrag) {

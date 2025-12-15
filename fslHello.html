@@ -933,7 +933,11 @@
 
                 <!-- Floating ghost for drag preview (clone of the event) -->
                 <template if:true={isDragGhostVisible}>
-                    <div class={dragGhostWrapperClass} style={dragGhostStyle}>
+                    <div
+                        class={dragGhostWrapperClass}
+                        style={dragGhostStyle}
+                        onpointerdown={handleGhostPointerDown}
+                    >
                         <div class={dragGhostClass}>
                             <div class="sfs-calendar-event-title">
                                 {dragGhostTitle}
