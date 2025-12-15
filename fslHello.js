@@ -2842,14 +2842,23 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 ? this.formatTimeRange(startLocal, endLocal)
                 : this.dragGhostTime;
 
-        const offsetWithinGhost =
-            point.clientY - (this.dragGhostAnchoredToCalendar
-                ? this.dragGhostY + (this.getGhostAnchorRect()?.top || 0)
-                : this.dragGhostY);
+        const ghostRect =
+            event.currentTarget &&
+            typeof event.currentTarget.getBoundingClientRect === 'function'
+                ? event.currentTarget.getBoundingClientRect()
+                : null;
+
+        const offsetWithinGhost = ghostRect
+            ? point.clientY - ghostRect.top
+            : point.clientY - (this.dragGhostAnchoredToCalendar
+                  ? this.dragGhostY + (this.getGhostAnchorRect()?.top || 0)
+                  : this.dragGhostY);
+
+        const ghostHeight = ghostRect?.height || this.dragGhostHeight;
 
         this.dragGhostPointerOffsetY = Math.min(
             Math.max(offsetWithinGhost, 0),
-            this.dragGhostHeight
+            ghostHeight
         );
 
         this.showDragGhost(
