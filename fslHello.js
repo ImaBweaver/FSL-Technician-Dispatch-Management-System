@@ -2797,6 +2797,122 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
     }
 
+    cachePendingSchedulePlacement(placement) {
+        if (!placement) {
+            return;
+        }
+
+        this.pendingSchedulePlacement = placement;
+        this.isAwaitingScheduleConfirmation = true;
+    }
+
+    freezeGhostForConfirmation() {
+        this.stopAutoScrollLoop();
+        this.unregisterGlobalDragListeners();
+        this.dragMode = null;
+        this.dragStartClientX = null;
+        this.dragStartClientY = null;
+        this.dragHasMoved = false;
+        this.showTrayCancelZone = false;
+        this.isHoveringCancelZone = false;
+    }
+
+    confirmPendingSchedule() {
+        const placement = this.pendingSchedulePlacement;
+        if (!placement) {
+            return;
+        }
+
+        this.pendingSchedulePlacement = null;
+        this.isAwaitingScheduleConfirmation = false;
+        this.dragRequiresExplicitConfirmation = false;
+
+        if (placement.type === 'event') {
+            const id = placement.appointmentId;
+            if (!id || !placement.startIso) {
+                this.resetDragState();
+                return;
+            }
+
+            this.appointments = this.appointments.map(a => {
+                if (a.appointmentId === id) {
+                    return {
+                        ...a,
+                        newStart: placement.startIso,
+                        disableSave: false
+                    };
+                }
+                return a;
+            });
+
+            if (
+                this.selectedAppointment &&
+                this.selectedAppointment.appointmentId === id
+            ) {
+                this.selectedAppointment = {
+                    ...this.selectedAppointment,
+                    newStart: placement.startIso,
+                    disableSave: false
+                };
+            }
+
+            this.resetDragState();
+            this.handleReschedule({ target: { dataset: { id } } });
+            this.schedulePreviewCardId = null;
+            this.schedulePreviewListMode = null;
+            return;
+        }
+
+        if (placement.type === 'wo') {
+            const { workOrderId, startIso, endIso } = placement;
+            if (!workOrderId || !startIso || !endIso) {
+                this.resetDragState();
+                return;
+            }
+
+            this.resetDragState();
+            this.createAppointmentFromWorkOrder(workOrderId, startIso, endIso);
+            this.schedulePreviewCardId = null;
+            this.schedulePreviewListMode = null;
+        }
+    }
+
+    cancelPendingSchedule() {
+        const cardId = this.schedulePreviewCardId;
+        const listMode = this.schedulePreviewListMode;
+
+        this.pendingSchedulePlacement = null;
+        this.isAwaitingScheduleConfirmation = false;
+        this.dragRequiresExplicitConfirmation = false;
+        this.resetDragState();
+
+        if (listMode) {
+            this.listMode = listMode;
+        }
+
+        this.updateActiveTabState('list');
+
+        if (cardId) {
+            this.safeSetTimeout(() => this.scrollCardIntoView(cardId), 50);
+        }
+
+        this.schedulePreviewCardId = null;
+        this.schedulePreviewListMode = null;
+    }
+
+    scrollCardIntoView(cardId) {
+        if (!cardId) {
+            return;
+        }
+
+        const cardSelector = `.sfs-card[data-card-id="${cardId}"]`;
+        const cardEl = this.template.querySelector(cardSelector);
+
+        if (cardEl && typeof cardEl.scrollIntoView === 'function') {
+            cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
     resetDragState() {
         this.dragMode = null;
         this.draggingEventId = null;
