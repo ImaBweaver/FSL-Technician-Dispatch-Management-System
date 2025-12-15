@@ -287,8 +287,31 @@
 /* keep the lightning-input nicely contained */
 .sfs-input-block lightning-input {
     display: block;
-    width: calc(100% - 30px);
-    margin: 0 auto;
+    width: 100%;
+    margin: 0;
+}
+
+.sfs-compact-button {
+    --slds-c-button-font-size: 0.85rem;
+    --slds-c-button-line-height: 1.65rem;
+    --slds-c-button-brand-spacing-inline-start: 0.6rem;
+    --slds-c-button-brand-spacing-inline-end: 0.6rem;
+    --slds-c-button-neutral-spacing-inline-start: 0.6rem;
+    --slds-c-button-neutral-spacing-inline-end: 0.6rem;
+}
+
+.sfs-quick-schedule__actions-inline {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    margin-top: 0.45rem;
+}
+
+.sfs-quick-schedule__input {
+    margin-top: 0.25rem;
+}
+
+.sfs-quick-schedule__footer {
+    justify-content: flex-start;
 }
 
 .sfs-quote-bar {
@@ -331,7 +354,14 @@
 .sfs-actions {
     display: flex;
     justify-content: flex-end;
+    gap: 0.5rem;
     margin-top: 0.5rem;
+}
+
+.sfs-option-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 0.4rem;
 }
 
 .sfs-reschedule-actions {
@@ -340,7 +370,8 @@
 }
 
 .sfs-schedule-actions {
-    justify-content: flex-end;
+    justify-content: flex-start;
+    flex-wrap: wrap;
 }
 
 .sfs-transfer-request-btn {
@@ -348,6 +379,22 @@
     --slds-c-button-destructive-text-line-height: 1.6rem;
     --slds-c-button-destructive-text-spacing-inline-start: 0.35rem;
     --slds-c-button-destructive-text-spacing-inline-end: 0.35rem;
+}
+
+.sfs-option-button {
+    --slds-c-button-radius-border: 999px;
+    --slds-c-button-font-size: 0.82rem;
+    --slds-c-button-line-height: 1.5rem;
+    --slds-c-button-spacing-inline-start: 0.65rem;
+    --slds-c-button-spacing-inline-end: 0.65rem;
+    --slds-c-button-neutral-color-border: #d8dde6;
+    --slds-c-button-neutral-color-background: #ffffff;
+    --slds-c-button-brand-line-height: 1.5rem;
+    --slds-c-button-brand-spacing-inline-start: 0.65rem;
+    --slds-c-button-brand-spacing-inline-end: 0.65rem;
+    --slds-c-button-destructive-text-line-height: 1.5rem;
+    --slds-c-button-destructive-text-spacing-inline-start: 0.65rem;
+    --slds-c-button-destructive-text-spacing-inline-end: 0.65rem;
 }
 
 @media (max-width: 540px) {
@@ -1165,7 +1212,7 @@
     width: 100%;
     text-align: left;
     padding: 0;
-    margin: 0 0 0.35rem 0;
+    margin: 0;
     border: none;
     background: transparent;
     font-size: 0.9rem;
@@ -1189,6 +1236,31 @@
 
 .sfs-subject-btn:hover {
     text-decoration: underline;
+}
+
+
+.sfs-subject-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    column-gap: 0.35rem;
+    margin-bottom: 0.25rem;
+}
+
+.sfs-info-button lightning-icon {
+    fill: #1b96ff;
+}
+
+.sfs-info-button {
+    --slds-c-icon-color-foreground-default: #1b96ff;
+    --slds-c-icon-color-foreground: #1b96ff;
+    --slds-c-button-color-border: transparent;
+    --slds-c-button-icon-spacing-inline-start: 0;
+    --slds-c-button-icon-spacing-inline-end: 0;
+    --slds-c-button-size: auto;
+    padding: 0;
+    margin: 0;
+    min-height: auto;
 }
 
 .sfs-line_address .sfs-label {
