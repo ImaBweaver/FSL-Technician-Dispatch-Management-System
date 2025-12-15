@@ -563,14 +563,35 @@
                                             </template>
 
                                             <template if:true={appt.showScheduleOnCalendar}>
-                                                <div class="sfs-actions sfs-schedule-actions">
-                                                    <lightning-button
-                                                        variant="brand"
-                                                        label="Schedule on Calendar"
-                                                        data-id={appt.cardId}
-                                                        onclick={handleScheduleOnCalendar}
-                                                    >
-                                                    </lightning-button>
+                                                <div class="sfs-quick-schedule">
+                                                    <div class="sfs-input-block">
+                                                        <lightning-input
+                                                            type="datetime-local"
+                                                            name="quickScheduleStart"
+                                                            label="Schedule Date/Time"
+                                                            value={appt.quickScheduleStart}
+                                                            data-id={appt.cardId}
+                                                            onchange={handleQuickScheduleChange}
+                                                        >
+                                                        </lightning-input>
+                                                    </div>
+
+                                                    <div class="sfs-actions sfs-schedule-actions">
+                                                        <lightning-button
+                                                            variant="brand"
+                                                            label="Schedule"
+                                                            data-id={appt.cardId}
+                                                            onclick={handleQuickSchedule}
+                                                        >
+                                                        </lightning-button>
+                                                        <lightning-button
+                                                            variant="brand"
+                                                            label="Schedule on Calendar"
+                                                            data-id={appt.cardId}
+                                                            onclick={handleScheduleOnCalendar}
+                                                        >
+                                                        </lightning-button>
+                                                    </div>
                                                 </div>
                                             </template>
 
