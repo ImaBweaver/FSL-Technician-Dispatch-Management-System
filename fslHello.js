@@ -138,6 +138,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     dragGhostVisible = false;
     dragGhostX = 0;
     dragGhostY = 0;
+    dragGhostAnchoredToCalendar = false;
     dragGhostWidth = 0;
     dragGhostHeight = 0;
     dragGhostTitle = '';
@@ -391,7 +392,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     // Position + size of the floating event
     get dragGhostStyle() {
-        return `top:${this.dragGhostY}px;left:${this.dragGhostX}px;width:${this.dragGhostWidth}px;height:${this.dragGhostHeight}px;transform:translateX(-50%);`;
+        const position = this.dragGhostAnchoredToCalendar ? 'absolute' : 'fixed';
+        return `${position === 'absolute' ? 'position:absolute;' : ''}top:${this.dragGhostY}px;left:${this.dragGhostX}px;width:${this.dragGhostWidth}px;height:${this.dragGhostHeight}px;transform:translateX(-50%);`;
     }
 
     get dragGhostWrapperClass() {
@@ -1909,10 +1911,20 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     }
 
-    showDragGhost(x, y, title, timeLabel, typeClass, width, height) {
+    showDragGhost(
+        x,
+        y,
+        title,
+        timeLabel,
+        typeClass,
+        width,
+        height,
+        anchoredToCalendar = false
+    ) {
         this.dragGhostVisible = true;
         this.dragGhostX = x;
         this.dragGhostY = y;
+        this.dragGhostAnchoredToCalendar = anchoredToCalendar;
         this.dragGhostTitle = title || '';
         this.dragGhostTime = timeLabel || '';
         this.dragGhostTypeClass = typeClass || '';
@@ -1922,6 +1934,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     hideDragGhost() {
         this.dragGhostVisible = false;
+        this.dragGhostAnchoredToCalendar = false;
         this.dragGhostTitle = '';
         this.dragGhostTime = '';
         this.dragGhostTypeClass = '';
@@ -2633,6 +2646,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
+        const calendarEl = this.template.querySelector('.sfs-calendar');
         const dayEl = this.template.querySelector(
             `.sfs-calendar-day[data-day-index="${targetDayIndex}"]`
         );
@@ -2640,10 +2654,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             ? dayEl.querySelector('.sfs-calendar-day-body')
             : null;
 
-        if (!dayEl || !dayBodyEl || !startLocal || !endLocal) {
+        if (!dayEl || !dayBodyEl || !startLocal || !endLocal || !calendarEl) {
             return;
         }
 
+        const calendarRect = calendarEl.getBoundingClientRect();
         const dayRect = dayEl.getBoundingClientRect();
         const bodyRect = dayBodyEl.getBoundingClientRect();
         const totalHours = this.calendarEndHour - this.calendarStartHour;
@@ -2665,8 +2680,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const yWithinBody = topRatio * bodyHeight;
         const ghostHeight = (ghostDuration / totalHours) * bodyHeight;
 
-        const ghostX = dayRect.left + dayRect.width / 2;
-        const ghostY = bodyRect.top + yWithinBody;
+        const ghostX = dayRect.left - calendarRect.left + dayRect.width / 2;
+        const ghostY = bodyRect.top - calendarRect.top + yWithinBody;
 
         this.showDragGhost(
             ghostX,
@@ -2675,7 +2690,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             this.formatTimeRange(startLocal, endLocal),
             typeClass || this.dragGhostTypeClass,
             this.dragGhostWidth,
-            ghostHeight || this.dragGhostHeight
+            ghostHeight || this.dragGhostHeight,
+            true
         );
     }
 
@@ -2704,6 +2720,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         // cleared, as long as a pending placement exists.
         const placement = this.pendingSchedulePlacement;
         if (!placement) {
+            return;
         }
 
         const point = this.getClientPoint(event);
