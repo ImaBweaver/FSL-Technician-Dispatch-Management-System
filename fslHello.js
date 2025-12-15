@@ -4173,6 +4173,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.listMode = mode;
     }
 
+    handleCompactToggle(event) {
+        this.isCompactListView = Boolean(event?.detail?.checked);
+    }
+
     handleQuoteAttachmentClick(event) {
         event.preventDefault();
 
@@ -6072,4 +6076,4 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         );
     }
 }
-}
+
