@@ -92,7 +92,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     defaultWorkOrderDurationHours = 6;
     quickScheduleSelections = {};
     quickScheduleExpanded = {};
-    isCompactListView = false;
     showTrayCancelZone = false;
     isHoveringCancelZone = false;
     dragRequiresExplicitConfirmation = true;
@@ -713,9 +712,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 quickScheduleLabel: isQuickScheduleExpanded
                     ? 'Hide quick schedule'
                     : 'Quick schedule',
-                cardClass: this.isCompactListView
-                    ? 'sfs-card sfs-card_compact'
-                    : 'sfs-card'
+                cardClass: 'sfs-card'
             };
         });
     }
@@ -6079,4 +6076,4 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         );
     }
 }
-}
+
