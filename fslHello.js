@@ -90,6 +90,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     dragHasMoved = false;
     dragGhostPointerOffsetY = 0;
     defaultWorkOrderDurationHours = 6;
+    quickScheduleSelections = {};
+    quickScheduleExpanded = {};
+    collapsedDayGroups = {};
     showTrayCancelZone = false;
     isHoveringCancelZone = false;
     dragRequiresExplicitConfirmation = true;
@@ -697,10 +700,121 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const allowScheduleOnCalendar =
             this.listMode === 'unscheduled' || this.listMode === 'partsReady';
 
-        return baseList.map(item => ({
-            ...item,
-            showScheduleOnCalendar: allowScheduleOnCalendar
-        }));
+        return baseList.map(item => {
+            const isQuickScheduleExpanded = Boolean(
+                this.quickScheduleExpanded[item.cardId]
+            );
+
+            return {
+                ...item,
+                showScheduleOnCalendar: allowScheduleOnCalendar,
+                quickScheduleStart: this.quickScheduleSelections[item.cardId] || '',
+                quickScheduleExpanded: isQuickScheduleExpanded,
+                quickScheduleLabel: isQuickScheduleExpanded
+                    ? 'Hide quick schedule'
+                    : 'Quick schedule',
+                cardClass: 'sfs-card'
+            };
+        });
+    }
+
+    get appointmentGroups() {
+        const groups = new Map();
+        const appointments = this.visibleAppointments || [];
+
+        appointments.forEach(appt => {
+            const groupInfo = this.getAppointmentGroup(appt);
+            const existing = groups.get(groupInfo.key);
+            const nextGroup = existing || {
+                ...groupInfo,
+                appointments: []
+            };
+
+            nextGroup.appointments.push(appt);
+            groups.set(groupInfo.key, nextGroup);
+        });
+
+        return Array.from(groups.values())
+            .sort((a, b) => {
+                const aValue = Number.isFinite(a.sortValue)
+                    ? a.sortValue
+                    : Number.POSITIVE_INFINITY;
+                const bValue = Number.isFinite(b.sortValue)
+                    ? b.sortValue
+                    : Number.POSITIVE_INFINITY;
+
+                if (aValue === bValue) {
+                    return a.label.localeCompare(b.label);
+                }
+
+                return aValue - bValue;
+            })
+            .map(group => {
+                const isCollapsed = Boolean(this.collapsedDayGroups[group.key]);
+
+                return {
+                    ...group,
+                    count: group.appointments.length,
+                    isCollapsed,
+                    toggleIcon: isCollapsed
+                        ? 'utility:chevrondown'
+                        : 'utility:chevronup',
+                    toggleLabel: isCollapsed ? 'Expand' : 'Collapse'
+                };
+            });
+    }
+
+    getAppointmentGroup(appt) {
+        const startDate = appt.schedStart ? new Date(appt.schedStart) : null;
+        const hasValidStart = startDate && !Number.isNaN(startDate.getTime());
+
+        if (!hasValidStart) {
+            return {
+                key: 'no-date',
+                label: 'No scheduled date',
+                sortValue: Number.POSITIVE_INFINITY
+            };
+        }
+
+        const today = new Date();
+        const tomorrow = new Date();
+        tomorrow.setDate(today.getDate() + 1);
+
+        const groupKey = this.getLocalDateId(startDate);
+        const todayKey = this.getLocalDateId(today);
+        const tomorrowKey = this.getLocalDateId(tomorrow);
+
+        let label = startDate.toLocaleDateString(undefined, {
+            weekday: 'long',
+            month: 'short',
+            day: 'numeric'
+        });
+
+        if (groupKey === todayKey) {
+            label = 'Today';
+        } else if (groupKey === tomorrowKey) {
+            label = 'Tomorrow';
+        }
+
+        const sortValue = new Date(
+            startDate.getFullYear(),
+            startDate.getMonth(),
+            startDate.getDate()
+        ).getTime();
+
+        return {
+            key: groupKey,
+            label,
+            sortValue
+        };
+    }
+
+    getLocalDateId(date) {
+        return [
+            date.getFullYear(),
+            String(date.getMonth() + 1).padStart(2, '0'),
+            String(date.getDate()).padStart(2, '0')
+        ].join('-');
     }
 
     isQuoteStatus(status) {
@@ -4157,6 +4271,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
         this.listMode = mode;
+        this.collapsedDayGroups = {};
+    }
+
+    handleCompactToggle(event) {
+        this.isCompactListView = Boolean(event?.detail?.checked);
     }
 
     handleQuoteAttachmentClick(event) {
@@ -4426,6 +4545,19 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         });
     }
 
+    handleToggleGroup(event) {
+        const { groupKey } = event.currentTarget.dataset;
+
+        if (!groupKey) {
+            return;
+        }
+
+        this.collapsedDayGroups = {
+            ...this.collapsedDayGroups,
+            [groupKey]: !this.collapsedDayGroups[groupKey]
+        };
+    }
+
     handleRefresh() {
         this.checkOnline();
         if (this.isOffline) {
@@ -4481,41 +4613,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
-        this.checkOnline();
-        if (this.isOffline) {
-            this.showToast(
-                'Offline',
-                'You must be online to reschedule an appointment.',
-                'warning'
-            );
-            return;
-        }
-
-        this.isLoading = true;
-
-        rescheduleAppointment({ appointmentId: id, newStart: appt.newStart })
-            .then(() => {
-                this.showToast(
-                    'Appointment updated',
-                    'The appointment has been rescheduled.',
-                    'success'
-                );
-                return this.loadAppointments();
-            })
-            .then(() => {
-                this.handleCalendarToday();
-            })
-            .catch(error => {
-                const message = this.reduceError(error);
-                this.debugInfo = {
-                    note: 'Error calling rescheduleAppointment',
-                    errorMessage: message
-                };
-                this.showToast('Error updating appointment', message, 'error');
-            })
-            .finally(() => {
-                this.isLoading = false;
-            });
+        this.rescheduleExistingAppointment(id, appt.newStart);
     }
 
     handleScheduleOnCalendar(event) {
@@ -4541,6 +4639,95 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.dragRequiresExplicitConfirmation = true;
 
         this.startScheduleOnCalendar(target);
+    }
+
+    handleToggleQuickSchedulePanel(event) {
+        const cardId = event?.currentTarget?.dataset?.id;
+
+        if (!cardId) {
+            return;
+        }
+
+        const isExpanded = Boolean(this.quickScheduleExpanded[cardId]);
+        this.quickScheduleExpanded = {
+            ...this.quickScheduleExpanded,
+            [cardId]: !isExpanded
+        };
+    }
+
+    handleQuickScheduleChange(event) {
+        const cardId = event.target.dataset.id;
+        const value = event.target.value;
+
+        if (!cardId) {
+            return;
+        }
+
+        this.quickScheduleSelections = {
+            ...this.quickScheduleSelections,
+            [cardId]: value
+        };
+    }
+
+    handleQuickSchedule(event) {
+        const cardId =
+            event && event.currentTarget && event.currentTarget.dataset
+                ? event.currentTarget.dataset.id
+                : null;
+
+        if (!cardId) {
+            return;
+        }
+
+        const startValue = this.quickScheduleSelections[cardId];
+
+        if (!startValue) {
+            this.showToast(
+                'Pick a date and time',
+                'Select a start date and time before scheduling.',
+                'warning'
+            );
+            return;
+        }
+
+        const startDate = new Date(startValue);
+
+        if (Number.isNaN(startDate.getTime())) {
+            this.showToast(
+                'Invalid date/time',
+                'Enter a valid start date and time before scheduling.',
+                'error'
+            );
+            return;
+        }
+
+        const target = this.findAppointmentByCardId(cardId);
+
+        if (!target) {
+            return;
+        }
+
+        const durationHours =
+            target.durationHours || this.defaultWorkOrderDurationHours || 1;
+        const endDate = new Date(
+            startDate.getTime() + durationHours * 60 * 60 * 1000
+        );
+
+        if (target.hasAppointment && target.appointmentId) {
+            this.rescheduleExistingAppointment(
+                target.appointmentId,
+                startValue
+            );
+            return;
+        }
+
+        if (target.workOrderId) {
+            this.createAppointmentFromWorkOrder(
+                target.workOrderId,
+                startDate.toISOString(),
+                endDate.toISOString()
+            );
+        }
     }
 
     startScheduleOnCalendar(target) {
@@ -5480,6 +5667,48 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             });
     }
 
+    rescheduleExistingAppointment(appointmentId, newStart) {
+        if (!appointmentId || !newStart) {
+            return;
+        }
+
+        this.checkOnline();
+        if (this.isOffline) {
+            this.showToast(
+                'Offline',
+                'You must be online to reschedule an appointment.',
+                'warning'
+            );
+            return;
+        }
+
+        this.isLoading = true;
+
+        rescheduleAppointment({ appointmentId, newStart })
+            .then(() => {
+                this.showToast(
+                    'Appointment updated',
+                    'The appointment has been rescheduled.',
+                    'success'
+                );
+                return this.loadAppointments();
+            })
+            .then(() => {
+                this.handleCalendarToday();
+            })
+            .catch(error => {
+                const message = this.reduceError(error);
+                this.debugInfo = {
+                    note: 'Error calling rescheduleAppointment',
+                    errorMessage: message
+                };
+                this.showToast('Error updating appointment', message, 'error');
+            })
+            .finally(() => {
+                this.isLoading = false;
+            });
+    }
+
     handleUnassignClick(event) {
         event.stopPropagation();
         const id = event.currentTarget.dataset.id;
@@ -5960,5 +6189,4 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             })
         );
     }
-}
 }
