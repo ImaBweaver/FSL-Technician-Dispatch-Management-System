@@ -2700,10 +2700,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
-        if (
-            !this.isAwaitingScheduleConfirmation ||
-            !this.pendingSchedulePlacement
-        ) {
+        // Allow re-grabbing the scheduling ghost even if the awaiting flag was
+        // cleared, as long as a pending placement exists.
+        if (!this.pendingSchedulePlacement) {
             return;
         }
 
@@ -2804,6 +2803,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         this.pendingSchedulePlacement = placement;
         this.isAwaitingScheduleConfirmation = true;
+        this.updateGhostFromPlacement();
+        this.attachGhostAnchorUpdater();
     }
 
     freezeGhostForConfirmation() {
@@ -2815,6 +2816,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.dragHasMoved = false;
         this.showTrayCancelZone = false;
         this.isHoveringCancelZone = false;
+        this.updateGhostFromPlacement();
     }
 
     confirmPendingSchedule() {
@@ -2884,6 +2886,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.pendingSchedulePlacement = null;
         this.isAwaitingScheduleConfirmation = false;
         this.dragRequiresExplicitConfirmation = false;
+        this.detachGhostAnchorUpdater();
         this.resetDragState();
 
         if (listMode) {
