@@ -635,7 +635,7 @@
 
 /* TIMELINE MODE - CAROUSEL */
 
-.sfs-calendar {
+.sfs-calendar {  
     display: flex;
     margin-top: 0.25rem;
     position: relative; /* needed so now-line positions correctly */
@@ -652,6 +652,9 @@
     padding-bottom: 0.5rem;
     padding-right: 0.25rem;
     color: #706e6b;
+    position: relative;
+    z-index: 5; /* sit above anchored ghosts while panning */
+    background: #f3f2f2;
 }
 
 .sfs-calendar-hour-label {
@@ -873,6 +876,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
+    position: relative;
 }
 
 .sfs-week-row {
@@ -1583,6 +1587,10 @@
     position: fixed;
     z-index: 99999;
     pointer-events: none;
+}
+
+.sfs-drag-ghost_anchored {
+    z-index: 3; /* below headers/hours but above calendar events */
 }
 
 .sfs-drag-ghost_interactive {
