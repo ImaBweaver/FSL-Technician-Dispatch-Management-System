@@ -2704,7 +2704,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         // cleared, as long as a pending placement exists.
         const placement = this.pendingSchedulePlacement;
         if (!placement) {
-            return;
         }
 
         const point = this.getClientPoint(event);
