@@ -288,7 +288,30 @@
 .sfs-input-block lightning-input {
     display: block;
     width: 100%;
-    margin: 0 auto;
+    margin: 0;
+}
+
+.sfs-compact-button {
+    --slds-c-button-font-size: 0.85rem;
+    --slds-c-button-line-height: 1.65rem;
+    --slds-c-button-brand-spacing-inline-start: 0.6rem;
+    --slds-c-button-brand-spacing-inline-end: 0.6rem;
+    --slds-c-button-neutral-spacing-inline-start: 0.6rem;
+    --slds-c-button-neutral-spacing-inline-end: 0.6rem;
+}
+
+.sfs-quick-schedule__actions-inline {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    margin-top: 0.45rem;
+}
+
+.sfs-quick-schedule__input {
+    margin-top: 0.25rem;
+}
+
+.sfs-quick-schedule__footer {
+    justify-content: flex-start;
 }
 
 .sfs-quick-schedule {
