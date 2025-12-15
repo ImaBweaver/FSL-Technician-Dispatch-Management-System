@@ -2842,15 +2842,70 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 ? this.formatTimeRange(startLocal, endLocal)
                 : this.dragGhostTime;
 
-        const offsetWithinGhost =
-            point.clientY - (this.dragGhostAnchoredToCalendar
-                ? this.dragGhostY + (this.getGhostAnchorRect()?.top || 0)
-                : this.dragGhostY);
+        // Prefer deriving the pointer offset from the calendar geometry so the
+        // ghost aligns with the actual timeslot, even if CSS transforms or
+        // anchoring apply to the ghost element itself.
+        let offsetWithinGhost = null;
+        let ghostHeight = this.dragGhostHeight;
 
-        this.dragGhostPointerOffsetY = Math.min(
-            Math.max(offsetWithinGhost, 0),
-            this.dragGhostHeight
+        const dayEl = this.template.querySelector(
+            `.sfs-calendar-day[data-day-index="${placement.dayIndex}"]`
         );
+        const bodyEl = dayEl
+            ? dayEl.querySelector('.sfs-calendar-day-body')
+            : null;
+        const bodyRect = bodyEl
+            ? bodyEl.getBoundingClientRect()
+            : null;
+
+        if (startLocal && bodyRect) {
+            const totalHours = this.calendarEndHour - this.calendarStartHour;
+            const startHourFraction =
+                startLocal.getHours() + startLocal.getMinutes() / 60;
+            const clampedHour = Math.min(
+                Math.max(startHourFraction, this.calendarStartHour),
+                this.calendarEndHour
+            );
+            const yWithinBody =
+                ((clampedHour - this.calendarStartHour) / totalHours) *
+                (bodyRect.height || 1);
+
+            // Offset between the pointer and the top of the ghost's intended
+            // placement within the calendar column.
+            offsetWithinGhost = point.clientY - (bodyRect.top + yWithinBody);
+            this.dragDayBodyTop = bodyRect.top;
+            this.dragDayBodyHeight = bodyRect.height || this.dragDayBodyHeight;
+            ghostHeight =
+                ((placement.durationHours || this.dragGhostHeight) /
+                    totalHours) *
+                (bodyRect.height || 1);
+
+            // Keep the ghost sizing in sync with the measured column so the
+            // offset math remains accurate during drag.
+            this.dragGhostHeight = ghostHeight;
+        }
+
+        if (offsetWithinGhost == null) {
+            const ghostRect =
+                event.currentTarget &&
+                typeof event.currentTarget.getBoundingClientRect === 'function'
+                    ? event.currentTarget.getBoundingClientRect()
+                    : null;
+
+            offsetWithinGhost = ghostRect
+                ? point.clientY - ghostRect.top
+                : point.clientY - (this.dragGhostAnchoredToCalendar
+                      ? this.dragGhostY + (this.getGhostAnchorRect()?.top || 0)
+                      : this.dragGhostY);
+
+            ghostHeight = ghostRect?.height || this.dragGhostHeight;
+        }
+
+        // Do not clamp to the ghost height; retaining the exact offset from
+        // the intended start keeps the top edge aligned with the displayed
+        // time while dragging, even if the measured height differs from the
+        // rendered element.
+        this.dragGhostPointerOffsetY = Math.max(offsetWithinGhost, 0);
 
         this.showDragGhost(
             point.clientX,
@@ -3065,6 +3120,25 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     resetDragState() {
+        // When a pending placement is waiting for explicit confirmation, keep the
+        // ghost visible and anchored so it can only be dismissed via the
+        // confirmation controls. Other gestures (like panning the calendar)
+        // should stop any active drag interactions without clearing the ghost.
+        if (this.pendingSchedulePlacement && this.isAwaitingScheduleConfirmation) {
+            this.stopAutoScrollLoop();
+            this.unregisterGlobalDragListeners();
+            this.dragMode = null;
+            this.dragStartClientX = null;
+            this.dragStartClientY = null;
+            this.dragHasMoved = false;
+            this.showTrayCancelZone = false;
+            this.isHoveringCancelZone = false;
+            this.isPressingForDrag = false;
+            this._pendingDrag = null;
+            this.clearLongPressTimer();
+            return;
+        }
+
         this.dragMode = null;
         this.draggingEventId = null;
         this.draggingWorkOrderId = null;
