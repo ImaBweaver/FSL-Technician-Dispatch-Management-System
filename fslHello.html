@@ -960,7 +960,9 @@
                                 </button>
                             </div>
                         </template>
-                        <div class="sfs-drag-ghost__hint">{dragHelperText}</div>
+                        <template if:true={dragHelperText}>
+                            <div class="sfs-drag-ghost__hint">{dragHelperText}</div>
+                        </template>
                     </div>
                 </template>
 

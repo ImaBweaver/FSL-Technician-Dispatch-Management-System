@@ -411,7 +411,14 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return 'Tap ✓ to schedule or ✕ to cancel';
         }
 
-        return 'Keep holding to auto-scroll';
+        return '';
+    }
+
+    get showDragConfirmActions() {
+        return (
+            (this.dragRequiresExplicitConfirmation && this.dragGhostVisible) ||
+            (this.isAwaitingScheduleConfirmation && !!this.pendingSchedulePlacement)
+        );
     }
 
     get showDragConfirmActions() {
