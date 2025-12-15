@@ -266,7 +266,11 @@
                         <template if:true={hasVisibleAppointments}>
                             <div class="sfs-list">
                                 <template for:each={visibleAppointments} for:item="appt">
-                                    <article key={appt.cardId} class="sfs-card">
+                                    <article
+                                        key={appt.cardId}
+                                        class="sfs-card"
+                                        data-card-id={appt.cardId}
+                                    >
                                         <template if:true={appt.hasAppointment}>
                                             <button
                                                 class="sfs-unassign-btn"
@@ -553,6 +557,18 @@
                                                         data-id={appt.appointmentId}
                                                         onclick={handleRequestReschedule}
                                                         class="sfs-transfer-request-btn"
+                                                    >
+                                                    </lightning-button>
+                                                </div>
+                                            </template>
+
+                                            <template if:true={appt.showScheduleOnCalendar}>
+                                                <div class="sfs-actions sfs-schedule-actions">
+                                                    <lightning-button
+                                                        variant="brand"
+                                                        label="Schedule on Calendar"
+                                                        data-id={appt.cardId}
+                                                        onclick={handleScheduleOnCalendar}
                                                     >
                                                     </lightning-button>
                                                 </div>
@@ -917,7 +933,7 @@
 
                 <!-- Floating ghost for drag preview (clone of the event) -->
                 <template if:true={isDragGhostVisible}>
-                    <div class="sfs-drag-ghost" style={dragGhostStyle}>
+                    <div class={dragGhostWrapperClass} style={dragGhostStyle}>
                         <div class={dragGhostClass}>
                             <div class="sfs-calendar-event-title">
                                 {dragGhostTitle}
@@ -926,6 +942,24 @@
                                 {dragGhostTime}
                             </div>
                         </div>
+                        <template if:true={showDragConfirmActions}>
+                            <div class="sfs-drag-ghost__actions">
+                                <button
+                                    class="sfs-drag-ghost__action sfs-drag-ghost__action_confirm"
+                                    onclick={confirmPendingSchedule}
+                                    aria-label="Confirm schedule placement"
+                                >
+                                    ✓
+                                </button>
+                                <button
+                                    class="sfs-drag-ghost__action sfs-drag-ghost__action_cancel"
+                                    onclick={cancelPendingSchedule}
+                                    aria-label="Cancel schedule placement"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        </template>
                         <div class="sfs-drag-ghost__hint">{dragHelperText}</div>
                     </div>
                 </template>
