@@ -2809,11 +2809,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.pendingSchedulePlacement = null;
         this.isAwaitingScheduleConfirmation = false;
 
-        const startLocal = targetPlacement.startIso
-            ? this.convertUtcToUserLocal(targetPlacement.startIso)
+        const startLocal = placement.startIso
+            ? this.convertUtcToUserLocal(placement.startIso)
             : null;
-        const endLocal = targetPlacement.endIso
-            ? this.convertUtcToUserLocal(targetPlacement.endIso)
+        const endLocal = placement.endIso
+            ? this.convertUtcToUserLocal(placement.endIso)
             : null;
 
         const dragTimeLabel =
@@ -4371,6 +4371,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const shouldRequireExplicitConfirmation =
             this.dragRequiresExplicitConfirmation;
 
+        // When scheduling from the Unscheduled tab, place the ghost at a
+        // predictable default time (12 PM local) and keep it anchored so the
+        // user can pan the calendar without immediately entering drag mode.
+        const isUnscheduledWorkOrder = !target.hasAppointment;
+
         const dayIndex = this.resolveCalendarDayIndex(
             target.hasAppointment ? target.schedStart : null
         );
@@ -4385,6 +4390,42 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             : this.template.querySelector('.sfs-calendar-day-body');
 
         if (!dayEl || !dayBodyEl) {
+            return;
+        }
+
+        if (isUnscheduledWorkOrder) {
+            this.resetDragState();
+            this.dragRequiresExplicitConfirmation = shouldRequireExplicitConfirmation;
+
+            const placement = this.buildDefaultPlacementForWorkOrder(
+                target,
+                dayIndex
+            );
+
+            if (!placement) {
+                return;
+            }
+
+            const dayRect = dayEl.getBoundingClientRect();
+            const bodyRect = dayBodyEl.getBoundingClientRect();
+            const totalHours = this.calendarEndHour - this.calendarStartHour || 24;
+            const ghostHeight =
+                (placement.durationHours / totalHours) *
+                (bodyRect.height || dayBodyEl.clientHeight || 1);
+            const ghostWidth = (dayRect.width || 1) * 0.88;
+
+            const startLocal = this.convertUtcToUserLocal(placement.startIso);
+            const endLocal = this.convertUtcToUserLocal(placement.endIso);
+            const timeLabel = this.formatTimeRange(startLocal, endLocal);
+
+            this.dragGhostVisible = true;
+            this.dragGhostTitle = placement.title;
+            this.dragGhostTime = timeLabel;
+            this.dragGhostTypeClass = placement.typeClass;
+            this.dragGhostWidth = ghostWidth;
+            this.dragGhostHeight = ghostHeight;
+
+            this.cachePendingSchedulePlacement(placement);
             return;
         }
 
@@ -4481,6 +4522,52 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             dayBodyTop,
             dayWidth,
             title
+        };
+    }
+
+    buildDefaultPlacementForWorkOrder(workOrder, dayIndex) {
+        if (!workOrder || !workOrder.workOrderId) {
+            return null;
+        }
+
+        const day = this.calendarDays && this.calendarDays[dayIndex];
+        if (!day || !day.date) {
+            return null;
+        }
+
+        const durationHours = this.defaultWorkOrderDurationHours || 1;
+        const startLocal = new Date(day.date);
+
+        const preferredHour = 12;
+        const latestStartHour = Math.max(
+            this.calendarStartHour,
+            this.calendarEndHour - durationHours
+        );
+        const startHour = Math.max(
+            this.calendarStartHour,
+            Math.min(preferredHour, latestStartHour)
+        );
+
+        startLocal.setHours(startHour, 0, 0, 0);
+
+        const endLocal = new Date(startLocal);
+        endLocal.setHours(endLocal.getHours() + durationHours, 0, 0, 0);
+
+        return {
+            type: 'wo',
+            workOrderId: workOrder.workOrderId,
+            dayIndex,
+            startIso: this.toUserIsoString(startLocal),
+            endIso: this.toUserIsoString(endLocal),
+            durationHours,
+            title: workOrder.workOrderNumber
+                ? `${workOrder.workOrderNumber} — ${
+                      workOrder.workOrderSubject || workOrder.subject || 'New appointment'
+                  }`
+                : workOrder.workOrderSubject ||
+                  workOrder.subject ||
+                  'New appointment',
+            typeClass: 'sfs-event-default'
         };
     }
 
