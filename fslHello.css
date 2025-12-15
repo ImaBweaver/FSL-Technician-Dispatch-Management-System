@@ -339,6 +339,10 @@
     align-items: center;
 }
 
+.sfs-schedule-actions {
+    justify-content: flex-end;
+}
+
 .sfs-transfer-request-btn {
     --slds-c-button-destructive-text-font-size: 0.85rem;
     --slds-c-button-destructive-text-line-height: 1.6rem;
@@ -1581,18 +1585,25 @@
     pointer-events: none;
 }
 
+.sfs-drag-ghost_interactive {
+    pointer-events: auto;
+}
+
 .sfs-drag-ghost__hint {
     position: absolute;
-    top: -0.4rem;
-    right: -0.35rem;
+    bottom: -2.1rem;
+    left: 50%;
+    transform: translateX(-50%);
     background: rgba(0, 0, 0, 0.65);
     color: #f4f6f9;
-    padding: 0.2rem 0.55rem;
+    padding: 0.3rem 0.7rem;
     border-radius: 999px;
     font-size: 0.68rem;
     font-weight: 600;
     letter-spacing: 0.01em;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    pointer-events: none;
+    white-space: nowrap;
 }
 
 /* Ghost event inside floating wrapper - use full container size */
@@ -1604,6 +1615,39 @@
     height: 100%;
     opacity: 0.95;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+}
+
+.sfs-drag-ghost__actions {
+    position: absolute;
+    top: -0.55rem;
+    left: -0.55rem;
+    right: -0.55rem;
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+}
+
+.sfs-drag-ghost__action {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 0.95rem;
+    cursor: pointer;
+    pointer-events: auto;
+    display: grid;
+    place-items: center;
+}
+
+.sfs-drag-ghost__action_confirm {
+    background: #2e844a;
+}
+
+.sfs-drag-ghost__action_cancel {
+    background: #ba0517;
 }
 
 .sfs-unassign-btn {
