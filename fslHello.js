@@ -39,6 +39,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     @track transferRequests = [];
     @track submittedTransferRequests = [];
     pullTrayOpen = false;
+    pullTrayPeek = false;
+    _trayWasExpandedBeforeDrag = false;
+    _trayOpenBeforeDrag = false;
     isDesktopFormFactor = FORM_FACTOR === 'Large';
     activeTab = 'list';
     isCalendarTabActive = false;
@@ -118,6 +121,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     _boundGlobalPointerMove = null;
     _boundGlobalPointerEnd = null;
 
+    // Auto-scroll while dragging near viewport edges
+    _autoScrollPoint = null;
+    _autoScrollFrame = null;
+
     // Floating ghost under the finger
     // Floating ghost under the finger (clone of the event)
     dragGhostVisible = false;
@@ -131,6 +138,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     // 'timeline' or 'week'
     calendarMode = 'timeline';
+    isCalendarPanMode = false;
     // list sub-modes: 'my', 'needQuote', 'poRequested', 'quoteSent', 'quotes', 'quoteAttached', 'crew', 'partsReady', 'fulfilling'
     listMode = 'my';
 
@@ -202,9 +210,34 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     get calendarDaysWrapperClass() {
-        return this.isDragging
-            ? 'sfs-calendar-days-wrapper sfs-calendar-days-wrapper_dragging'
-            : 'sfs-calendar-days-wrapper';
+        const classes = ['sfs-calendar-days-wrapper'];
+
+        if (this.isCalendarPanMode) {
+            classes.push('sfs-calendar-days-wrapper_pan');
+        }
+
+        if (this.isDragging) {
+            classes.push('sfs-calendar-days-wrapper_dragging');
+        }
+
+        return classes.join(' ');
+    }
+
+    get calendarDaysClass() {
+        return this.isCalendarPanMode
+            ? 'sfs-calendar-days sfs-calendar-days_pan'
+            : 'sfs-calendar-days';
+    }
+
+    get calendarPanButtonClass() {
+        const base = 'sfs-calendar-pan-toggle';
+        return this.isCalendarPanMode
+            ? `${base} sfs-calendar-pan-toggle_active`
+            : base;
+    }
+
+    get calendarPanStateLabel() {
+        return this.isCalendarPanMode ? 'Panning' : 'Drag to move';
     }
 
     get trayCancelZoneClass() {
@@ -360,6 +393,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return this.dragGhostTypeClass
             ? `${base} ${this.dragGhostTypeClass}`
             : base;
+    }
+
+    get dragHelperText() {
+        return 'Keep holding to auto-scroll';
     }
 
 
@@ -530,6 +567,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }));
 
         const quoteWorkOrders = this.quoteWorkOrders;
+        const unscheduledWorkOrders = this.unscheduledListItems;
 
         switch (this.listMode) {
             case 'crew':
@@ -592,6 +630,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     );
                 break;
 
+            case 'unscheduled':
+                baseList = unscheduledWorkOrders;
+                break;
+
             case 'my':
             default: {
                 baseList = ownedAppointments;
@@ -650,6 +692,39 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 workTypeName: 'Work Order',
                 workTypeClass: 'sfs-worktype'
             }));
+    }
+
+    get unscheduledListItems() {
+        if (!this.unscheduledWorkOrders) {
+            return [];
+        }
+
+        return this.unscheduledWorkOrders.map(wo => {
+            const typeClass = this.getEventTypeClass(wo.workTypeName);
+            return {
+                ...wo,
+                cardId: wo.cardId || `wo-${wo.workOrderId}`,
+                workOrderId: wo.workOrderId,
+                workOrderSubject: wo.workOrderSubject || wo.subject,
+                workOrderStatus: wo.workOrderStatus || wo.status,
+                workOrderNumber: wo.workOrderNumber,
+                workTypeName: wo.workTypeName,
+                workTypeClass: `sfs-worktype ${typeClass || ''}`.trim(),
+                opportunityRecordType: wo.opportunityRecordType,
+                quoteAttachmentUrl: wo.quoteAttachmentDownloadUrl || null,
+                quoteAttachmentDocumentId: wo.quoteAttachmentDocumentId || null,
+                hasQuoteAttachment: Boolean(
+                    wo.hasQuoteAttachment ||
+                        wo.quoteAttachmentDownloadUrl ||
+                        wo.quoteAttachmentDocumentId
+                ),
+                showQuoteActions:
+                    wo.status === 'Quote Sent' ||
+                    this.isQuoteAttachedAppointment(wo),
+                showMarkQuoteSentAction: this.isQuoteAttachedAppointment(wo),
+                hasAppointment: false
+            };
+        });
     }
 
     isQuoteAttachedAppointment(appt) {
@@ -745,106 +820,93 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return labels;
     }
 
-    get listMyModeClass() {
-        return this.listMode === 'my'
-            ? 'sfs-mode-btn sfs-mode-btn_active'
-            : 'sfs-mode-btn';
-    }
-
-    get isQuotesMode() {
-        return this.listMode === 'quotes';
-    }
-
-    get listQuotesModeClass() {
-        return this.isQuotesMode
-            ? 'sfs-mode-btn sfs-mode-btn_active'
-            : 'sfs-mode-btn';
-    }
-
-    get isNeedQuoteMode() {
-        return this.listMode === 'needQuote';
-    }
-
-    get listNeedQuoteModeClass() {
-        return this.isNeedQuoteMode
-            ? 'sfs-mode-btn sfs-mode-btn_active'
-            : 'sfs-mode-btn';
-    }
-
-    get isPoRequestedMode() {
-        return this.listMode === 'poRequested';
-    }
-
-    get listPoRequestedModeClass() {
-        return this.isPoRequestedMode
-            ? 'sfs-mode-btn sfs-mode-btn_active'
-            : 'sfs-mode-btn';
-    }
-
-    get isQuoteSentMode() {
-        return this.listMode === 'quoteSent';
-    }
-
-    get listQuoteSentModeClass() {
-        return this.isQuoteSentMode
-            ? 'sfs-mode-btn sfs-mode-btn_active'
-            : 'sfs-mode-btn';
-    }
-
-    get isQuoteAttachedMode() {
-        return this.listMode === 'quoteAttached';
-    }
-
-    get listQuoteAttachedModeClass() {
-        return this.isQuoteAttachedMode
-            ? 'sfs-mode-btn sfs-mode-btn_active'
-            : 'sfs-mode-btn';
-    }
-
     get isCrewMode() {
         return this.listMode === 'crew';
-    }
-
-    get listCrewModeClass() {
-        let classes = 'sfs-mode-btn';
-
-        if (this.isCrewCountUrgent) {
-            classes += ' sfs-mode-btn_alert';
-        }
-        if (this.listMode === 'crew') {
-            classes += ' sfs-mode-btn_active';
-        }
-        return classes;
     }
 
     get isTransferMode() {
         return this.listMode === 'transferRequests';
     }
 
-    get listTransferModeClass() {
-        let classes = 'sfs-mode-btn';
+    get listModeOptions() {
+        return [
+            this.buildListModeOption(
+                'unscheduled',
+                'Unscheduled',
+                this.unscheduledCount
+            ),
+            this.buildListModeOption('my', 'Scheduled', this.myCount),
+            this.buildListModeOption(
+                'transferRequests',
+                'Transfer Requests',
+                this.transferRequestCount
+            ),
+            this.buildListModeOption('crew', 'Crew Pool', this.crewCount),
+            this.buildListModeOption(
+                'needQuote',
+                'Quote Needed',
+                this.needQuoteCount
+            ),
+            this.buildListModeOption(
+                'poRequested',
+                'PO Requested',
+                this.poRequestedCount
+            ),
+            this.buildListModeOption(
+                'quoteAttached',
+                'Quote Attached',
+                this.quoteAttachedCount
+            ),
+            this.buildListModeOption(
+                'quoteSent',
+                'Quote Sent',
+                this.quoteSentCount
+            ),
+            this.buildListModeOption(
+                'partsReady',
+                'Parts Ready',
+                this.partsReadyCount
+            ),
+            this.buildListModeOption(
+                'fulfilling',
+                'Currently Fulfilling',
+                this.fulfillingCount
+            )
+        ];
+    }
 
-        if (this.transferRequestCount > 0) {
-            classes += ' sfs-mode-btn_transfer-alert';
+    get listModeChips() {
+        return this.listModeOptions
+            .filter(opt => opt.count > 0 || opt.value === this.listMode)
+            .map(opt => ({
+                value: opt.value,
+                label: opt.label,
+                className: this.getListModeChipClass(opt.value, opt.count),
+                isActive: opt.value === this.listMode
+            }));
+    }
+
+    buildListModeOption(value, label, count) {
+        return {
+            value,
+            label: `${label} (${count})`,
+            count
+        };
+    }
+
+    getListModeChipClass(modeValue, count) {
+        let classes = 'sfs-mode-chip';
+
+        if (modeValue === this.listMode) {
+            classes += ' sfs-mode-chip_active';
         }
-
-        if (this.isTransferMode) {
-            classes += ' sfs-mode-btn_active';
+        if (modeValue === 'transferRequests' && count > 0) {
+            classes += ' sfs-mode-chip_alert';
         }
-
+        if (modeValue === 'crew' && this.isCrewCountUrgent) {
+            classes += ' sfs-mode-chip_warning';
+        }
         return classes;
-    }
-
-    get listPartsReadyModeClass() {
-        return this.listMode === 'partsReady'
-            ? 'sfs-mode-btn sfs-mode-btn_active'
-            : 'sfs-mode-btn';
-    }
-
-    get listFulfillingModeClass() {
-        return this.listMode === 'fulfilling'
-            ? 'sfs-mode-btn sfs-mode-btn_active'
-            : 'sfs-mode-btn';
     }
 
     get isTimelineMode() {
@@ -949,7 +1011,35 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     // Tray helpers
     get trayContainerClass() {
-        return this.pullTrayOpen ? 'sfs-tray sfs-tray_open' : 'sfs-tray';
+        const classes = ['sfs-tray'];
+
+        if (this.pullTrayOpen) {
+            classes.push('sfs-tray_open');
+        }
+
+        if (this.pullTrayPeek) {
+            classes.push('sfs-tray_peek');
+        }
+
+        if (this.pullTrayOpen && (this.dragMode || this.isPressingForDrag)) {
+            classes.push('sfs-tray_dragging');
+        }
+
+        return classes.join(' ');
+    }
+
+    get showTrayPeekToggle() {
+        return this.pullTrayOpen && this.shouldUseCompactTray();
+    }
+
+    get trayPeekToggleLabel() {
+        return this.pullTrayPeek ? 'Expand full tray' : 'Peek to view';
+    }
+
+    get trayPeekHelperText() {
+        return this.pullTrayPeek
+            ? 'Peek view keeps the calendar visible.'
+            : 'Peek to keep the calendar in view while browsing.';
     }
 
     get unscheduledCount() {
@@ -1336,6 +1426,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
+        if (this.isCalendarPanMode) {
+            return;
+        }
+
         // Do not start another drag if one is already running
         if (this.dragMode || this.isPressingForDrag) {
             return;
@@ -1419,6 +1513,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     handleEventResizeStart(event) {
         if (!event) {
+            return;
+        }
+
+        if (this.isCalendarPanMode) {
             return;
         }
 
@@ -1551,6 +1649,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
+        if (this.pullTrayOpen && this.shouldUseCompactTray()) {
+            this._trayWasExpandedBeforeDrag = !this.pullTrayPeek;
+            this.pullTrayPeek = true;
+        }
+
         const startIndex =
             this.todayDayIndex != null ? this.todayDayIndex : 0;
 
@@ -1586,6 +1689,25 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         if (this.dragLongPressTimer) {
             this.safeClearTimeout(this.dragLongPressTimer);
             this.dragLongPressTimer = null;
+        }
+    }
+
+    compactTrayForDrag() {
+        if (!this.pullTrayOpen) {
+            this._trayOpenBeforeDrag = false;
+            return;
+        }
+
+        this._trayOpenBeforeDrag = true;
+
+        if (this.shouldUseCompactTray()) {
+            if (!this.pullTrayPeek) {
+                this._trayWasExpandedBeforeDrag = true;
+            }
+            this.pullTrayPeek = true;
+        } else {
+            this._trayWasExpandedBeforeDrag = true;
+            this.pullTrayOpen = false;
         }
     }
 
@@ -1666,16 +1788,18 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     pending.clientY,
                     pending.title,
                     timeLabel,
-                typeClass,
-                width,
-                height
-            );
+                    typeClass,
+                    width,
+                    height
+                );
 
-            this.updateSelectedEventStyles();
-            this.showTrayCancelZone = false;
-            this.registerGlobalDragListeners();
-            return;
-        }
+                this.compactTrayForDrag();
+
+                this.updateSelectedEventStyles();
+                this.showTrayCancelZone = false;
+                this.registerGlobalDragListeners();
+                return;
+            }
 
             const timeLabel = pending.localStart.toLocaleTimeString([], {
                 hour: 'numeric',
@@ -1691,6 +1815,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 width,
                 height
             );
+
+            this.compactTrayForDrag();
 
             this.updateSelectedEventStyles();
         } else if (pending.type === 'wo') {
@@ -1744,6 +1870,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             );
         }
 
+        this.compactTrayForDrag();
         this.showTrayCancelZone = pending.type === 'wo';
         this.registerGlobalDragListeners();
 
@@ -1812,9 +1939,83 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
 
+    stopAutoScrollLoop() {
+        if (this._autoScrollFrame) {
+            cancelAnimationFrame(this._autoScrollFrame);
+            this._autoScrollFrame = null;
+        }
+
+        this._autoScrollPoint = null;
+    }
+
+    updateAutoScroll(clientX, clientY) {
+        this._autoScrollPoint = { clientX, clientY };
+
+        if (!this._autoScrollFrame) {
+            this._autoScrollFrame = requestAnimationFrame(() =>
+                this.performAutoScroll()
+            );
+        }
+    }
+
+    performAutoScroll() {
+        this._autoScrollFrame = null;
+
+        if (!this.dragMode || !this._autoScrollPoint) {
+            return;
+        }
+
+        const { clientX, clientY } = this._autoScrollPoint;
+        const edgeThreshold = 80;
+        const maxStep = 18;
+        const viewportWidth = window.innerWidth || 0;
+        const viewportHeight = window.innerHeight || 0;
+
+        const computeStep = distance => {
+            const overlap = Math.max(edgeThreshold - distance, 0);
+            if (!overlap) {
+                return 0;
+            }
+            return Math.round((overlap / edgeThreshold) * maxStep);
+        };
+
+        let deltaX = 0;
+        let deltaY = 0;
+
+        const leftDistance = clientX;
+        const rightDistance = viewportWidth - clientX;
+        const topDistance = clientY;
+        const bottomDistance = viewportHeight - clientY;
+
+        deltaX -= computeStep(leftDistance);
+        deltaX += computeStep(rightDistance);
+        deltaY -= computeStep(topDistance);
+        deltaY += computeStep(bottomDistance);
+
+        const wrapper = this.template.querySelector('.sfs-calendar-days-wrapper');
+        if (wrapper && deltaX !== 0) {
+            wrapper.scrollLeft += deltaX;
+        }
+
+        if (deltaY !== 0) {
+            window.scrollBy({ top: deltaY, behavior: 'auto' });
+        }
+
+        if (deltaX !== 0 || deltaY !== 0) {
+            this._autoScrollFrame = requestAnimationFrame(() =>
+                this.performAutoScroll()
+            );
+        }
+    }
+
+
 
 
     handleCalendarPointerMove(event) {
+        if (this.isCalendarPanMode) {
+            return;
+        }
+
         if (!this.dragMode || this.dragStartClientX === null) {
             return;
         }
@@ -1825,6 +2026,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
         const { clientX, clientY } = clientPoint;
 
+        this.updateAutoScroll(clientX, clientY);
         this.updateTrayCancelHover(clientX, clientY);
 
         const dx = clientX - this.dragStartClientX;
@@ -2015,6 +2217,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
 
     handleCalendarPointerEnd(event) {
+        if (this.isCalendarPanMode) {
+            this.resetDragState();
+            return;
+        }
+
         if (!this.dragMode || this.dragStartClientX === null) {
             this.resetDragState();
             return;
@@ -2029,6 +2236,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const { clientX, clientY } = clientPoint;
 
         if (this.dragMode === 'wo' && this.isPointInTrayCancelZone(clientX, clientY)) {
+            this.stopAutoScrollLoop();
             this.resetDragState();
             event.preventDefault();
             return;
@@ -2047,6 +2255,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         // If user did not move enough, treat as no drag
         if (!this.dragHasMoved) {
+            this.stopAutoScrollLoop();
             this.resetDragState();
             event.preventDefault();
             return;
@@ -2217,8 +2426,20 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.dragDayBodyTop = null;
         this.showTrayCancelZone = false;
         this.isHoveringCancelZone = false;
+        this.stopAutoScrollLoop();
         this.unregisterGlobalDragListeners();
         this.updateSelectedEventStyles();
+
+        if (this._trayOpenBeforeDrag) {
+            this.pullTrayOpen = true;
+        }
+
+        if (this.pullTrayOpen && this._trayWasExpandedBeforeDrag) {
+            this.pullTrayPeek = false;
+        }
+
+        this._trayWasExpandedBeforeDrag = false;
+        this._trayOpenBeforeDrag = false;
     }
 
 
@@ -3079,8 +3300,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     // ======= LIST TAB HANDLERS =======
 
     handleListModeChange(event) {
-        const mode = event.target.dataset.mode;
-        if (!mode) {
+        const mode = event?.detail?.value || event.target?.dataset?.mode;
+        this.setListMode(mode);
+    }
+
+    setListMode(mode) {
+        if (!mode || mode === this.listMode) {
             return;
         }
         this.listMode = mode;
@@ -3627,17 +3852,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }, 200);
     }
 
-    handleOverlayClick() {
-        if (this.selectedAbsence) {
-            this.handleCloseAbsenceDetails();
-        } else {
-            this.handleCloseDetails();
-        }
-    }
-
     handleDetailCardClick(event) {
         event.stopPropagation();
     }
+
 
     // ======= ABSENCE EDITING =======
 
@@ -3900,10 +4118,39 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
     }
 
+    handleCalendarPanToggle() {
+        this.isCalendarPanMode = !this.isCalendarPanMode;
+
+        if (this.isCalendarPanMode) {
+            this.resetDragState();
+            this.isPressingForDrag = false;
+            this._pendingDrag = null;
+            this.clearLongPressTimer();
+        }
+    }
+
     // ======= TRAY HANDLERS =======
 
     toggleTray() {
-        this.pullTrayOpen = !this.pullTrayOpen;
+        const willOpen = !this.pullTrayOpen;
+        this.pullTrayOpen = willOpen;
+
+        if (willOpen) {
+            this.pullTrayPeek = this.shouldUseCompactTray();
+        }
+    }
+
+    handleTrayPeekToggle() {
+        this.pullTrayPeek = !this.pullTrayPeek;
+        this._trayWasExpandedBeforeDrag = false;
+    }
+
+    shouldUseCompactTray() {
+        if (typeof window !== 'undefined' && window.matchMedia) {
+            return window.matchMedia('(max-width: 768px)').matches;
+        }
+
+        return !this.isDesktopFormFactor;
     }
 
     handleTrayInfoPointer(event) {
