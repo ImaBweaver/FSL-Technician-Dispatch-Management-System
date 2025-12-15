@@ -394,7 +394,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     // Position + size of the floating event
     get dragGhostStyle() {
         const position = this.dragGhostAnchoredToCalendar ? 'absolute' : 'fixed';
-        return `position:${position};top:${this.dragGhostY}px;left:${this.dragGhostX}px;width:${this.dragGhostWidth}px;height:${this.dragGhostHeight}px;transform:translateX(-50%);`;
+        return `${position === 'absolute' ? 'position:absolute;' : ''}top:${this.dragGhostY}px;left:${this.dragGhostX}px;width:${this.dragGhostWidth}px;height:${this.dragGhostHeight}px;transform:translateX(-50%);`;
     }
 
     get dragGhostWrapperClass() {
@@ -2653,6 +2653,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
+        const calendarEl = this.template.querySelector('.sfs-calendar');
         const dayEl = this.template.querySelector(
             `.sfs-calendar-day[data-day-index="${targetDayIndex}"]`
         );
@@ -2660,10 +2661,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             ? dayEl.querySelector('.sfs-calendar-day-body')
             : null;
 
-        if (!dayEl || !dayBodyEl || !startLocal || !endLocal) {
+        if (!dayEl || !dayBodyEl || !startLocal || !endLocal || !calendarEl) {
             return;
         }
-        
+
+        const calendarRect = calendarEl.getBoundingClientRect();
         const dayRect = dayEl.getBoundingClientRect();
         const bodyRect = dayBodyEl.getBoundingClientRect();
         const totalHours = this.calendarEndHour - this.calendarStartHour;
@@ -2783,11 +2785,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.pendingSchedulePlacement = null;
         this.isAwaitingScheduleConfirmation = false;
 
-        const startLocal = placement.startIso
-            ? this.convertUtcToUserLocal(placement.startIso)
+        const startLocal = targetPlacement.startIso
+            ? this.convertUtcToUserLocal(targetPlacement.startIso)
             : null;
-        const endLocal = placement.endIso
-            ? this.convertUtcToUserLocal(placement.endIso)
+        const endLocal = targetPlacement.endIso
+            ? this.convertUtcToUserLocal(targetPlacement.endIso)
             : null;
 
         const dragTimeLabel =
