@@ -92,7 +92,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     defaultWorkOrderDurationHours = 6;
     showTrayCancelZone = false;
     isHoveringCancelZone = false;
-    dragRequiresExplicitConfirmation = false;
+    dragRequiresExplicitConfirmation = true;
     isAwaitingScheduleConfirmation = false;
     pendingSchedulePlacement = null;
     schedulePreviewCardId = null;
@@ -1772,6 +1772,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this._pendingDrag = null;
         this.clearLongPressTimer();
 
+        // Always use the explicit confirmation UI (✓ / ✕) for any scheduling
+        // or rescheduling drag, so every entry point shares the same
+        // experience.
+        this.dragRequiresExplicitConfirmation = true;
+
         if (!pending) {
             return;
         }
@@ -1846,6 +1851,19 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     endLocal
                 );
 
+                const { offsetWithinGhost, ghostHeight } =
+                    this.computeGhostPointerOffsetFromCalendar(
+                        pending.dayIndex,
+                        pending.localStart,
+                        durationHours,
+                        pending.clientY,
+                        height,
+                        this.dragGhostPointerOffsetY
+                    );
+
+                this.dragGhostPointerOffsetY = offsetWithinGhost;
+                const finalHeight = ghostHeight || height;
+
                 this.showDragGhost(
                     pending.clientX,
                     pending.clientY - this.dragGhostPointerOffsetY,
@@ -1853,7 +1871,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     timeLabel,
                     typeClass,
                     width,
-                    height
+                    finalHeight
                 );
 
                 this.compactTrayForDrag();
@@ -1926,6 +1944,19 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
             const timeLabel = this.formatTimeRange(preview, endPreview);
 
+            const { offsetWithinGhost, ghostHeight } =
+                this.computeGhostPointerOffsetFromCalendar(
+                    pending.dayIndex,
+                    preview,
+                    this.defaultWorkOrderDurationHours,
+                    pending.clientY,
+                    height,
+                    this.dragGhostPointerOffsetY
+                );
+
+            this.dragGhostPointerOffsetY = offsetWithinGhost;
+            const finalHeight = ghostHeight || height;
+
             this.showDragGhost(
                 pending.clientX,
                 pending.clientY - this.dragGhostPointerOffsetY,
@@ -1933,7 +1964,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 timeLabel,
                 'sfs-event-default',
                 width,
-                height
+                finalHeight
             );
         }
 
@@ -2762,6 +2793,64 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return weekGrid ? weekGrid.getBoundingClientRect() : null;
     }
 
+    computeGhostPointerOffsetFromCalendar(
+        dayIndex,
+        startLocal,
+        durationHours,
+        clientY,
+        fallbackHeight,
+        fallbackOffset
+    ) {
+        let offsetWithinGhost = fallbackOffset || 0;
+        let ghostHeight = fallbackHeight;
+
+        try {
+            const dayEl = this.template.querySelector(
+                `.sfs-calendar-day[data-day-index="${dayIndex}"]`
+            );
+            const bodyEl = dayEl
+                ? dayEl.querySelector('.sfs-calendar-day-body')
+                : null;
+            const bodyRect = bodyEl
+                ? bodyEl.getBoundingClientRect()
+                : null;
+
+            if (bodyRect && startLocal) {
+                const totalHours = this.calendarEndHour - this.calendarStartHour || 24;
+                const startHourFraction =
+                    startLocal.getHours() + startLocal.getMinutes() / 60;
+                const clampedHour = Math.min(
+                    Math.max(startHourFraction, this.calendarStartHour),
+                    this.calendarEndHour
+                );
+                const yWithinBody =
+                    ((clampedHour - this.calendarStartHour) / totalHours) *
+                    (bodyRect.height || 1);
+
+                offsetWithinGhost = clientY - (bodyRect.top + yWithinBody);
+                ghostHeight =
+                    ((durationHours || this.dragGhostHeight || 0) / totalHours) *
+                    (bodyRect.height || 1);
+
+                this.dragDayBodyTop = bodyRect.top;
+                this.dragDayBodyHeight = bodyRect.height || this.dragDayBodyHeight;
+
+                if (dayEl) {
+                    const dayRect = dayEl.getBoundingClientRect();
+                    this.dragDayWidth = dayRect.width || this.dragDayWidth;
+                }
+            }
+        } catch (err) {
+            // eslint-disable-next-line no-console
+            console.warn('Failed to compute calendar offset for ghost drag', err);
+        }
+
+        return {
+            offsetWithinGhost: Math.max(offsetWithinGhost || 0, 0),
+            ghostHeight
+        };
+    }
+
     startGhostAnchorLoop() {
         this.stopGhostAnchorLoop();
 
@@ -2812,6 +2901,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         if (!placement) {
             return;
         }
+
+        // Re-grabs should stay in the explicit confirmation flow so the ✓ / ✕
+        // controls remain the single way to finish or cancel placement.
+        this.dragRequiresExplicitConfirmation = true;
 
         this._pendingRegrabPlacement = placement;
 
@@ -5867,4 +5960,5 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             })
         );
     }
+}
 }
