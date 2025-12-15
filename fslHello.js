@@ -2702,8 +2702,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         // Allow re-grabbing the scheduling ghost even if the awaiting flag was
         // cleared, as long as a pending placement exists.
-        if (!this.pendingSchedulePlacement) {
-            return;
+        const placement = this.pendingSchedulePlacement;
+        if (!placement) {
         }
 
         const point = this.getClientPoint(event);
@@ -2714,36 +2714,43 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         event.preventDefault();
         event.stopPropagation();
 
-        this.prepareGhostDragFromPlacement(point);
+        // Remove anchoring before converting the pending placement back into a
+        // live drag so the ghost follows the pointer instead of snapping back
+        // to its cached position while dragging again.
+        this.detachGhostAnchorUpdater();
+        this.pendingSchedulePlacement = null;
+        this.isAwaitingScheduleConfirmation = false;
+
+        this.prepareGhostDragFromPlacement(point, placement);
     }
 
-    prepareGhostDragFromPlacement(startPoint) {
-        const placement = this.pendingSchedulePlacement;
-        if (!placement) {
+    prepareGhostDragFromPlacement(startPoint, placement = null) {
+        const targetPlacement = placement || this.pendingSchedulePlacement;
+        if (!targetPlacement) {
             return;
         }
 
-        const startLocal = placement.startIso
-            ? this.convertUtcToUserLocal(placement.startIso)
+        const startLocal = targetPlacement.startIso
+            ? this.convertUtcToUserLocal(targetPlacement.startIso)
             : null;
-        const endLocal = placement.endIso
-            ? this.convertUtcToUserLocal(placement.endIso)
+        const endLocal = targetPlacement.endIso
+            ? this.convertUtcToUserLocal(targetPlacement.endIso)
             : null;
 
-        const durationHours = placement.durationHours
-            ? placement.durationHours
+        const durationHours = targetPlacement.durationHours
+            ? targetPlacement.durationHours
             : this.computeDurationHours(startLocal, endLocal);
 
         const dayIndex =
-            placement.dayIndex != null
-                ? placement.dayIndex
+            targetPlacement.dayIndex != null
+                ? targetPlacement.dayIndex
                 : this.resolveDayIndexFromDate(startLocal);
 
         if (dayIndex == null) {
             return;
         }
 
-        this.dragMode = placement.type === 'event' ? 'event' : 'wo';
+        this.dragMode = targetPlacement.type === 'event' ? 'event' : 'wo';
         this.dragRequiresExplicitConfirmation = true;
         this.dragStartDayIndex = dayIndex;
         this.dragCurrentDayIndex = dayIndex;
@@ -2757,11 +2764,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.dragHasMoved = false;
         this.isAwaitingScheduleConfirmation = true;
 
-        if (placement.type === 'event') {
-            this.draggingEventId = placement.appointmentId;
+        if (targetPlacement.type === 'event') {
+            this.draggingEventId = targetPlacement.appointmentId;
             this.draggingWorkOrderId = null;
         } else {
-            this.draggingWorkOrderId = placement.workOrderId;
+            this.draggingWorkOrderId = targetPlacement.workOrderId;
             this.draggingEventId = null;
         }
 
