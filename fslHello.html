@@ -563,7 +563,26 @@
                                             </template>
 
                                             <template if:true={appt.showScheduleOnCalendar}>
+                                                <div class="sfs-input-block">
+                                                    <lightning-input
+                                                        type="datetime-local"
+                                                        name="quickScheduleStart"
+                                                        label="Schedule Date/Time"
+                                                        value={appt.quickScheduleStart}
+                                                        data-id={appt.cardId}
+                                                        onchange={handleQuickScheduleChange}
+                                                    >
+                                                    </lightning-input>
+                                                </div>
+
                                                 <div class="sfs-actions sfs-schedule-actions">
+                                                    <lightning-button
+                                                        variant="brand"
+                                                        label="Schedule"
+                                                        data-id={appt.cardId}
+                                                        onclick={handleQuickSchedule}
+                                                    >
+                                                    </lightning-button>
                                                     <lightning-button
                                                         variant="brand"
                                                         label="Schedule on Calendar"
