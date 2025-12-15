@@ -558,6 +558,18 @@
                                                 </div>
                                             </template>
 
+                                            <template if:true={appt.showScheduleOnCalendar}>
+                                                <div class="sfs-actions sfs-schedule-actions">
+                                                    <lightning-button
+                                                        variant="brand"
+                                                        label="Schedule on Calendar"
+                                                        data-id={appt.cardId}
+                                                        onclick={handleScheduleOnCalendar}
+                                                    >
+                                                    </lightning-button>
+                                                </div>
+                                            </template>
+
                                             <!-- Crew assignment controls shown only in Crew Pool mode -->
                                             <template if:true={isCrewMode}>
                                                 <template if:true={appt.crewOptions}>

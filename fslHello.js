@@ -651,7 +651,13 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             );
         }
 
-        return baseList;
+        const allowScheduleOnCalendar =
+            this.listMode === 'unscheduled' || this.listMode === 'partsReady';
+
+        return baseList.map(item => ({
+            ...item,
+            showScheduleOnCalendar: allowScheduleOnCalendar
+        }));
     }
 
     isQuoteStatus(status) {
@@ -3668,6 +3674,205 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             .finally(() => {
                 this.isLoading = false;
             });
+    }
+
+    handleScheduleOnCalendar(event) {
+        const cardId =
+            event && event.currentTarget && event.currentTarget.dataset
+                ? event.currentTarget.dataset.id
+                : null;
+
+        if (!cardId) {
+            return;
+        }
+
+        const target = this.findAppointmentByCardId(cardId);
+
+        if (!target) {
+            return;
+        }
+
+        this.startScheduleOnCalendar(target);
+    }
+
+    startScheduleOnCalendar(target) {
+        if (!target) {
+            return;
+        }
+
+        this.updateActiveTabState('calendar');
+        this.ensureCalendarReadyForScheduling(target);
+    }
+
+    ensureCalendarReadyForScheduling(target, attempt = 0) {
+        const maxAttempts = 6;
+        const dayEl = this.template.querySelector('.sfs-calendar-day');
+        const dayBodyEl = this.template.querySelector('.sfs-calendar-day-body');
+
+        if (!dayEl || !dayBodyEl) {
+            if (attempt >= maxAttempts) {
+                return;
+            }
+
+            this.safeSetTimeout(
+                () => this.ensureCalendarReadyForScheduling(target, attempt + 1),
+                120
+            );
+
+            return;
+        }
+
+        this.beginSchedulingGhost(target);
+    }
+
+    beginSchedulingGhost(target) {
+        if (!target) {
+            return;
+        }
+
+        const dayIndex = this.resolveCalendarDayIndex(
+            target.hasAppointment ? target.schedStart : null
+        );
+
+        const dayEl =
+            this.template.querySelector(
+                `.sfs-calendar-day[data-day-index="${dayIndex}"]`
+            ) || this.template.querySelector('.sfs-calendar-day');
+
+        const dayBodyEl = dayEl
+            ? dayEl.querySelector('.sfs-calendar-day-body')
+            : this.template.querySelector('.sfs-calendar-day-body');
+
+        if (!dayEl || !dayBodyEl) {
+            return;
+        }
+
+        const bodyRect = dayBodyEl.getBoundingClientRect();
+        const clientX = bodyRect.left + bodyRect.width / 2;
+        const clientY = bodyRect.top + bodyRect.height * 0.25;
+        const pending = target.hasAppointment
+            ? this.buildPendingEventFromList(
+                  target,
+                  dayIndex,
+                  dayEl.clientWidth || bodyRect.width || 1,
+                  bodyRect.height || dayBodyEl.clientHeight || 1,
+                  bodyRect.top,
+                  clientX,
+                  clientY
+              )
+            : this.buildPendingWorkOrderFromList(
+                  target,
+                  dayIndex,
+                  dayEl.clientWidth || bodyRect.width || 1,
+                  bodyRect.height || dayBodyEl.clientHeight || 1,
+                  bodyRect.top,
+                  clientX,
+                  clientY
+              );
+
+        if (!pending) {
+            return;
+        }
+
+        this.resetDragState();
+        this._pendingDrag = pending;
+        this.beginDragFromPending();
+    }
+
+    buildPendingEventFromList(
+        appt,
+        dayIndex,
+        dayWidth,
+        dayBodyHeight,
+        dayBodyTop,
+        clientX,
+        clientY
+    ) {
+        if (!appt || !appt.appointmentId) {
+            return null;
+        }
+
+        const localStart = appt.schedStart
+            ? this.convertUtcToUserLocal(appt.schedStart)
+            : new Date();
+
+        return {
+            type: 'event',
+            id: appt.appointmentId,
+            dayIndex,
+            localStart,
+            clientX,
+            clientY,
+            dayBodyHeight,
+            dayBodyTop,
+            dayWidth,
+            title: appt.workOrderSubject || appt.subject || 'Appointment'
+        };
+    }
+
+    buildPendingWorkOrderFromList(
+        workOrder,
+        dayIndex,
+        dayWidth,
+        dayBodyHeight,
+        dayBodyTop,
+        clientX,
+        clientY
+    ) {
+        if (!workOrder || !workOrder.workOrderId) {
+            return null;
+        }
+
+        const title = workOrder.workOrderNumber
+            ? `${workOrder.workOrderNumber} — ${workOrder.workOrderSubject ||
+                  workOrder.subject ||
+                  'New appointment'}`
+            : workOrder.workOrderSubject || workOrder.subject || 'New appointment';
+
+        return {
+            type: 'wo',
+            workOrderId: workOrder.workOrderId,
+            dayIndex,
+            clientX,
+            clientY,
+            dayBodyHeight,
+            dayBodyTop,
+            dayWidth,
+            title
+        };
+    }
+
+    resolveCalendarDayIndex(startDateLike) {
+        if (this.calendarDays && this.calendarDays.length && startDateLike) {
+            const targetDay = this.normalizeDayStart(
+                this.convertUtcToUserLocal(startDateLike)
+            );
+
+            const index = this.calendarDays.findIndex(day => {
+                const dayDate = this.normalizeDayStart(new Date(day.date));
+                return dayDate && targetDay && dayDate.getTime() === targetDay.getTime();
+            });
+
+            if (index >= 0) {
+                return index;
+            }
+        }
+
+        if (this.todayDayIndex != null) {
+            return this.todayDayIndex;
+        }
+
+        return 0;
+    }
+
+    normalizeDayStart(date) {
+        if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+            return null;
+        }
+
+        const clone = new Date(date);
+        clone.setHours(0, 0, 0, 0);
+        return clone;
     }
 
     updateAppointmentEndTime(appointmentId, newEndIso) {

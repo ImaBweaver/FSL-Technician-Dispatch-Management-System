@@ -339,6 +339,10 @@
     align-items: center;
 }
 
+.sfs-schedule-actions {
+    justify-content: flex-end;
+}
+
 .sfs-transfer-request-btn {
     --slds-c-button-destructive-text-font-size: 0.85rem;
     --slds-c-button-destructive-text-line-height: 1.6rem;
