@@ -2178,12 +2178,13 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         } else if (this.dragMode === 'wo') {
             previewLocal = new Date(baseDay);
             const usableHeight = this.dragDayBodyHeight || 1;
+            const pointerYWithinBody =
+                clientY -
+                (this.dragDayBodyTop != null ? this.dragDayBodyTop : 0) -
+                (this.dragGhostPointerOffsetY || 0);
             const relativeY = Math.max(
                 0,
-                Math.min(
-                    usableHeight,
-                    clientY - (this.dragDayBodyTop != null ? this.dragDayBodyTop : 0)
-                )
+                Math.min(usableHeight, pointerYWithinBody)
             );
             const totalHours = this.calendarEndHour - this.calendarStartHour;
             const hourFraction =
