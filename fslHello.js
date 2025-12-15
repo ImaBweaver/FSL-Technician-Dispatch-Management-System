@@ -92,7 +92,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     defaultWorkOrderDurationHours = 6;
     showTrayCancelZone = false;
     isHoveringCancelZone = false;
-    dragRequiresExplicitConfirmation = false;
+    dragRequiresExplicitConfirmation = true;
     isAwaitingScheduleConfirmation = false;
     pendingSchedulePlacement = null;
     schedulePreviewCardId = null;
@@ -1772,6 +1772,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this._pendingDrag = null;
         this.clearLongPressTimer();
 
+        // Always use the explicit confirmation UI (✓ / ✕) for any scheduling
+        // or rescheduling drag, so every entry point shares the same
+        // experience.
+        this.dragRequiresExplicitConfirmation = true;
+
         if (!pending) {
             return;
         }
@@ -1846,6 +1851,19 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     endLocal
                 );
 
+                const { offsetWithinGhost, ghostHeight } =
+                    this.computeGhostPointerOffsetFromCalendar(
+                        pending.dayIndex,
+                        pending.localStart,
+                        durationHours,
+                        pending.clientY,
+                        height,
+                        this.dragGhostPointerOffsetY
+                    );
+
+                this.dragGhostPointerOffsetY = offsetWithinGhost;
+                const finalHeight = ghostHeight || height;
+
                 this.showDragGhost(
                     pending.clientX,
                     pending.clientY - this.dragGhostPointerOffsetY,
@@ -1853,7 +1871,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     timeLabel,
                     typeClass,
                     width,
-                    height
+                    finalHeight
                 );
 
                 this.compactTrayForDrag();
@@ -1926,6 +1944,19 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
             const timeLabel = this.formatTimeRange(preview, endPreview);
 
+            const { offsetWithinGhost, ghostHeight } =
+                this.computeGhostPointerOffsetFromCalendar(
+                    pending.dayIndex,
+                    preview,
+                    this.defaultWorkOrderDurationHours,
+                    pending.clientY,
+                    height,
+                    this.dragGhostPointerOffsetY
+                );
+
+            this.dragGhostPointerOffsetY = offsetWithinGhost;
+            const finalHeight = ghostHeight || height;
+
             this.showDragGhost(
                 pending.clientX,
                 pending.clientY - this.dragGhostPointerOffsetY,
@@ -1933,7 +1964,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 timeLabel,
                 'sfs-event-default',
                 width,
-                height
+                finalHeight
             );
         }
 
@@ -2265,11 +2296,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 this.dragDayWidth = dayRect.width;
             }
 
-            // Top of the event box is the selected time; ghostY is the top
+            // Anchor the ghost to the pointer using the recorded grab offset so
+            // grabbing anywhere on the card (top, middle, or bottom) keeps the
+            // start time aligned with the calendar slot while dragging.
             const ghostY =
-                (this.dragDayBodyTop != null ? this.dragDayBodyTop : 0) +
-                yWithinBody -
-                (this.dragGhostPointerOffsetY || 0); // top edge represents start time
+                clientY - (this.dragGhostPointerOffsetY || 0);
 
             this.showDragGhost(
                 ghostX,
@@ -2762,6 +2793,64 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return weekGrid ? weekGrid.getBoundingClientRect() : null;
     }
 
+    computeGhostPointerOffsetFromCalendar(
+        dayIndex,
+        startLocal,
+        durationHours,
+        clientY,
+        fallbackHeight,
+        fallbackOffset
+    ) {
+        let offsetWithinGhost = fallbackOffset || 0;
+        let ghostHeight = fallbackHeight;
+
+        try {
+            const dayEl = this.template.querySelector(
+                `.sfs-calendar-day[data-day-index="${dayIndex}"]`
+            );
+            const bodyEl = dayEl
+                ? dayEl.querySelector('.sfs-calendar-day-body')
+                : null;
+            const bodyRect = bodyEl
+                ? bodyEl.getBoundingClientRect()
+                : null;
+
+            if (bodyRect && startLocal) {
+                const totalHours = this.calendarEndHour - this.calendarStartHour || 24;
+                const startHourFraction =
+                    startLocal.getHours() + startLocal.getMinutes() / 60;
+                const clampedHour = Math.min(
+                    Math.max(startHourFraction, this.calendarStartHour),
+                    this.calendarEndHour
+                );
+                const yWithinBody =
+                    ((clampedHour - this.calendarStartHour) / totalHours) *
+                    (bodyRect.height || 1);
+
+                offsetWithinGhost = clientY - (bodyRect.top + yWithinBody);
+                ghostHeight =
+                    ((durationHours || this.dragGhostHeight || 0) / totalHours) *
+                    (bodyRect.height || 1);
+
+                this.dragDayBodyTop = bodyRect.top;
+                this.dragDayBodyHeight = bodyRect.height || this.dragDayBodyHeight;
+
+                if (dayEl) {
+                    const dayRect = dayEl.getBoundingClientRect();
+                    this.dragDayWidth = dayRect.width || this.dragDayWidth;
+                }
+            }
+        } catch (err) {
+            // eslint-disable-next-line no-console
+            console.warn('Failed to compute calendar offset for ghost drag', err);
+        }
+
+        return {
+            offsetWithinGhost: Math.max(offsetWithinGhost || 0, 0),
+            ghostHeight
+        };
+    }
+
     startGhostAnchorLoop() {
         this.stopGhostAnchorLoop();
 
@@ -2813,6 +2902,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
+        // Re-grabs should stay in the explicit confirmation flow so the ✓ / ✕
+        // controls remain the single way to finish or cancel placement.
+        this.dragRequiresExplicitConfirmation = true;
+
         this._pendingRegrabPlacement = placement;
 
         const point = this.getClientPoint(event);
@@ -2842,15 +2935,84 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 ? this.formatTimeRange(startLocal, endLocal)
                 : this.dragGhostTime;
 
-        const offsetWithinGhost =
-            point.clientY - (this.dragGhostAnchoredToCalendar
-                ? this.dragGhostY + (this.getGhostAnchorRect()?.top || 0)
-                : this.dragGhostY);
+        // Prefer deriving the pointer offset from the calendar geometry so the
+        // ghost aligns with the actual timeslot, even if CSS transforms or
+        // anchoring apply to the ghost element itself. Fall back to the ghost
+        // element’s own bounds if the calendar column cannot be measured.
+        let offsetWithinGhost = null;
+        let ghostHeight = this.dragGhostHeight;
 
-        this.dragGhostPointerOffsetY = Math.min(
-            Math.max(offsetWithinGhost, 0),
-            this.dragGhostHeight
-        );
+        try {
+            const dayEl = this.template.querySelector(
+                `.sfs-calendar-day[data-day-index="${placement.dayIndex}"]`
+            );
+            const bodyEl = dayEl
+                ? dayEl.querySelector('.sfs-calendar-day-body')
+                : null;
+            const bodyRect = bodyEl
+                ? bodyEl.getBoundingClientRect()
+                : null;
+
+            if (startLocal && bodyRect) {
+                const totalHours =
+                    this.calendarEndHour - this.calendarStartHour || 24;
+                const startHourFraction =
+                    startLocal.getHours() + startLocal.getMinutes() / 60;
+                const clampedHour = Math.min(
+                    Math.max(startHourFraction, this.calendarStartHour),
+                    this.calendarEndHour
+                );
+                const yWithinBody =
+                    ((clampedHour - this.calendarStartHour) / totalHours) *
+                    (bodyRect.height || 1);
+
+                // Offset between the pointer and the top of the ghost's
+                // intended placement within the calendar column.
+                offsetWithinGhost = point.clientY - (bodyRect.top + yWithinBody);
+                this.dragDayBodyTop = bodyRect.top;
+                this.dragDayBodyHeight =
+                    bodyRect.height || this.dragDayBodyHeight;
+                ghostHeight =
+                    ((placement.durationHours || this.dragGhostHeight) /
+                        totalHours) *
+                    (bodyRect.height || 1);
+
+                // Keep the ghost sizing in sync with the measured column so
+                // the offset math remains accurate during drag.
+                this.dragGhostHeight = ghostHeight;
+            }
+        } catch (err) {
+            // If measurements fail for any reason (e.g., DOM not ready), fall
+            // back to the ghost element so the drag can continue without
+            // crashing the page.
+            // eslint-disable-next-line no-console
+            console.warn('Failed to measure calendar for ghost drag', err);
+        }
+
+        if (offsetWithinGhost == null) {
+            const ghostRect =
+                event.currentTarget &&
+                typeof event.currentTarget.getBoundingClientRect === 'function'
+                    ? event.currentTarget.getBoundingClientRect()
+                    : null;
+
+            const anchorRect = this.getGhostAnchorRect();
+            const anchorTop = anchorRect ? anchorRect.top : 0;
+
+            offsetWithinGhost = ghostRect
+                ? point.clientY - ghostRect.top
+                : point.clientY - (this.dragGhostAnchoredToCalendar
+                      ? this.dragGhostY + anchorTop
+                      : this.dragGhostY);
+
+            ghostHeight = (ghostRect && ghostRect.height) || this.dragGhostHeight;
+        }
+
+        // Do not clamp to the ghost height; retaining the exact offset from
+        // the intended start keeps the top edge aligned with the displayed
+        // time while dragging, even if the measured height differs from the
+        // rendered element. Ensure it never becomes NaN.
+        this.dragGhostPointerOffsetY = Math.max(offsetWithinGhost || 0, 0);
 
         this.showDragGhost(
             point.clientX,
@@ -3065,6 +3227,25 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     resetDragState() {
+        // When a pending placement is waiting for explicit confirmation, keep the
+        // ghost visible and anchored so it can only be dismissed via the
+        // confirmation controls. Other gestures (like panning the calendar)
+        // should stop any active drag interactions without clearing the ghost.
+        if (this.pendingSchedulePlacement && this.isAwaitingScheduleConfirmation) {
+            this.stopAutoScrollLoop();
+            this.unregisterGlobalDragListeners();
+            this.dragMode = null;
+            this.dragStartClientX = null;
+            this.dragStartClientY = null;
+            this.dragHasMoved = false;
+            this.showTrayCancelZone = false;
+            this.isHoveringCancelZone = false;
+            this.isPressingForDrag = false;
+            this._pendingDrag = null;
+            this.clearLongPressTimer();
+            return;
+        }
+
         this.dragMode = null;
         this.draggingEventId = null;
         this.draggingWorkOrderId = null;
