@@ -2700,10 +2700,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
-        if (
-            !this.isAwaitingScheduleConfirmation ||
-            !this.pendingSchedulePlacement
-        ) {
+        // Allow re-grabbing the scheduling ghost even if the awaiting flag was
+        // cleared, as long as a pending placement exists.
+        if (!this.pendingSchedulePlacement) {
             return;
         }
 
