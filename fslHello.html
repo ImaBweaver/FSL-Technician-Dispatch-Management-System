@@ -78,6 +78,20 @@
                             </button>
                         </template>
                     </div>
+
+                    <div class="sfs-density-toggle">
+                        <lightning-input
+                            type="toggle"
+                            label="Compact cards"
+                            message-toggle-active="Compact view"
+                            message-toggle-inactive="Roomy view"
+                            checked={isCompactListView}
+                            onchange={handleCompactToggle}
+                        ></lightning-input>
+                        <p class="sfs-density-toggle__hint">
+                            Squeeze more appointments on screen when triaging a large queue.
+                        </p>
+                    </div>
                 </div>
 
                 <!-- Status filter only shows when My tab is active -->
@@ -268,7 +282,7 @@
                                 <template for:each={visibleAppointments} for:item="appt">
                                     <article
                                         key={appt.cardId}
-                                        class="sfs-card"
+                                        class={appt.cardClass}
                                         data-card-id={appt.cardId}
                                     >
                                         <template if:true={appt.hasAppointment}>
@@ -563,14 +577,62 @@
                                             </template>
 
                                             <template if:true={appt.showScheduleOnCalendar}>
-                                                <div class="sfs-actions sfs-schedule-actions">
-                                                    <lightning-button
-                                                        variant="brand"
-                                                        label="Schedule on Calendar"
-                                                        data-id={appt.cardId}
-                                                        onclick={handleScheduleOnCalendar}
-                                                    >
-                                                    </lightning-button>
+                                                <div class="sfs-quick-schedule">
+                                                    <div class="sfs-quick-schedule__row">
+                                                        <div class="sfs-quick-schedule__summary">
+                                                            <p class="sfs-quick-schedule__label">Schedule</p>
+                                                            <template if:true={appt.quickScheduleStart}>
+                                                                <p class="sfs-quick-schedule__hint">
+                                                                    {appt.quickScheduleStart}
+                                                                </p>
+                                                            </template>
+                                                            <template if:false={appt.quickScheduleStart}>
+                                                                <p class="sfs-quick-schedule__hint">
+                                                                    Set a time without opening the calendar.
+                                                                </p>
+                                                            </template>
+                                                        </div>
+                                                        <div class="sfs-actions sfs-schedule-actions sfs-quick-schedule__actions">
+                                                            <lightning-button
+                                                                variant="neutral"
+                                                                label={appt.quickScheduleLabel}
+                                                                data-id={appt.cardId}
+                                                                onclick={handleToggleQuickSchedulePanel}
+                                                            >
+                                                            </lightning-button>
+                                                            <lightning-button
+                                                                variant="brand"
+                                                                label="Schedule on Calendar"
+                                                                data-id={appt.cardId}
+                                                                onclick={handleScheduleOnCalendar}
+                                                            >
+                                                            </lightning-button>
+                                                        </div>
+                                                    </div>
+
+                                                    <template if:true={appt.quickScheduleExpanded}>
+                                                        <div class="sfs-input-block sfs-quick-schedule__input">
+                                                            <lightning-input
+                                                                type="datetime-local"
+                                                                name="quickScheduleStart"
+                                                                label="Schedule Date/Time"
+                                                                value={appt.quickScheduleStart}
+                                                                data-id={appt.cardId}
+                                                                onchange={handleQuickScheduleChange}
+                                                            >
+                                                            </lightning-input>
+                                                        </div>
+
+                                                        <div class="sfs-actions sfs-schedule-actions sfs-quick-schedule__footer">
+                                                            <lightning-button
+                                                                variant="brand"
+                                                                label="Schedule"
+                                                                data-id={appt.cardId}
+                                                                onclick={handleQuickSchedule}
+                                                            >
+                                                            </lightning-button>
+                                                        </div>
+                                                    </template>
                                                 </div>
                                             </template>
 

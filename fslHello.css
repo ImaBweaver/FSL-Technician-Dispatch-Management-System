@@ -287,8 +287,56 @@
 /* keep the lightning-input nicely contained */
 .sfs-input-block lightning-input {
     display: block;
-    width: calc(100% - 30px);
+    width: 100%;
     margin: 0 auto;
+}
+
+.sfs-quick-schedule {
+    margin-top: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    border: 1px solid #e2e8f3;
+    border-radius: 0.5rem;
+    padding: 0.6rem 0.75rem;
+    background: #f9fbff;
+}
+
+.sfs-quick-schedule__row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.sfs-quick-schedule__summary {
+    min-width: 10rem;
+}
+
+.sfs-quick-schedule__label {
+    margin: 0;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.sfs-quick-schedule__hint {
+    margin: 0.1rem 0 0;
+    color: #4b586a;
+    font-size: 0.8rem;
+}
+
+.sfs-quick-schedule__actions {
+    flex: 1;
+    justify-content: flex-end;
+}
+
+.sfs-quick-schedule__input {
+    margin-top: 0.2rem;
+}
+
+.sfs-quick-schedule__footer {
+    justify-content: flex-start;
 }
 
 .sfs-quote-bar {
@@ -331,6 +379,7 @@
 .sfs-actions {
     display: flex;
     justify-content: flex-end;
+    gap: 0.5rem;
     margin-top: 0.5rem;
 }
 
@@ -340,7 +389,27 @@
 }
 
 .sfs-schedule-actions {
-    justify-content: flex-end;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+}
+
+.sfs-density-toggle {
+    margin-left: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 14rem;
+}
+
+.sfs-density-toggle lightning-input {
+    align-self: flex-end;
+}
+
+.sfs-density-toggle__hint {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #4b586a;
+    text-align: right;
 }
 
 .sfs-transfer-request-btn {
@@ -366,6 +435,23 @@
 
 .sfs-transfer-actions {
     gap: 0.4rem;
+}
+
+.sfs-card_compact {
+    padding: 0.85rem;
+    gap: 0.35rem;
+}
+
+.sfs-card_compact .sfs-card-body {
+    gap: 0.35rem;
+}
+
+.sfs-card_compact .sfs-quote-bar {
+    margin: 0.25rem 0;
+}
+
+.sfs-card_compact .sfs-actions {
+    justify-content: space-between;
 }
 
 /* CALENDAR TAB HEADER */
