@@ -3065,6 +3065,25 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     resetDragState() {
+        // When a pending placement is waiting for explicit confirmation, keep the
+        // ghost visible and anchored so it can only be dismissed via the
+        // confirmation controls. Other gestures (like panning the calendar)
+        // should stop any active drag interactions without clearing the ghost.
+        if (this.pendingSchedulePlacement && this.isAwaitingScheduleConfirmation) {
+            this.stopAutoScrollLoop();
+            this.unregisterGlobalDragListeners();
+            this.dragMode = null;
+            this.dragStartClientX = null;
+            this.dragStartClientY = null;
+            this.dragHasMoved = false;
+            this.showTrayCancelZone = false;
+            this.isHoveringCancelZone = false;
+            this.isPressingForDrag = false;
+            this._pendingDrag = null;
+            this.clearLongPressTimer();
+            return;
+        }
+
         this.dragMode = null;
         this.draggingEventId = null;
         this.draggingWorkOrderId = null;
