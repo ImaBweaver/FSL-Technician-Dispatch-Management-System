@@ -86,6 +86,62 @@
     gap: 0.75rem;
 }
 
+.sfs-list-group {
+    background: #f8fafc;
+    border: 1px solid #e0e6f1;
+    border-radius: 0.65rem;
+    padding: 0.25rem 0.55rem 0.4rem;
+}
+
+.sfs-list-group__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0;
+}
+
+.sfs-list-group__title {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    font-weight: 700;
+    color: #1b2c48;
+}
+
+.sfs-list-group__count {
+    color: #5f6c82;
+    font-size: 0.88rem;
+}
+
+.sfs-list-group__toggle {
+    border: none;
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.4rem;
+    font-weight: 700;
+    color: #0b5cab;
+    cursor: pointer;
+}
+
+.sfs-list-group__toggle:hover {
+    background: #e9f1ff;
+}
+
+.sfs-list-group__toggle-icon {
+    --sds-c-icon-color-foreground: #0b5cab;
+}
+
+.sfs-list-group__cards {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-bottom: 0.35rem;
+}
+
 .sfs-card {
     background: #ffffff;
     border-radius: 0.5rem;

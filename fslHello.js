@@ -92,6 +92,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     defaultWorkOrderDurationHours = 6;
     quickScheduleSelections = {};
     quickScheduleExpanded = {};
+    collapsedDayGroups = {};
     showTrayCancelZone = false;
     isHoveringCancelZone = false;
     dragRequiresExplicitConfirmation = true;
@@ -715,6 +716,105 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 cardClass: 'sfs-card'
             };
         });
+    }
+
+    get appointmentGroups() {
+        const groups = new Map();
+        const appointments = this.visibleAppointments || [];
+
+        appointments.forEach(appt => {
+            const groupInfo = this.getAppointmentGroup(appt);
+            const existing = groups.get(groupInfo.key);
+            const nextGroup = existing || {
+                ...groupInfo,
+                appointments: []
+            };
+
+            nextGroup.appointments.push(appt);
+            groups.set(groupInfo.key, nextGroup);
+        });
+
+        return Array.from(groups.values())
+            .sort((a, b) => {
+                const aValue = Number.isFinite(a.sortValue)
+                    ? a.sortValue
+                    : Number.POSITIVE_INFINITY;
+                const bValue = Number.isFinite(b.sortValue)
+                    ? b.sortValue
+                    : Number.POSITIVE_INFINITY;
+
+                if (aValue === bValue) {
+                    return a.label.localeCompare(b.label);
+                }
+
+                return aValue - bValue;
+            })
+            .map(group => {
+                const isCollapsed = Boolean(this.collapsedDayGroups[group.key]);
+
+                return {
+                    ...group,
+                    count: group.appointments.length,
+                    isCollapsed,
+                    toggleIcon: isCollapsed
+                        ? 'utility:chevrondown'
+                        : 'utility:chevronup',
+                    toggleLabel: isCollapsed ? 'Expand' : 'Collapse'
+                };
+            });
+    }
+
+    getAppointmentGroup(appt) {
+        const startDate = appt.schedStart ? new Date(appt.schedStart) : null;
+        const hasValidStart = startDate && !Number.isNaN(startDate.getTime());
+
+        if (!hasValidStart) {
+            return {
+                key: 'no-date',
+                label: 'No scheduled date',
+                sortValue: Number.POSITIVE_INFINITY
+            };
+        }
+
+        const today = new Date();
+        const tomorrow = new Date();
+        tomorrow.setDate(today.getDate() + 1);
+
+        const groupKey = this.getLocalDateId(startDate);
+        const todayKey = this.getLocalDateId(today);
+        const tomorrowKey = this.getLocalDateId(tomorrow);
+
+        let label = startDate.toLocaleDateString(undefined, {
+            weekday: 'long',
+            month: 'short',
+            day: 'numeric'
+        });
+
+        if (groupKey === todayKey) {
+            label = 'Today';
+        } else if (groupKey === tomorrowKey) {
+            label = 'Tomorrow';
+        }
+
+        const sortValue = new Date(
+            startDate.getFullYear(),
+            startDate.getMonth(),
+            startDate.getDate()
+        ).getTime();
+
+        return {
+            key: groupKey,
+            label,
+            sortValue
+        };
+    }
+
+    getLocalDateId(date) {
+        return [
+            date.getFullYear(),
+            String(date.getMonth() + 1).padStart(2, '0'),
+            String(date.getDate()).padStart(2, '0')
+        ].join('-');
     }
 
     isQuoteStatus(status) {
@@ -4171,6 +4271,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
         this.listMode = mode;
+        this.collapsedDayGroups = {};
     }
 
     handleCompactToggle(event) {
@@ -4442,6 +4543,19 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             }
             return appt;
         });
+    }
+
+    handleToggleGroup(event) {
+        const { groupKey } = event.currentTarget.dataset;
+
+        if (!groupKey) {
+            return;
+        }
+
+        this.collapsedDayGroups = {
+            ...this.collapsedDayGroups,
+            [groupKey]: !this.collapsedDayGroups[groupKey]
+        };
     }
 
     handleRefresh() {

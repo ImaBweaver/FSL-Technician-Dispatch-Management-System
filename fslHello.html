@@ -279,12 +279,37 @@
                     <template if:false={isTransferMode}>
                         <template if:true={hasVisibleAppointments}>
                             <div class="sfs-list">
-                                <template for:each={visibleAppointments} for:item="appt">
-                                    <article
-                                        key={appt.cardId}
-                                        class={appt.cardClass}
-                                        data-card-id={appt.cardId}
-                                    >
+                                <template for:each={appointmentGroups} for:item="group">
+                                    <div key={group.key} class="sfs-list-group">
+                                        <div class="sfs-list-group__header">
+                                            <div class="sfs-list-group__title">
+                                                <span class="sfs-list-group__label">{group.label}</span>
+                                                <span class="sfs-list-group__count">({group.count})</span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                class="sfs-list-group__toggle"
+                                                data-group-key={group.key}
+                                                onclick={handleToggleGroup}
+                                            >
+                                                <lightning-icon
+                                                    icon-name={group.toggleIcon}
+                                                    size="x-small"
+                                                    alternative-text={group.toggleLabel}
+                                                    class="sfs-list-group__toggle-icon"
+                                                ></lightning-icon>
+                                                <span>{group.toggleLabel}</span>
+                                            </button>
+                                        </div>
+
+                                        <template if:false={group.isCollapsed}>
+                                            <div class="sfs-list-group__cards">
+                                                <template for:each={group.appointments} for:item="appt">
+                                                    <article
+                                                        key={appt.cardId}
+                                                        class={appt.cardClass}
+                                                        data-card-id={appt.cardId}
+                                                    >
                                         <template if:true={appt.hasAppointment}>
                                             <button
                                                 class="sfs-unassign-btn"
@@ -665,6 +690,10 @@
                                             </template>
                                         </div>
                                     </article>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
                                 </template>
                             </div>
                         </template>
