@@ -2403,7 +2403,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         event.preventDefault();
     }
 
-    resetDragState({ preserveGhost = false } = {}) {
+    resetDragState() {
         this.dragMode = null;
         this.draggingEventId = null;
         this.draggingWorkOrderId = null;
@@ -2422,9 +2422,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.isPressingForDrag = false;
         this._pendingDrag = null;
         this.clearLongPressTimer();
-        if (!preserveGhost) {
-            this.hideDragGhost();
-        }
+        this.hideDragGhost();
         this.dragDayBodyTop = null;
         this.showTrayCancelZone = false;
         this.isHoveringCancelZone = false;
@@ -4124,7 +4122,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.isCalendarPanMode = !this.isCalendarPanMode;
 
         if (this.isCalendarPanMode) {
-            this.resetDragState({ preserveGhost: true });
+            this.resetDragState();
             this.isPressingForDrag = false;
             this._pendingDrag = null;
             this.clearLongPressTimer();
