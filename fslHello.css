@@ -1585,6 +1585,10 @@
     pointer-events: none;
 }
 
+.sfs-drag-ghost_interactive {
+    pointer-events: auto;
+}
+
 .sfs-drag-ghost__hint {
     position: absolute;
     top: -0.4rem;
@@ -1608,6 +1612,39 @@
     height: 100%;
     opacity: 0.95;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+}
+
+.sfs-drag-ghost__actions {
+    position: absolute;
+    top: -0.55rem;
+    left: -0.55rem;
+    right: -0.55rem;
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+}
+
+.sfs-drag-ghost__action {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 0.95rem;
+    cursor: pointer;
+    pointer-events: auto;
+    display: grid;
+    place-items: center;
+}
+
+.sfs-drag-ghost__action_confirm {
+    background: #2e844a;
+}
+
+.sfs-drag-ghost__action_cancel {
+    background: #ba0517;
 }
 
 .sfs-unassign-btn {
