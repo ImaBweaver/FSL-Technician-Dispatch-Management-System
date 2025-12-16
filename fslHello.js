@@ -4573,7 +4573,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.loadAppointments();
     }
 
-    handleLaunchQuickQuoteFlow() {
+    async handleLaunchQuickQuoteFlow() {
         this.checkOnline();
         if (this.isOffline) {
             this.showToast(
@@ -4584,11 +4584,38 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
-        this[NavigationMixin.Navigate]({
-            type: 'standard__flow',
+        try {
+            const flowUrl = await this.buildMobileFlowUrl(
+                this.quickQuoteFlowApiName
+            );
+            this.navigateToUrl(flowUrl);
+        } catch (error) {
+            console.error('Unable to launch Quick Quote flow', error);
+            this.showToast(
+                'Quick Quote unavailable',
+                'We were unable to open the Quick Quote flow. Please try again.',
+                'error'
+            );
+        }
+    }
+
+    async buildMobileFlowUrl(flowApiName) {
+        const generatedUrl = await this[NavigationMixin.GenerateUrl]({
+            type: 'standard__webPage',
             attributes: {
-                flowName: this.quickQuoteFlowApiName
+                // Explicitly target the mobile shell so the Field Service mobile flow
+                // opens inside the app instead of redirecting to desktop.
+                url: `/one/one.app#/flow/${flowApiName}`
             }
+        });
+
+        return generatedUrl || `/one/one.app#/flow/${flowApiName}`;
+    }
+
+    navigateToUrl(url) {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__webPage',
+            attributes: { url }
         });
     }
 
