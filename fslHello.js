@@ -160,6 +160,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     listMode = 'my';
 
     quickQuoteFlowApiName = 'FSL_Action_Quick_Quote_2';
+    quickQuoteQuickActionApiName = 'QuickCreateQuote';
     quickQuoteFlowExtensionName = '';
 
     quoteStatuses = ['Need Quote', 'PO Requested', 'Quote Sent', 'Quote Attached'];
@@ -4586,6 +4587,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         const flowApiName = this.quickQuoteFlowApiName;
+        const quickActionApiName = this.quickQuoteQuickActionApiName;
         const workOrderId = this.getQuickQuoteContextWorkOrderId();
 
         if (!workOrderId) {
@@ -4598,7 +4600,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         try {
-            await this.navigateToFieldServiceFlow(flowApiName, workOrderId);
+            await this.navigateToFieldServiceQuickAction(
+                quickActionApiName,
+                workOrderId
+            );
             return;
         } catch (error) {
             console.error('Unable to open mobile flow deep link', error);
@@ -4693,7 +4698,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return match ? this.getWorkOrderIdFromItem(match) : null;
     }
 
-    async navigateToFieldServiceFlow(flowApiName, workOrderId) {
+    async navigateToFieldServiceQuickAction(quickActionApiName, workOrderId) {
         if (!workOrderId) {
             throw new Error('Work Order Id required for Field Service flow deep link');
         }
@@ -4702,7 +4707,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             ? `?extension=${encodeURIComponent(this.quickQuoteFlowExtensionName)}`
             : '';
 
-        const deepLink = `com.salesforce.fieldservice://v1/sObject/${workOrderId}/flow/${flowApiName}${extensionParam}`;
+        const deepLink = `com.salesforce.fieldservice://v1/sObject/${workOrderId}/quickaction/${quickActionApiName}${extensionParam}`;
 
         return this.navigateToUrl(deepLink);
     }
