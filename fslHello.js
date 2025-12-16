@@ -5304,14 +5304,19 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const cardId = event.currentTarget.dataset.id;
         const appt = this.findAppointmentByCardId(cardId);
 
-        if (!appt || !appt.appointmentId) {
+        if (!appt || (!appt.appointmentId && !appt.workOrderId)) {
             return;
         }
 
-        this.navigateToServiceAppointment(appt.appointmentId);
+        this.navigateToServiceAppointment(appt.appointmentId, appt.workOrderId);
     }
 
-    navigateToServiceAppointment(serviceAppointmentId) {
+    navigateToServiceAppointment(serviceAppointmentId, fallbackWorkOrderId = null) {
+        if (!serviceAppointmentId && fallbackWorkOrderId) {
+            this.navigateToWorkOrderRecord(fallbackWorkOrderId);
+            return;
+        }
+
         try {
             const deepLink = `com.salesforce.fieldservice://v1/sObject/${serviceAppointmentId}`;
             this.navigateToUrl(deepLink);
@@ -5332,6 +5337,39 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         } catch (error) {
             console.error('Unable to open Service Appointment record page', error);
             const deepLink = `/one/one.app#/sObject/${serviceAppointmentId}/view`;
+            this.navigateToUrl(deepLink);
+        }
+
+        if (fallbackWorkOrderId) {
+            this.navigateToWorkOrderRecord(fallbackWorkOrderId);
+        }
+    }
+
+    navigateToWorkOrderRecord(workOrderId) {
+        if (!workOrderId) {
+            return;
+        }
+
+        try {
+            const deepLink = `com.salesforce.fieldservice://v1/sObject/${workOrderId}`;
+            this.navigateToUrl(deepLink);
+            return;
+        } catch (error) {
+            console.error('Unable to open Work Order via Field Service deep link', error);
+        }
+
+        try {
+            this[NavigationMixin.Navigate]({
+                type: 'standard__recordPage',
+                attributes: {
+                    recordId: workOrderId,
+                    objectApiName: 'WorkOrder',
+                    actionName: 'view'
+                }
+            });
+        } catch (error) {
+            console.error('Unable to open Work Order record page', error);
+            const deepLink = `/one/one.app#/sObject/${workOrderId}/view`;
             this.navigateToUrl(deepLink);
         }
     }
