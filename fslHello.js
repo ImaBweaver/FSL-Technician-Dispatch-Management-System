@@ -4584,19 +4584,24 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
-        try {
-            const flowPageReference = this.buildFlowPageReference(
-                this.quickQuoteFlowApiName
-            );
+        const flowApiName = this.quickQuoteFlowApiName;
 
+        try {
+            await this.navigateToMobileFlow(flowApiName);
+            return;
+        } catch (error) {
+            console.error('Unable to open mobile flow deep link', error);
+        }
+
+        try {
+            const flowPageReference = this.buildFlowPageReference(flowApiName);
             this[NavigationMixin.Navigate](flowPageReference);
+            return;
         } catch (error) {
             console.error('Unable to navigate to Quick Quote flow', error);
 
             try {
-                const flowUrl = await this.buildMobileFlowUrl(
-                    this.quickQuoteFlowApiName
-                );
+                const flowUrl = await this.buildMobileFlowUrl(flowApiName);
                 this.navigateToUrl(flowUrl);
                 return;
             } catch (fallbackError) {
@@ -4609,6 +4614,15 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 'error'
             );
         }
+    }
+
+    async navigateToMobileFlow(flowApiName) {
+        const deepLink = `/one/one.app#/flow/${flowApiName}`;
+
+        return this[NavigationMixin.Navigate]({
+            type: 'standard__webPage',
+            attributes: { url: deepLink }
+        });
     }
 
     buildFlowPageReference(flowApiName) {
@@ -5191,6 +5205,32 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     handleListSubjectClick(event) {
         this.handleEventClick(event);
+
+        const cardId = event.currentTarget.dataset.id;
+        const appt = this.findAppointmentByCardId(cardId);
+
+        if (!appt || !appt.appointmentId) {
+            return;
+        }
+
+        this.navigateToServiceAppointment(appt.appointmentId);
+    }
+
+    navigateToServiceAppointment(serviceAppointmentId) {
+        try {
+            this[NavigationMixin.Navigate]({
+                type: 'standard__recordPage',
+                attributes: {
+                    recordId: serviceAppointmentId,
+                    objectApiName: 'ServiceAppointment',
+                    actionName: 'view'
+                }
+            });
+        } catch (error) {
+            console.error('Unable to open Service Appointment record page', error);
+            const deepLink = `/one/one.app#/sObject/${serviceAppointmentId}/view`;
+            this.navigateToUrl(deepLink);
+        }
     }
 
     // ======= EVENT CLICK =======
