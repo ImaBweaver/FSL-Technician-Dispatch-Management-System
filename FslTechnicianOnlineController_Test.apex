@@ -230,6 +230,16 @@ public class FslTechnicianOnlineController_Test {
         FslTechnicianOnlineController.rescheduleAppointment(sa.Id, newStart);
         FslTechnicianOnlineController.updateAppointmentEnd(sa.Id, earlierEnd);
         Test.stopTest();
+
+        ServiceAppointment updated = [
+            SELECT SchedStartTime, Status
+            FROM ServiceAppointment
+            WHERE Id = :sa.Id
+            LIMIT 1
+        ];
+
+        System.assertEquals(newStart, updated.SchedStartTime, 'Start time should update.');
+        System.assertEquals('Dispatched', updated.Status, 'Status should be dispatched after scheduling.');
     }
 
     @isTest
