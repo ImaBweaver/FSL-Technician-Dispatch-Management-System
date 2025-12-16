@@ -260,6 +260,21 @@ public class FslTechnicianOnlineController_Test {
             endTime,
             techUser.Id
         );
+        ServiceAppointment created = [
+            SELECT Status, SchedStartTime, SchedEndTime
+            FROM ServiceAppointment
+            WHERE Id = :newApptId
+            LIMIT 1
+        ];
+        Integer arCount = [
+            SELECT COUNT()
+            FROM AssignedResource
+            WHERE ServiceAppointmentId = :newApptId
+        ];
+        System.assertEquals('Dispatched', created.Status, 'Appointments should dispatch after scheduling.');
+        System.assertNotEquals(null, created.SchedStartTime, 'Appointments should be scheduled before dispatch.');
+        System.assertNotEquals(null, created.SchedEndTime, 'Appointments should be scheduled before dispatch.');
+        System.assertEquals(1, arCount, 'Appointments should have a resource assigned before dispatch.');
         Test.stopTest();
 
 

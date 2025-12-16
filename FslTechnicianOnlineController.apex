@@ -1355,7 +1355,8 @@ public with sharing class FslTechnicianOnlineController {
         ServiceAppointment saTimeUpdate = new ServiceAppointment(
             Id              = sa.Id,
             SchedStartTime  = startDateTimeIso,
-            SchedEndTime    = endDateTime
+            SchedEndTime    = endDateTime,
+            Status          = 'Scheduled'
         );
         update saTimeUpdate;
 
@@ -1367,7 +1368,7 @@ public with sharing class FslTechnicianOnlineController {
 
         ServiceAppointment saStatusUpdate = new ServiceAppointment(
             Id      = sa.Id,
-            Status  = 'Scheduled'
+            Status  = 'Dispatched'
         );
         update saStatusUpdate;
 
