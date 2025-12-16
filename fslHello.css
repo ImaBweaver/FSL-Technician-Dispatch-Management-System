@@ -43,6 +43,33 @@
     margin-bottom: 0.5rem;
 }
 
+.sfs-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sfs-quick-quote-btn {
+    --slds-c-button-brand-font-size: 0.75rem;
+    --slds-c-button-font-weight: 700;
+    --slds-c-button-line-height: 1.2rem;
+    --slds-c-button-brand-spacing-inline-start: 0.45rem;
+    --slds-c-button-brand-spacing-inline-end: 0.45rem;
+    --slds-c-button-brand-spacing-block-start: 0.18rem;
+    --slds-c-button-brand-spacing-block-end: 0.18rem;
+}
+
+@media (max-width: 480px) {
+    .sfs-quick-quote-btn {
+        --slds-c-button-brand-font-size: 0.72rem;
+        --slds-c-button-line-height: 1.05rem;
+        --slds-c-button-brand-spacing-inline-start: 0.35rem;
+        --slds-c-button-brand-spacing-inline-end: 0.35rem;
+        --slds-c-button-brand-spacing-block-start: 0.15rem;
+        --slds-c-button-brand-spacing-block-end: 0.15rem;
+    }
+}
+
 .sfs-title {
     font-size: 1rem;
     font-weight: 600;
