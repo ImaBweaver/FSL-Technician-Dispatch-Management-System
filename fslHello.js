@@ -159,6 +159,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     // list sub-modes: 'my', 'needQuote', 'poRequested', 'quoteSent', 'quotes', 'quoteAttached', 'crew', 'partsReady', 'fulfilling'
     listMode = 'my';
 
+    quickQuoteFlowApiName = 'FSL_Action_Quick_Quote_2';
+
     quoteStatuses = ['Need Quote', 'PO Requested', 'Quote Sent', 'Quote Attached'];
 
     // My-tab status filter (WorkOrder.Status)
@@ -4569,6 +4571,52 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
         this.loadAppointments();
+    }
+
+    async handleLaunchQuickQuoteFlow() {
+        this.checkOnline();
+        if (this.isOffline) {
+            this.showToast(
+                'Offline',
+                'You must be online to launch the Quick Quote flow.',
+                'warning'
+            );
+            return;
+        }
+
+        try {
+            const flowUrl = await this.buildMobileFlowUrl(
+                this.quickQuoteFlowApiName
+            );
+            this.navigateToUrl(flowUrl);
+        } catch (error) {
+            console.error('Unable to launch Quick Quote flow', error);
+            this.showToast(
+                'Quick Quote unavailable',
+                'We were unable to open the Quick Quote flow. Please try again.',
+                'error'
+            );
+        }
+    }
+
+    async buildMobileFlowUrl(flowApiName) {
+        const generatedUrl = await this[NavigationMixin.GenerateUrl]({
+            type: 'standard__webPage',
+            attributes: {
+                // Explicitly target the mobile shell so the Field Service mobile flow
+                // opens inside the app instead of redirecting to desktop.
+                url: `/one/one.app#/flow/${flowApiName}`
+            }
+        });
+
+        return generatedUrl || `/one/one.app#/flow/${flowApiName}`;
+    }
+
+    navigateToUrl(url) {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__webPage',
+            attributes: { url }
+        });
     }
 
     handleDateChange(event) {
