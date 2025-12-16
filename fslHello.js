@@ -4585,12 +4585,24 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         try {
-            const flowUrl = await this.buildMobileFlowUrl(
+            const flowPageReference = this.buildFlowPageReference(
                 this.quickQuoteFlowApiName
             );
-            this.navigateToUrl(flowUrl);
+
+            this[NavigationMixin.Navigate](flowPageReference);
         } catch (error) {
-            console.error('Unable to launch Quick Quote flow', error);
+            console.error('Unable to navigate to Quick Quote flow', error);
+
+            try {
+                const flowUrl = await this.buildMobileFlowUrl(
+                    this.quickQuoteFlowApiName
+                );
+                this.navigateToUrl(flowUrl);
+                return;
+            } catch (fallbackError) {
+                console.error('Fallback navigation also failed', fallbackError);
+            }
+
             this.showToast(
                 'Quick Quote unavailable',
                 'We were unable to open the Quick Quote flow. Please try again.',
@@ -4599,17 +4611,20 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
     }
 
-    async buildMobileFlowUrl(flowApiName) {
-        const generatedUrl = await this[NavigationMixin.GenerateUrl]({
-            type: 'standard__webPage',
+    buildFlowPageReference(flowApiName) {
+        return {
+            type: 'standard__flow',
             attributes: {
-                // Explicitly target the mobile shell so the Field Service mobile flow
-                // opens inside the app instead of redirecting to desktop.
-                url: `/one/one.app#/flow/${flowApiName}`
+                flowApiName
             }
-        });
+        };
+    }
 
-        return generatedUrl || `/one/one.app#/flow/${flowApiName}`;
+    async buildMobileFlowUrl(flowApiName) {
+        const pageReference = this.buildFlowPageReference(flowApiName);
+        const generatedUrl = await this[NavigationMixin.GenerateUrl](pageReference);
+
+        return generatedUrl || `/flow/${flowApiName}`;
     }
 
     navigateToUrl(url) {
