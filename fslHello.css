@@ -185,6 +185,103 @@
     position: relative;
 }
 
+.sfs-quote-lines {
+    margin: 0.35rem 0 0.25rem;
+    border: 1px solid #e5e5e5;
+    border-radius: 0.5rem;
+    background: #f9fbff;
+}
+
+.sfs-quote-lines__toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem;
+    background: transparent;
+    border: none;
+    padding: 0.45rem 0.6rem;
+    font-weight: 700;
+    color: #1b2c48;
+    cursor: pointer;
+}
+
+.sfs-quote-lines__toggle:focus {
+    outline: 2px solid #0176d3;
+    outline-offset: 2px;
+}
+
+.sfs-quote-lines__chevron {
+    display: inline-block;
+    transition: transform 120ms ease;
+}
+
+.sfs-quote-lines__toggle[aria-expanded="true"] .sfs-quote-lines__chevron {
+    transform: rotate(90deg);
+}
+
+.sfs-quote-lines__count {
+    color: #5f6c82;
+    font-size: 0.85rem;
+}
+
+.sfs-quote-lines__list {
+    list-style: none;
+    margin: 0;
+    padding: 0.25rem 0.6rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.sfs-quote-lines__item {
+    background: #ffffff;
+    border: 1px solid #e5e8ed;
+    border-radius: 0.45rem;
+    padding: 0.4rem 0.45rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.sfs-quote-lines__status {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #0b5cab;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.sfs-quote-lines__name {
+    font-weight: 600;
+    color: #16325c;
+}
+
+.sfs-quote-lines__meta {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+    color: #2e4b87;
+}
+
+.sfs-quote-lines__quantity {
+    font-weight: 600;
+}
+
+.sfs-quote-lines__part-number {
+    background: #eef3ff;
+    color: #1b2c48;
+    padding: 0.1rem 0.35rem;
+    border-radius: 0.35rem;
+}
+
+.sfs-quote-lines__empty {
+    padding: 0.2rem 0.6rem 0.5rem;
+    color: #5f6c82;
+    font-size: 0.9rem;
+}
+
 .sfs-transfer-card {
     border-left: 5px solid #c23934;
 }

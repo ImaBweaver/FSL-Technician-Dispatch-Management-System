@@ -428,6 +428,62 @@
                                                 </p>
                                             </template>
 
+                                            <template if:true={appt.showQuoteLineItems}>
+                                                <div class="sfs-quote-lines">
+                                                    <button
+                                                        type="button"
+                                                        class="sfs-quote-lines__toggle"
+                                                        data-id={appt.cardId}
+                                                        onclick={handleToggleQuoteLines}
+                                                        aria-expanded={appt.quoteLinesExpanded}
+                                                    >
+                                                        <span class="sfs-quote-lines__chevron">▸</span>
+                                                        <span>{appt.quoteLinesToggleLabel}</span>
+                                                        <span class="sfs-quote-lines__count">
+                                                            ({appt.quoteLinesCount})
+                                                        </span>
+                                                    </button>
+
+                                                    <template if:true={appt.quoteLinesExpanded}>
+                                                        <template if:true={appt.quoteLines.length}>
+                                                            <ul class="sfs-quote-lines__list">
+                                                                <template
+                                                                    for:each={appt.quoteLines}
+                                                                    for:item="line"
+                                                                >
+                                                                    <li
+                                                                        key={line.lineItemId}
+                                                                        class="sfs-quote-lines__item"
+                                                                    >
+                                                                        <div class="sfs-quote-lines__status">
+                                                                            {line.lineType}
+                                                                        </div>
+                                                                        <div class="sfs-quote-lines__name">
+                                                                            {line.partName}
+                                                                        </div>
+                                                                        <div class="sfs-quote-lines__meta">
+                                                                            <span class="sfs-quote-lines__quantity">
+                                                                                Qty {line.quantity}
+                                                                            </span>
+                                                                            <template if:true={line.partNumber}>
+                                                                                <span class="sfs-quote-lines__part-number">
+                                                                                    {line.partNumber}
+                                                                                </span>
+                                                                            </template>
+                                                                        </div>
+                                                                    </li>
+                                                                </template>
+                                                            </ul>
+                                                        </template>
+                                                        <template if:false={appt.quoteLines.length}>
+                                                            <div class="sfs-quote-lines__empty">
+                                                                No quote-related line items yet.
+                                                            </div>
+                                                        </template>
+                                                    </template>
+                                                </div>
+                                            </template>
+
                                             <!-- Expand / collapse toggle -->
                                             <template if:true={appt.hasAppointment}>
                                                 <div class="sfs-list-toggle-row">
