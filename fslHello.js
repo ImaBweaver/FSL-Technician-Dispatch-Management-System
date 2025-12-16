@@ -160,6 +160,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     listMode = 'my';
 
     quickQuoteFlowApiName = 'FSL_Action_Quick_Quote_2';
+    quickQuoteFlowExtensionName = '';
 
     quoteStatuses = ['Need Quote', 'PO Requested', 'Quote Sent', 'Quote Attached'];
 
@@ -4585,23 +4586,39 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         const flowApiName = this.quickQuoteFlowApiName;
+        const workOrderId = this.getQuickQuoteContextWorkOrderId();
+
+        if (!workOrderId) {
+            this.showToast(
+                'Select a work order',
+                'Open a work order first so we can launch the flow for that record.',
+                'warning'
+            );
+            return;
+        }
 
         try {
-            await this.navigateToMobileFlow(flowApiName);
+            await this.navigateToFieldServiceFlow(flowApiName, workOrderId);
             return;
         } catch (error) {
             console.error('Unable to open mobile flow deep link', error);
         }
 
         try {
-            const flowPageReference = this.buildFlowPageReference(flowApiName);
+            const flowPageReference = this.buildFlowPageReference(
+                flowApiName,
+                workOrderId
+            );
             this[NavigationMixin.Navigate](flowPageReference);
             return;
         } catch (error) {
             console.error('Unable to navigate to Quick Quote flow', error);
 
             try {
-                const flowUrl = await this.buildMobileFlowUrl(flowApiName);
+                const flowUrl = await this.buildMobileFlowUrl(
+                    flowApiName,
+                    workOrderId
+                );
                 this.navigateToUrl(flowUrl);
                 return;
             } catch (fallbackError) {
@@ -4616,26 +4633,99 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
     }
 
-    async navigateToMobileFlow(flowApiName) {
-        const deepLink = `/one/one.app#/flow/${flowApiName}`;
+    getQuickQuoteContextWorkOrderId() {
+        const selectedWorkOrderId = this.getWorkOrderIdFromItem(
+            this.selectedAppointment
+        );
 
-        return this[NavigationMixin.Navigate]({
-            type: 'standard__webPage',
-            attributes: { url: deepLink }
-        });
+        if (selectedWorkOrderId) {
+            return selectedWorkOrderId;
+        }
+
+        const fromVisibleAppointments = this.findFirstWorkOrderId(
+            this.visibleAppointments
+        );
+
+        if (fromVisibleAppointments) {
+            return fromVisibleAppointments;
+        }
+
+        const fromOwnedAppointments = this.findFirstWorkOrderId(
+            this.ownedAppointments
+        );
+
+        if (fromOwnedAppointments) {
+            return fromOwnedAppointments;
+        }
+
+        const fromAllAppointments = this.findFirstWorkOrderId(this.appointments);
+
+        if (fromAllAppointments) {
+            return fromAllAppointments;
+        }
+
+        const fromUnscheduled = this.findFirstWorkOrderId(
+            this.unscheduledWorkOrders
+        );
+
+        if (fromUnscheduled) {
+            return fromUnscheduled;
+        }
+
+        return null;
     }
 
-    buildFlowPageReference(flowApiName) {
+    getWorkOrderIdFromItem(item) {
+        if (!item) {
+            return null;
+        }
+
+        return item.workOrderId || null;
+    }
+
+    findFirstWorkOrderId(items) {
+        if (!items || !Array.isArray(items)) {
+            return null;
+        }
+
+        const match = items.find(item => this.getWorkOrderIdFromItem(item));
+
+        return match ? this.getWorkOrderIdFromItem(match) : null;
+    }
+
+    async navigateToFieldServiceFlow(flowApiName, workOrderId) {
+        if (!workOrderId) {
+            throw new Error('Work Order Id required for Field Service flow deep link');
+        }
+
+        const extensionParam = this.quickQuoteFlowExtensionName
+            ? `?extension=${encodeURIComponent(this.quickQuoteFlowExtensionName)}`
+            : '';
+
+        const deepLink = `com.salesforce.fieldservice://v1/sObject/${workOrderId}/flow/${flowApiName}${extensionParam}`;
+
+        return this.navigateToUrl(deepLink);
+    }
+
+    buildFlowPageReference(flowApiName, workOrderId) {
         return {
             type: 'standard__flow',
             attributes: {
                 flowApiName
-            }
+            },
+            state: workOrderId
+                ? {
+                      recordId: workOrderId
+                  }
+                : {}
         };
     }
 
-    async buildMobileFlowUrl(flowApiName) {
-        const pageReference = this.buildFlowPageReference(flowApiName);
+    async buildMobileFlowUrl(flowApiName, workOrderId) {
+        const pageReference = this.buildFlowPageReference(
+            flowApiName,
+            workOrderId
+        );
         const generatedUrl = await this[NavigationMixin.GenerateUrl](pageReference);
 
         return generatedUrl || `/flow/${flowApiName}`;
@@ -5217,6 +5307,14 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     navigateToServiceAppointment(serviceAppointmentId) {
+        try {
+            const deepLink = `com.salesforce.fieldservice://v1/sObject/${serviceAppointmentId}`;
+            this.navigateToUrl(deepLink);
+            return;
+        } catch (error) {
+            console.error('Unable to open Service Appointment via Field Service deep link', error);
+        }
+
         try {
             this[NavigationMixin.Navigate]({
                 type: 'standard__recordPage',
