@@ -312,6 +312,7 @@ public with sharing class FslTechnicianOnlineController {
 
         Map<Id, String> opportunityRecordTypeByWo = new Map<Id, String>();
         Map<Id, Id> quoteDocIdByWo = new Map<Id, Id>();
+        Map<Id, Datetime> quoteDocCreatedByWo = new Map<Id, Datetime>();
         Set<Id> workOrdersWithAttachment = new Set<Id>();
         Map<Id, String> quoteDownloadByWo = new Map<Id, String>();
         Set<Id> workOrdersWithThisTech = new Set<Id>();
@@ -331,6 +332,7 @@ public with sharing class FslTechnicianOnlineController {
                 workOrdersWithAttachment,
                 quoteDownloadByWo,
                 quoteDocIdByWo,
+                quoteDocCreatedByWo,
                 opportunityRecordTypeByWo
             );
             wrapper.transferRequests = buildTransferRequests(pendingRequests);
@@ -417,30 +419,20 @@ public with sharing class FslTechnicianOnlineController {
                 SELECT LinkedEntityId,
                     ContentDocumentId,
                     ContentDocument.FileExtension,
+                    ContentDocument.CreatedDate,
                     ContentDocument.LatestPublishedVersionId
                 FROM ContentDocumentLink
                 WHERE LinkedEntityId IN :workOrderIds
             ]) {
                 if (cdl.LinkedEntityId != null) {
                     workOrdersWithAttachment.add(cdl.LinkedEntityId);
-
-                    if (cdl.ContentDocument != null &&
-                        String.isNotBlank(cdl.ContentDocument.LatestPublishedVersionId) &&
-                        !quoteDownloadByWo.containsKey(cdl.LinkedEntityId)) {
-
-                        quoteDownloadByWo.put(
-                            cdl.LinkedEntityId,
-                            '/sfc/servlet.shepherd/document/download/' +
-                                cdl.ContentDocumentId
-                        );
-
-                        if (cdl.ContentDocumentId != null) {
-                            quoteDocIdByWo.put(
-                                cdl.LinkedEntityId,
-                                cdl.ContentDocumentId
-                            );
-                        }
-                    }
+                    updateQuoteAttachmentSelection(
+                        quoteDocCreatedByWo,
+                        quoteDownloadByWo,
+                        quoteDocIdByWo,
+                        cdl.LinkedEntityId,
+                        cdl
+                    );
                 }
             }
         }
@@ -450,6 +442,7 @@ public with sharing class FslTechnicianOnlineController {
                 SELECT LinkedEntityId,
                     ContentDocumentId,
                     ContentDocument.FileExtension,
+                    ContentDocument.CreatedDate,
                     ContentDocument.LatestPublishedVersionId
                 FROM ContentDocumentLink
                 WHERE LinkedEntityId IN :opportunityIds
@@ -459,24 +452,13 @@ public with sharing class FslTechnicianOnlineController {
 
                     for (Id woId : workOrdersByOpportunity.get(cdl.LinkedEntityId)) {
                         workOrdersWithAttachment.add(woId);
-
-                        if (cdl.ContentDocument != null &&
-                            String.isNotBlank(cdl.ContentDocument.LatestPublishedVersionId) &&
-                            !quoteDownloadByWo.containsKey(woId)) {
-
-                            quoteDownloadByWo.put(
-                                woId,
-                                '/sfc/servlet.shepherd/document/download/' +
-                                    cdl.ContentDocumentId
-                            );
-
-                            if (cdl.ContentDocumentId != null) {
-                                quoteDocIdByWo.put(
-                                    woId,
-                                    cdl.ContentDocumentId
-                                );
-                            }
-                        }
+                        updateQuoteAttachmentSelection(
+                            quoteDocCreatedByWo,
+                            quoteDownloadByWo,
+                            quoteDocIdByWo,
+                            woId,
+                            cdl
+                        );
                     }
                 }
             }
@@ -667,6 +649,7 @@ public with sharing class FslTechnicianOnlineController {
             workOrdersWithAttachment,
             quoteDownloadByWo,
             quoteDocIdByWo,
+            quoteDocCreatedByWo,
             opportunityRecordTypeByWo
         );
         wrapper.transferRequests = buildTransferRequests(pendingRequests);
@@ -824,6 +807,7 @@ public with sharing class FslTechnicianOnlineController {
         Set<Id> workOrdersWithAttachment,
         Map<Id, String> quoteDownloadByWo,
         Map<Id, Id> quoteDocIdByWo,
+        Map<Id, Datetime> quoteDocCreatedByWo,
         Map<Id, String> opportunityRecordTypeByWo
     ) {
         // Work Orders that are effectively "closed" from the technician perspective
@@ -1009,31 +993,22 @@ public with sharing class FslTechnicianOnlineController {
             for (ContentDocumentLink cdl : [
                 SELECT LinkedEntityId,
                     ContentDocumentId,
-                    ContentDocument.LatestPublishedVersionId
+                    ContentDocument.CreatedDate,
+                    ContentDocument.LatestPublishedVersionId,
+                    ContentDocument.FileExtension
                 FROM ContentDocumentLink
                 WHERE LinkedEntityId IN :candidateWoIds
             ]) {
                 if (cdl.LinkedEntityId == null) continue;
 
                 workOrdersWithAttachment.add(cdl.LinkedEntityId);
-
-                if (cdl.ContentDocument != null &&
-                    String.isNotBlank(cdl.ContentDocument.LatestPublishedVersionId) &&
-                    !quoteDownloadByWo.containsKey(cdl.LinkedEntityId)) {
-
-                    quoteDownloadByWo.put(
-                        cdl.LinkedEntityId,
-                        '/sfc/servlet.shepherd/document/download/' +
-                            cdl.ContentDocumentId
-                    );
-
-                    if (cdl.ContentDocumentId != null) {
-                        quoteDocIdByWo.put(
-                            cdl.LinkedEntityId,
-                            cdl.ContentDocumentId
-                        );
-                    }
-                }
+                updateQuoteAttachmentSelection(
+                    quoteDocCreatedByWo,
+                    quoteDownloadByWo,
+                    quoteDocIdByWo,
+                    cdl.LinkedEntityId,
+                    cdl
+                );
             }
         }
 
@@ -1041,7 +1016,9 @@ public with sharing class FslTechnicianOnlineController {
             for (ContentDocumentLink cdl : [
                 SELECT LinkedEntityId,
                     ContentDocumentId,
-                    ContentDocument.LatestPublishedVersionId
+                    ContentDocument.CreatedDate,
+                    ContentDocument.LatestPublishedVersionId,
+                    ContentDocument.FileExtension
                 FROM ContentDocumentLink
                 WHERE LinkedEntityId IN :candidateOppIds
             ]) {
@@ -1052,24 +1029,13 @@ public with sharing class FslTechnicianOnlineController {
 
                 for (Id woId : candidateWoByOpp.get(cdl.LinkedEntityId)) {
                     workOrdersWithAttachment.add(woId);
-
-                    if (cdl.ContentDocument != null &&
-                        String.isNotBlank(cdl.ContentDocument.LatestPublishedVersionId) &&
-                        !quoteDownloadByWo.containsKey(woId)) {
-
-                        quoteDownloadByWo.put(
-                            woId,
-                            '/sfc/servlet.shepherd/document/download/' +
-                                cdl.ContentDocumentId
-                        );
-
-                        if (cdl.ContentDocumentId != null) {
-                            quoteDocIdByWo.put(
-                                woId,
-                                cdl.ContentDocumentId
-                            );
-                        }
-                    }
+                    updateQuoteAttachmentSelection(
+                        quoteDocCreatedByWo,
+                        quoteDownloadByWo,
+                        quoteDocIdByWo,
+                        woId,
+                        cdl
+                    );
                 }
             }
         }
@@ -1187,7 +1153,43 @@ public with sharing class FslTechnicianOnlineController {
     }
 
 
+    private static void updateQuoteAttachmentSelection(
+        Map<Id, Datetime> quoteDocCreatedByWo,
+        Map<Id, String> quoteDownloadByWo,
+        Map<Id, Id> quoteDocIdByWo,
+        Id workOrderId,
+        ContentDocumentLink cdl
+    ) {
+        if (workOrderId == null || cdl == null || cdl.ContentDocument == null) {
+            return;
+        }
 
+        if (String.isBlank(cdl.ContentDocument.FileExtension) ||
+            cdl.ContentDocument.FileExtension.toLowerCase() != 'pdf') {
+            return;
+        }
+
+        if (String.isBlank(cdl.ContentDocument.LatestPublishedVersionId)) {
+            return;
+        }
+
+        Datetime created = cdl.ContentDocument.CreatedDate;
+        Datetime existing = quoteDocCreatedByWo.containsKey(workOrderId)
+            ? quoteDocCreatedByWo.get(workOrderId)
+            : null;
+
+        if (existing == null || (created != null && created.getTime() > existing.getTime())) {
+            quoteDocCreatedByWo.put(workOrderId, created);
+            quoteDownloadByWo.put(
+                workOrderId,
+                '/sfc/servlet.shepherd/document/download/' + cdl.ContentDocumentId
+            );
+
+            if (cdl.ContentDocumentId != null) {
+                quoteDocIdByWo.put(workOrderId, cdl.ContentDocumentId);
+            }
+        }
+    }
 
     @AuraEnabled
     public static void rescheduleAppointment(Id appointmentId, Datetime newStart) {
