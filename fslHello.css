@@ -43,6 +43,12 @@
     margin-bottom: 0.5rem;
 }
 
+.sfs-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .sfs-title {
     font-size: 1rem;
     font-weight: 600;

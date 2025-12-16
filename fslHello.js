@@ -159,6 +159,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     // list sub-modes: 'my', 'needQuote', 'poRequested', 'quoteSent', 'quotes', 'quoteAttached', 'crew', 'partsReady', 'fulfilling'
     listMode = 'my';
 
+    quickQuoteFlowApiName = 'FSL_Action_Quick_Quote_2';
+
     quoteStatuses = ['Need Quote', 'PO Requested', 'Quote Sent', 'Quote Attached'];
 
     // My-tab status filter (WorkOrder.Status)
@@ -4569,6 +4571,25 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
         this.loadAppointments();
+    }
+
+    handleLaunchQuickQuoteFlow() {
+        this.checkOnline();
+        if (this.isOffline) {
+            this.showToast(
+                'Offline',
+                'You must be online to launch the Quick Quote flow.',
+                'warning'
+            );
+            return;
+        }
+
+        this[NavigationMixin.Navigate]({
+            type: 'standard__flow',
+            attributes: {
+                flowName: this.quickQuoteFlowApiName
+            }
+        });
     }
 
     handleDateChange(event) {

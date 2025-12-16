@@ -37,12 +37,19 @@
         <template if:true={isListTabActive}>
                 <div class="sfs-header">
                     <h2 class="sfs-title">My Service Appointments</h2>
-                    <lightning-button
-                        variant="neutral"
-                        label="Refresh"
-                        onclick={handleRefresh}
-                        class="sfs-refresh-btn"
-                    ></lightning-button>
+                    <div class="sfs-header-actions">
+                        <lightning-button
+                            variant="brand"
+                            label="Quick Quote"
+                            onclick={handleLaunchQuickQuoteFlow}
+                        ></lightning-button>
+                        <lightning-button
+                            variant="neutral"
+                            label="Refresh"
+                            onclick={handleRefresh}
+                            class="sfs-refresh-btn"
+                        ></lightning-button>
+                    </div>
                 </div>
 
                 <template if:true={isManager}>
