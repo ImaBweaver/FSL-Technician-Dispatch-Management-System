@@ -720,8 +720,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             const isQuoteLinesExpanded = Boolean(
                 this.quoteLineExpansion[item.cardId]
             );
-            const quoteLinesExpanded =
-                this.isNeedQuoteMode && isQuoteLinesExpanded;
+            const showQuoteLineItems =
+                this.isNeedQuoteMode || quoteLines.length > 0;
+            const quoteLinesExpanded = showQuoteLineItems && isQuoteLinesExpanded;
 
             return {
                 ...item,
@@ -737,7 +738,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 quoteLinesToggleLabel: quoteLinesExpanded
                     ? 'Hide line items'
                     : 'Show line items',
-                showQuoteLineItems: this.isNeedQuoteMode,
+                showQuoteLineItems,
                 quoteLinesCount: quoteLines.length
             };
         });
