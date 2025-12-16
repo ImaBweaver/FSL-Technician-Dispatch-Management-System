@@ -38,12 +38,13 @@
                 <div class="sfs-header">
                     <h2 class="sfs-title">My Service Appointments</h2>
                     <div class="sfs-header-actions">
-                        <lightning-button
-                            variant="brand"
-                            label="Quick Quote"
+                        <button
+                            type="button"
+                            class="slds-button slds-button_brand sfs-quick-quote-btn"
                             onclick={handleLaunchQuickQuoteFlow}
-                            class="sfs-quick-quote-btn"
-                        ></lightning-button>
+                        >
+                            Quick Quote
+                        </button>
                         <lightning-button
                             variant="neutral"
                             label="Refresh"

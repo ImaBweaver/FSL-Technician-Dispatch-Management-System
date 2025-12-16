@@ -50,30 +50,31 @@
 }
 
 .sfs-quick-quote-btn {
-    --slds-c-button-brand-font-size: 0.75rem;
-    --slds-c-button-font-weight: 700;
-    --slds-c-button-line-height: 1.1rem;
-    --slds-c-button-brand-height: 1.55rem;
-    --slds-c-button-brand-min-height: 1.55rem;
-    --slds-c-button-brand-line-height: 1.1rem;
-    --slds-c-button-brand-spacing-inline-start: 0.4rem;
-    --slds-c-button-brand-spacing-inline-end: 0.4rem;
-    --slds-c-button-brand-spacing-block-start: 0.12rem;
-    --slds-c-button-brand-spacing-block-end: 0.12rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1rem;
+    padding: 0.15rem 0.55rem;
+    height: 1.45rem;
+    min-height: 1.45rem;
+    border-radius: 0.55rem;
     white-space: nowrap;
+}
+
+.sfs-quick-quote-btn:focus {
+    box-shadow: 0 0 0 2px #f3f2f2, 0 0 0 4px #0176d3;
 }
 
 @media (max-width: 480px) {
     .sfs-quick-quote-btn {
-        --slds-c-button-brand-font-size: 0.7rem;
-        --slds-c-button-line-height: 1rem;
-        --slds-c-button-brand-height: 1.45rem;
-        --slds-c-button-brand-min-height: 1.45rem;
-        --slds-c-button-brand-line-height: 1rem;
-        --slds-c-button-brand-spacing-inline-start: 0.32rem;
-        --slds-c-button-brand-spacing-inline-end: 0.32rem;
-        --slds-c-button-brand-spacing-block-start: 0.1rem;
-        --slds-c-button-brand-spacing-block-end: 0.1rem;
+        font-size: 0.7rem;
+        line-height: 0.95rem;
+        padding: 0.1rem 0.45rem;
+        height: 1.3rem;
+        min-height: 1.3rem;
+        border-radius: 0.5rem;
     }
 }
 
