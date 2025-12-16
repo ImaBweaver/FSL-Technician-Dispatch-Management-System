@@ -1331,6 +1331,7 @@
 
 .sfs-subject-btn_static {
     cursor: default;
+    pointer-events: none;
 }
 
 .sfs-calendar-event_dragging,
@@ -1344,6 +1345,10 @@
 
 .sfs-subject-btn:hover {
     text-decoration: underline;
+}
+
+.sfs-subject-btn_static:hover {
+    text-decoration: none;
 }
 
 

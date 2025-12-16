@@ -346,14 +346,11 @@
                                             </div>
 
                                             <div class="sfs-subject-row">
-                                                <button
-                                                    type="button"
-                                                    class="sfs-subject-btn"
-                                                    data-id={appt.cardId}
-                                                    onclick={handleListSubjectClick}
+                                                <span
+                                                    class="sfs-subject-btn sfs-subject-btn_static"
                                                 >
                                                     {appt.workOrderSubject}
-                                                </button>
+                                                </span>
 
                                                 <lightning-button-icon
                                                     icon-name="utility:info"
@@ -361,7 +358,7 @@
                                                     variant="bare"
                                                     size="small"
                                                     data-id={appt.cardId}
-                                                    onclick={handleListSubjectClick}
+                                                    onclick={handleListInfoClick}
                                                     class="sfs-info-button"
                                                 ></lightning-button-icon>
                                             </div>
