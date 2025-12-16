@@ -50,19 +50,19 @@
 }
 
 .sfs-quick-quote-btn {
-    --slds-c-button-brand-font-size: 0.95rem;
-    --slds-c-button-font-weight: 600;
-    --slds-c-button-line-height: 2.15rem;
-    --slds-c-button-brand-spacing-inline-start: 0.85rem;
-    --slds-c-button-brand-spacing-inline-end: 0.85rem;
+    --slds-c-button-brand-font-size: 0.75rem;
+    --slds-c-button-font-weight: 700;
+    --slds-c-button-line-height: 1.65rem;
+    --slds-c-button-brand-spacing-inline-start: 0.6rem;
+    --slds-c-button-brand-spacing-inline-end: 0.6rem;
 }
 
 @media (max-width: 480px) {
     .sfs-quick-quote-btn {
-        --slds-c-button-brand-font-size: 0.85rem;
-        --slds-c-button-line-height: 1.9rem;
-        --slds-c-button-brand-spacing-inline-start: 0.7rem;
-        --slds-c-button-brand-spacing-inline-end: 0.7rem;
+        --slds-c-button-brand-font-size: 0.72rem;
+        --slds-c-button-line-height: 1.55rem;
+        --slds-c-button-brand-spacing-inline-start: 0.5rem;
+        --slds-c-button-brand-spacing-inline-end: 0.5rem;
     }
 }
 
