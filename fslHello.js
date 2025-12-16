@@ -92,6 +92,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     defaultWorkOrderDurationHours = 6;
     quickScheduleSelections = {};
     quickScheduleExpanded = {};
+    quoteLineExpansion = {};
     collapsedDayGroups = {};
     showTrayCancelZone = false;
     isHoveringCancelZone = false;
@@ -189,6 +190,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     get isMyMode() {
         return this.listMode === 'my';
+    }
+
+    get isNeedQuoteMode() {
+        return this.listMode === 'needQuote';
     }
 
     get isListTabActive() {
@@ -709,6 +714,16 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 this.quickScheduleExpanded[item.cardId]
             );
 
+            const quoteLines = Array.isArray(item.quoteLines)
+                ? item.quoteLines
+                : [];
+            const isQuoteLinesExpanded = Boolean(
+                this.quoteLineExpansion[item.cardId]
+            );
+            const showQuoteLineItems =
+                this.isNeedQuoteMode || quoteLines.length > 0;
+            const quoteLinesExpanded = showQuoteLineItems && isQuoteLinesExpanded;
+
             return {
                 ...item,
                 showScheduleOnCalendar: allowScheduleOnCalendar,
@@ -717,7 +732,14 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 quickScheduleLabel: isQuickScheduleExpanded
                     ? 'Hide quick schedule'
                     : 'Quick schedule',
-                cardClass: 'sfs-card'
+                cardClass: 'sfs-card',
+                quoteLines,
+                quoteLinesExpanded,
+                quoteLinesToggleLabel: quoteLinesExpanded
+                    ? 'Hide line items'
+                    : 'Show line items',
+                showQuoteLineItems,
+                quoteLinesCount: quoteLines.length
             };
         });
     }
@@ -855,6 +877,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     wo.status === 'Quote Sent' ||
                     this.isQuoteAttachedAppointment(wo),
                 showMarkQuoteSentAction: this.isQuoteAttachedAppointment(wo),
+                quoteLines: Array.isArray(wo.quoteLines)
+                    ? wo.quoteLines
+                    : [],
                 isExpanded: false,
                 workTypeName: 'Work Order',
                 workTypeClass: 'sfs-worktype'
@@ -3416,6 +3441,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.isLoading = true;
         this.selectedAppointment = null;
         this.selectedAbsence = null;
+        this.quoteLineExpansion = {};
 
         getMyAppointmentsOnline({ targetUserId: this.activeUserId })
             .then(result => {
@@ -3511,6 +3537,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                         wo.country
                     ].filter(Boolean);
                     clone.fullAddress = parts.join(', ');
+                    clone.quoteLines = Array.isArray(wo.quoteLines)
+                        ? wo.quoteLines
+                        : [];
                     return clone;
                 });
 
@@ -3617,6 +3646,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     clone.showMarkQuoteSentAction = this.isQuoteAttachedAppointment(
                         clone
                     );
+                    clone.quoteLines = Array.isArray(appt.quoteLines)
+                        ? appt.quoteLines
+                        : [];
                     clone.opportunityRecordType = appt.opportunityRecordType || null;
                     clone.cardId = appt.appointmentId;
                     clone.hasAppointment = true;
@@ -4547,6 +4579,18 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             }
             return appt;
         });
+    }
+
+    handleToggleQuoteLines(event) {
+        const cardId = event.currentTarget.dataset.id;
+        if (!cardId) {
+            return;
+        }
+
+        this.quoteLineExpansion = {
+            ...this.quoteLineExpansion,
+            [cardId]: !this.quoteLineExpansion[cardId]
+        };
     }
 
     handleToggleGroup(event) {
