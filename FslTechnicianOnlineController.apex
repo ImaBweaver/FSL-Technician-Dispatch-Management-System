@@ -1215,6 +1215,7 @@ public with sharing class FslTechnicianOnlineController {
 
         sa.SchedStartTime = newStart;
         sa.SchedEndTime   = Datetime.newInstance(newStart.getTime() + durationMs);
+        sa.Status         = 'Dispatched';
 
         update sa;
     }
