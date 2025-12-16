@@ -5298,17 +5298,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             });
     }
 
-    handleListSubjectClick(event) {
+    handleListInfoClick(event) {
         this.handleEventClick(event);
-
-        const cardId = event.currentTarget.dataset.id;
-        const appt = this.findAppointmentByCardId(cardId);
-
-        if (!appt || (!appt.appointmentId && !appt.workOrderId)) {
-            return;
-        }
-
-        this.navigateToServiceAppointment(appt.appointmentId, appt.workOrderId);
     }
 
     navigateToServiceAppointment(serviceAppointmentId, fallbackWorkOrderId = null) {
@@ -5571,15 +5562,20 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     handleOpenWorkOrder() {
         if (
             !this.selectedAppointment ||
-            !this.selectedAppointment.appointmentId
+            (!this.selectedAppointment.appointmentId &&
+                !this.selectedAppointment.workOrderId)
         ) {
             return;
         }
 
-        this.navigateToRecord(
-            this.selectedAppointment.appointmentId,
-            'ServiceAppointment'
-        );
+        const { appointmentId, workOrderId } = this.selectedAppointment;
+
+        if (appointmentId) {
+            this.navigateToServiceAppointment(appointmentId, workOrderId);
+            return;
+        }
+
+        this.navigateToWorkOrderRecord(workOrderId);
     }
 
     handleOpenAccount() {
