@@ -159,6 +159,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     // list sub-modes: 'my', 'needQuote', 'poRequested', 'quoteSent', 'quotes', 'quoteAttached', 'crew', 'partsReady', 'fulfilling'
     listMode = 'my';
 
+    quickQuoteFlowApiName = 'FSL_Action_Quick_Quote_2';
+    quickQuoteQuickActionApiName = 'QuickCreateQuote';
+    quickQuoteFlowExtensionName = '';
+
     quoteStatuses = ['Need Quote', 'PO Requested', 'Quote Sent', 'Quote Attached'];
 
     // My-tab status filter (WorkOrder.Status)
@@ -4571,6 +4575,174 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.loadAppointments();
     }
 
+    async handleLaunchQuickQuoteFlow() {
+        this.checkOnline();
+        if (this.isOffline) {
+            this.showToast(
+                'Offline',
+                'You must be online to launch the Quick Quote flow.',
+                'warning'
+            );
+            return;
+        }
+
+        const flowApiName = this.quickQuoteFlowApiName;
+        const quickActionApiName = this.quickQuoteQuickActionApiName;
+        const workOrderId = this.getQuickQuoteContextWorkOrderId();
+
+        if (!workOrderId) {
+            this.showToast(
+                'Select a work order',
+                'Open a work order first so we can launch the flow for that record.',
+                'warning'
+            );
+            return;
+        }
+
+        try {
+            await this.navigateToFieldServiceQuickAction(
+                quickActionApiName,
+                workOrderId
+            );
+            return;
+        } catch (error) {
+            console.error('Unable to open mobile flow deep link', error);
+        }
+
+        try {
+            const flowPageReference = this.buildFlowPageReference(
+                flowApiName,
+                workOrderId
+            );
+            this[NavigationMixin.Navigate](flowPageReference);
+            return;
+        } catch (error) {
+            console.error('Unable to navigate to Quick Quote flow', error);
+
+            try {
+                const flowUrl = await this.buildMobileFlowUrl(
+                    flowApiName,
+                    workOrderId
+                );
+                this.navigateToUrl(flowUrl);
+                return;
+            } catch (fallbackError) {
+                console.error('Fallback navigation also failed', fallbackError);
+            }
+
+            this.showToast(
+                'Quick Quote unavailable',
+                'We were unable to open the Quick Quote flow. Please try again.',
+                'error'
+            );
+        }
+    }
+
+    getQuickQuoteContextWorkOrderId() {
+        const selectedWorkOrderId = this.getWorkOrderIdFromItem(
+            this.selectedAppointment
+        );
+
+        if (selectedWorkOrderId) {
+            return selectedWorkOrderId;
+        }
+
+        const fromVisibleAppointments = this.findFirstWorkOrderId(
+            this.visibleAppointments
+        );
+
+        if (fromVisibleAppointments) {
+            return fromVisibleAppointments;
+        }
+
+        const fromOwnedAppointments = this.findFirstWorkOrderId(
+            this.ownedAppointments
+        );
+
+        if (fromOwnedAppointments) {
+            return fromOwnedAppointments;
+        }
+
+        const fromAllAppointments = this.findFirstWorkOrderId(this.appointments);
+
+        if (fromAllAppointments) {
+            return fromAllAppointments;
+        }
+
+        const fromUnscheduled = this.findFirstWorkOrderId(
+            this.unscheduledWorkOrders
+        );
+
+        if (fromUnscheduled) {
+            return fromUnscheduled;
+        }
+
+        return null;
+    }
+
+    getWorkOrderIdFromItem(item) {
+        if (!item) {
+            return null;
+        }
+
+        return item.workOrderId || null;
+    }
+
+    findFirstWorkOrderId(items) {
+        if (!items || !Array.isArray(items)) {
+            return null;
+        }
+
+        const match = items.find(item => this.getWorkOrderIdFromItem(item));
+
+        return match ? this.getWorkOrderIdFromItem(match) : null;
+    }
+
+    async navigateToFieldServiceQuickAction(quickActionApiName, workOrderId) {
+        if (!workOrderId) {
+            throw new Error('Work Order Id required for Field Service flow deep link');
+        }
+
+        const extensionParam = this.quickQuoteFlowExtensionName
+            ? `?extension=${encodeURIComponent(this.quickQuoteFlowExtensionName)}`
+            : '';
+
+        const deepLink = `com.salesforce.fieldservice://v1/sObject/${workOrderId}/quickaction/${quickActionApiName}${extensionParam}`;
+
+        return this.navigateToUrl(deepLink);
+    }
+
+    buildFlowPageReference(flowApiName, workOrderId) {
+        return {
+            type: 'standard__flow',
+            attributes: {
+                flowApiName
+            },
+            state: workOrderId
+                ? {
+                      recordId: workOrderId
+                  }
+                : {}
+        };
+    }
+
+    async buildMobileFlowUrl(flowApiName, workOrderId) {
+        const pageReference = this.buildFlowPageReference(
+            flowApiName,
+            workOrderId
+        );
+        const generatedUrl = await this[NavigationMixin.GenerateUrl](pageReference);
+
+        return generatedUrl || `/flow/${flowApiName}`;
+    }
+
+    navigateToUrl(url) {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__webPage',
+            attributes: { url }
+        });
+    }
+
     handleDateChange(event) {
         const id = event.target.dataset.id;
         const value = event.target.value;
@@ -5128,6 +5300,40 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     handleListSubjectClick(event) {
         this.handleEventClick(event);
+
+        const cardId = event.currentTarget.dataset.id;
+        const appt = this.findAppointmentByCardId(cardId);
+
+        if (!appt || !appt.appointmentId) {
+            return;
+        }
+
+        this.navigateToServiceAppointment(appt.appointmentId);
+    }
+
+    navigateToServiceAppointment(serviceAppointmentId) {
+        try {
+            const deepLink = `com.salesforce.fieldservice://v1/sObject/${serviceAppointmentId}`;
+            this.navigateToUrl(deepLink);
+            return;
+        } catch (error) {
+            console.error('Unable to open Service Appointment via Field Service deep link', error);
+        }
+
+        try {
+            this[NavigationMixin.Navigate]({
+                type: 'standard__recordPage',
+                attributes: {
+                    recordId: serviceAppointmentId,
+                    objectApiName: 'ServiceAppointment',
+                    actionName: 'view'
+                }
+            });
+        } catch (error) {
+            console.error('Unable to open Service Appointment record page', error);
+            const deepLink = `/one/one.app#/sObject/${serviceAppointmentId}/view`;
+            this.navigateToUrl(deepLink);
+        }
     }
 
     // ======= EVENT CLICK =======
