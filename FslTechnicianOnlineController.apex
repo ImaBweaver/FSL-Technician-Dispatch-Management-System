@@ -139,6 +139,19 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public Id viewingUserId;
     }
 
+    public class QuoteAttachmentInfo {
+        @AuraEnabled public Id contentDocumentId;
+        @AuraEnabled public String mobileDeepLink;
+        @AuraEnabled public String relativeDownloadUrl;
+    }
+
+    public class QuoteAttachmentContent {
+        @AuraEnabled public Id contentDocumentId;
+        @AuraEnabled public String fileName;
+        @AuraEnabled public String contentType;
+        @AuraEnabled public String base64Data;
+    }
+
     public class UserPickerOption {
         @AuraEnabled public Id userId;
         @AuraEnabled public String name;
@@ -1212,6 +1225,131 @@ public with sharing class FslTechnicianOnlineController {
         }
 
         return normalizedPath;
+    }
+
+    private static String buildFileName(String title, String extension) {
+        String sanitizedTitle = String.isBlank(title) ? 'quote' : title;
+        String sanitizedExtension = String.isBlank(extension)
+            ? ''
+            : extension.startsWith('.')
+                ? extension
+                : '.' + extension;
+
+        return sanitizedTitle + sanitizedExtension;
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static QuoteAttachmentInfo getQuoteAttachmentInfo(Id workOrderId) {
+        if (workOrderId == null) {
+            return null;
+        }
+
+        ContentDocumentLink latest = null;
+        Datetime latestCreated = null;
+
+        for (ContentDocumentLink cdl : [
+            SELECT ContentDocumentId,
+                ContentDocument.CreatedDate,
+                ContentDocument.FileExtension,
+                ContentDocument.LatestPublishedVersionId
+            FROM ContentDocumentLink
+            WHERE LinkedEntityId = :workOrderId
+            ORDER BY ContentDocument.CreatedDate DESC
+        ]) {
+            if (cdl.ContentDocument == null ||
+                String.isBlank(cdl.ContentDocument.FileExtension) ||
+                cdl.ContentDocument.FileExtension.toLowerCase() != 'pdf' ||
+                String.isBlank(cdl.ContentDocument.LatestPublishedVersionId)) {
+                continue;
+            }
+
+            Datetime created = cdl.ContentDocument.CreatedDate;
+            if (latestCreated == null ||
+                (created != null && created.getTime() > latestCreated.getTime())) {
+                latest = cdl;
+                latestCreated = created;
+            }
+        }
+
+        if (latest == null || latest.ContentDocumentId == null) {
+            return null;
+        }
+
+        QuoteAttachmentInfo info = new QuoteAttachmentInfo();
+        info.contentDocumentId = latest.ContentDocumentId;
+        info.relativeDownloadUrl = '/sfc/servlet.shepherd/document/download/' +
+            latest.ContentDocumentId;
+        info.mobileDeepLink = buildFieldServiceDeepLink(
+            info.relativeDownloadUrl,
+            latest.ContentDocumentId
+        );
+
+        return info;
+    }
+
+    @AuraEnabled
+    public static QuoteAttachmentContent getQuoteAttachmentContent(Id workOrderId) {
+        if (workOrderId == null) {
+            return null;
+        }
+
+        List<ContentDocumentLink> links = [
+            SELECT ContentDocumentId,
+                ContentDocument.LatestPublishedVersionId,
+                ContentDocument.Title,
+                ContentDocument.FileExtension
+            FROM ContentDocumentLink
+            WHERE LinkedEntityId = :workOrderId
+            ORDER BY ContentDocument.CreatedDate DESC
+            LIMIT 5
+        ];
+
+        if (links.isEmpty()) {
+            return null;
+        }
+
+        ContentDocumentLink latest = null;
+
+        for (ContentDocumentLink link : links) {
+            if (link.ContentDocument == null ||
+                link.ContentDocument.FileExtension == null ||
+                link.ContentDocument.LatestPublishedVersionId == null) {
+                continue;
+            }
+
+            String ext = link.ContentDocument.FileExtension.toLowerCase();
+            if (ext != 'pdf') {
+                continue;
+            }
+
+            latest = link;
+            break;
+        }
+
+        if (latest == null) {
+            return null;
+        }
+
+        List<ContentVersion> versions = [
+            SELECT Id, Title, FileExtension, VersionData, ContentDocumentId
+            FROM ContentVersion
+            WHERE Id = :latest.ContentDocument.LatestPublishedVersionId
+            LIMIT 1
+        ];
+
+        if (versions.isEmpty()) {
+            return null;
+        }
+
+        ContentVersion version = versions[0];
+
+        QuoteAttachmentContent payload = new QuoteAttachmentContent();
+        payload.contentDocumentId = version.ContentDocumentId;
+        payload.fileName = buildFileName(version.Title, version.FileExtension);
+        payload.contentType = 'application/pdf';
+        payload.base64Data = EncodingUtil.base64Encode(version.VersionData);
+
+        return payload;
     }
 
     @AuraEnabled
