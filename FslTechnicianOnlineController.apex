@@ -1180,15 +1180,38 @@ public with sharing class FslTechnicianOnlineController {
 
         if (existing == null || (created != null && created.getTime() > existing.getTime())) {
             quoteDocCreatedByWo.put(workOrderId, created);
+            String downloadPath = '/sfc/servlet.shepherd/document/download/' +
+                cdl.ContentDocumentId;
             quoteDownloadByWo.put(
                 workOrderId,
-                '/sfc/servlet.shepherd/document/download/' + cdl.ContentDocumentId
+                buildFieldServiceDeepLink(downloadPath, cdl.ContentDocumentId)
             );
 
             if (cdl.ContentDocumentId != null) {
                 quoteDocIdByWo.put(workOrderId, cdl.ContentDocumentId);
             }
         }
+    }
+
+    private static String buildFieldServiceDeepLink(
+        String relativePath,
+        Id contentDocumentId
+    ) {
+        if (String.isBlank(relativePath)) {
+            return null;
+        }
+
+        String normalizedPath = relativePath.startsWith('/')
+            ? relativePath
+            : '/' + relativePath;
+        String encodedPath = EncodingUtil.urlEncode(normalizedPath, 'UTF-8');
+
+        if (contentDocumentId != null) {
+            return 'com.salesforce.fieldservice://v1/sObject/' + contentDocumentId +
+                '/file?fallbackUrl=' + encodedPath;
+        }
+
+        return normalizedPath;
     }
 
     @AuraEnabled
