@@ -2,6 +2,8 @@ import { LightningElement, track } from 'lwc';
 import FORM_FACTOR from '@salesforce/client/formFactor';
 import { NavigationMixin } from 'lightning/navigation';
 import getMyAppointmentsOnline from '@salesforce/apex/FslTechnicianOnlineController.getMyAppointmentsOnline';
+import getQuoteAttachmentInfo from '@salesforce/apex/FslTechnicianOnlineController.getQuoteAttachmentInfo';
+import getQuoteAttachmentContent from '@salesforce/apex/FslTechnicianOnlineController.getQuoteAttachmentContent';
 import rescheduleAppointment from '@salesforce/apex/FslTechnicianOnlineController.rescheduleAppointment';
 import assignCrewAppointment from '@salesforce/apex/FslTechnicianOnlineController.assignCrewAppointment';
 import createAppointmentForWorkOrder from '@salesforce/apex/FslTechnicianOnlineController.createAppointmentForWorkOrder';
@@ -4282,7 +4284,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.isCompactListView = Boolean(event?.detail?.checked);
     }
 
-    handleQuoteAttachmentClick(event) {
+    async handleQuoteAttachmentClick(event) {
         event.preventDefault();
 
         const cardId = event.currentTarget.dataset.id;
@@ -4296,12 +4298,28 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
-        const docId =
-            appt.quoteAttachmentDocumentId ||
-            this.extractContentDocumentId(appt.quoteAttachmentUrl);
-        const downloadUrl =
-            this.normalizeDownloadUrl(appt.quoteAttachmentUrl) ||
-            this.buildDownloadUrlFromDocId(docId);
+        const contentPayload = await this.fetchQuoteAttachmentContent(appt);
+
+        if (contentPayload?.base64Data) {
+            const opened = this.openQuotePayload(contentPayload);
+
+            if (opened) {
+                return;
+            }
+        }
+
+        const apptWithDoc = { ...appt };
+        if (
+            !apptWithDoc.quoteAttachmentDocumentId &&
+            contentPayload?.contentDocumentId
+        ) {
+            apptWithDoc.quoteAttachmentDocumentId =
+                contentPayload.contentDocumentId;
+        }
+
+        const { docId, downloadUrl } = await this.resolveQuoteAttachment(
+            apptWithDoc
+        );
 
         if (!docId && !downloadUrl) {
             this.showToast(
@@ -4344,6 +4362,61 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.navigateToDownload(downloadUrl);
     }
 
+    async fetchQuoteAttachmentContent(appt) {
+        if (!appt?.workOrderId) {
+            return null;
+        }
+
+        try {
+            return await getQuoteAttachmentContent({
+                workOrderId: appt.workOrderId
+            });
+        } catch (error) {
+            this.captureError(error, 'getQuoteAttachmentContent');
+            this.showToast(
+                'Quote unavailable',
+                'Unable to download the quote attachment.',
+                'error'
+            );
+            return null;
+        }
+    }
+
+    async resolveQuoteAttachment(appt) {
+        let docId =
+            appt.quoteAttachmentDocumentId ||
+            this.extractContentDocumentId(appt.quoteAttachmentUrl);
+        let downloadUrl =
+            this.normalizeDownloadUrl(appt.quoteAttachmentUrl) ||
+            this.buildDownloadUrlFromDocId(docId);
+
+        if (!appt?.workOrderId) {
+            return { docId, downloadUrl };
+        }
+
+        try {
+            const info = await getQuoteAttachmentInfo({
+                workOrderId: appt.workOrderId
+            });
+
+            if (info) {
+                docId = info.contentDocumentId || docId;
+                downloadUrl =
+                    info.mobileDeepLink ||
+                    this.normalizeDownloadUrl(info.relativeDownloadUrl) ||
+                    downloadUrl;
+
+                if (!downloadUrl && docId) {
+                    downloadUrl = this.buildDownloadUrlFromDocId(docId);
+                }
+            }
+        } catch (error) {
+            this.handleNavigationError(downloadUrl, error);
+        }
+
+        return { docId, downloadUrl };
+    }
+
     handleNavigationError(fallbackUrl, error) {
         // If we have a direct download URL, use it as a fallback so the tech
         // can still view the quote file. Otherwise, surface a toast so the user
@@ -4375,6 +4448,59 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             type: 'standard__webPage',
             attributes: { url: targetUrl }
         });
+    }
+
+    openQuotePayload(payload) {
+        if (!payload?.base64Data || !this.hasWindow || typeof atob !== 'function') {
+            return false;
+        }
+
+        const blob = this.base64ToBlob(
+            payload.base64Data,
+            payload.contentType || 'application/pdf'
+        );
+
+        if (!blob) {
+            return false;
+        }
+
+        if (typeof URL === 'undefined' ||
+            typeof URL.createObjectURL !== 'function') {
+            return false;
+        }
+
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.download = payload.fileName || 'quote.pdf';
+        link.click();
+
+        this.safeSetTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+
+        return true;
+    }
+
+    base64ToBlob(base64Data, contentType = 'application/octet-stream') {
+        if (!base64Data || !this.hasWindow || typeof atob !== 'function') {
+            return null;
+        }
+
+        try {
+            const byteCharacters = atob(base64Data);
+            const byteNumbers = new Array(byteCharacters.length);
+
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+
+            const byteArray = new Uint8Array(byteNumbers);
+            return new Blob([byteArray], { type: contentType });
+        } catch (error) {
+            this.captureError(error, 'base64ToBlob');
+            return null;
+        }
     }
 
     normalizeDownloadUrl(url) {
