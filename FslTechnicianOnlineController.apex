@@ -35,9 +35,20 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public String quoteAttachmentDownloadUrl;
         @AuraEnabled public Id quoteAttachmentDocumentId;
         @AuraEnabled public String opportunityRecordType;
+        @AuraEnabled public List<QuoteLineItemDTO> quoteLineItems;
 
         @AuraEnabled public Id serviceCrewId;
         @AuraEnabled public List<CrewMemberDTO> crewMembers;
+    }
+
+    public class QuoteLineItemDTO {
+        @AuraEnabled public Id lineItemId;
+        @AuraEnabled public Id workOrderId;
+        @AuraEnabled public String productName;
+        @AuraEnabled public String description;
+        @AuraEnabled public Decimal quantity;
+        @AuraEnabled public Decimal unitPrice;
+        @AuraEnabled public String lineType;
     }
 
     public class CrewMemberDTO {
@@ -93,6 +104,7 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public String postalCode;
         @AuraEnabled public String country;
         @AuraEnabled public String recordTypeName;
+        @AuraEnabled public List<QuoteLineItemDTO> quoteLineItems;
     }
 
     public class TransferRequestDTO {
@@ -332,6 +344,10 @@ public with sharing class FslTechnicianOnlineController {
                 quoteDownloadByWo,
                 quoteDocIdByWo,
                 opportunityRecordTypeByWo
+            );
+            assignQuoteLineItems(
+                wrapper.appointments,
+                wrapper.unscheduledWorkOrders
             );
             wrapper.transferRequests = buildTransferRequests(pendingRequests);
             wrapper.submittedTransferRequests =
@@ -657,8 +673,7 @@ public with sharing class FslTechnicianOnlineController {
             getPendingTransferRequests(effectiveUserId);
         Set<Id> pendingTransferWoIds = extractWorkOrderIds(pendingRequests);
 
-        wrapper.appointments = results;
-        wrapper.unscheduledWorkOrders = buildUnscheduledWorkOrders(
+        List<UnscheduledWorkOrderDTO> unscheduledWorkOrders = buildUnscheduledWorkOrders(
             workOrdersWithThisTech,
             userSrIds,
             crewIds,
@@ -669,6 +684,10 @@ public with sharing class FslTechnicianOnlineController {
             quoteDocIdByWo,
             opportunityRecordTypeByWo
         );
+        assignQuoteLineItems(results, unscheduledWorkOrders);
+
+        wrapper.appointments = results;
+        wrapper.unscheduledWorkOrders = unscheduledWorkOrders;
         wrapper.transferRequests = buildTransferRequests(pendingRequests);
         wrapper.submittedTransferRequests =
             buildSubmittedTransferRequests(effectiveUserId);
@@ -1184,6 +1203,99 @@ public with sharing class FslTechnicianOnlineController {
         }
 
         return dtos;
+    }
+
+    private static void assignQuoteLineItems(
+        List<AppointmentDTO> appointments,
+        List<UnscheduledWorkOrderDTO> unscheduledWorkOrders
+    ) {
+        Set<Id> woIds = new Set<Id>();
+
+        if (appointments != null) {
+            for (AppointmentDTO dto : appointments) {
+                if (dto != null && dto.workOrderId != null) {
+                    woIds.add(dto.workOrderId);
+                }
+            }
+        }
+
+        if (unscheduledWorkOrders != null) {
+            for (UnscheduledWorkOrderDTO dto : unscheduledWorkOrders) {
+                if (dto != null && dto.workOrderId != null) {
+                    woIds.add(dto.workOrderId);
+                }
+            }
+        }
+
+        if (woIds.isEmpty()) {
+            return;
+        }
+
+        Map<Id, List<QuoteLineItemDTO>> quoteLineItemsByWo =
+            fetchQuoteLineItems(woIds);
+
+        if (appointments != null) {
+            for (AppointmentDTO dto : appointments) {
+                Id woId = dto != null ? dto.workOrderId : null;
+                dto.quoteLineItems =
+                    (woId != null && quoteLineItemsByWo.containsKey(woId))
+                        ? quoteLineItemsByWo.get(woId)
+                        : new List<QuoteLineItemDTO>();
+            }
+        }
+
+        if (unscheduledWorkOrders != null) {
+            for (UnscheduledWorkOrderDTO dto : unscheduledWorkOrders) {
+                Id woId = dto != null ? dto.workOrderId : null;
+                dto.quoteLineItems =
+                    (woId != null && quoteLineItemsByWo.containsKey(woId))
+                        ? quoteLineItemsByWo.get(woId)
+                        : new List<QuoteLineItemDTO>();
+            }
+        }
+    }
+
+    private static Map<Id, List<QuoteLineItemDTO>> fetchQuoteLineItems(
+        Set<Id> workOrderIds
+    ) {
+        Map<Id, List<QuoteLineItemDTO>> itemsByWo =
+            new Map<Id, List<QuoteLineItemDTO>>();
+
+        if (workOrderIds == null || workOrderIds.isEmpty()) {
+            return itemsByWo;
+        }
+
+        for (WorkOrderLineItem woli : [
+            SELECT Id,
+                WorkOrderId,
+                Line_Type__c,
+                Product2.Name,
+                Description,
+                Quantity,
+                UnitPrice
+            FROM WorkOrderLineItem
+            WHERE WorkOrderId IN :workOrderIds
+            AND Line_Type__c IN ('Need Quote', 'Part Quoted')
+        ]) {
+            if (woli.WorkOrderId == null) continue;
+
+            if (!itemsByWo.containsKey(woli.WorkOrderId)) {
+                itemsByWo.put(woli.WorkOrderId, new List<QuoteLineItemDTO>());
+            }
+
+            QuoteLineItemDTO dto = new QuoteLineItemDTO();
+            dto.lineItemId = woli.Id;
+            dto.workOrderId = woli.WorkOrderId;
+            dto.productName = woli.Product2 != null ? woli.Product2.Name : null;
+            dto.description = woli.Description;
+            dto.quantity = woli.Quantity;
+            dto.unitPrice = woli.UnitPrice;
+            dto.lineType = woli.Line_Type__c;
+
+            itemsByWo.get(woli.WorkOrderId).add(dto);
+        }
+
+        return itemsByWo;
     }
 
 
