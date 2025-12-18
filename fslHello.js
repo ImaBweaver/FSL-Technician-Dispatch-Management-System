@@ -164,6 +164,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     quickQuoteFlowExtensionName = '';
 
     quoteStatuses = ['Need Quote', 'PO Requested', 'Quote Sent', 'Quote Attached'];
+    quoteLineItemsExpanded = {};
 
     // My-tab status filter (WorkOrder.Status)
     selectedMyStatus = 'all';
@@ -708,9 +709,30 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             const isQuickScheduleExpanded = Boolean(
                 this.quickScheduleExpanded[item.cardId]
             );
+            const quoteLineItems = this.normalizeQuoteLineItems(
+                item.quoteLineItems
+            );
+            const quoteLineItemsExpanded = Boolean(
+                this.quoteLineItemsExpanded[item.cardId]
+            );
+            const showQuoteLineItems = this.shouldShowQuoteLineItems({
+                ...item,
+                quoteLineItems
+            });
+            const quoteLineItemsToggleLabel = quoteLineItemsExpanded
+                ? 'Hide requested parts'
+                : 'Show requested parts';
+            const quoteLineItemsExpandedIcon = quoteLineItemsExpanded
+                ? 'utility:chevrondown'
+                : 'utility:chevronright';
 
             return {
                 ...item,
+                quoteLineItems,
+                showQuoteLineItems,
+                quoteLineItemsExpanded,
+                quoteLineItemsToggleLabel,
+                quoteLineItemsExpandedIcon,
                 showScheduleOnCalendar: allowScheduleOnCalendar,
                 quickScheduleStart: this.quickScheduleSelections[item.cardId] || '',
                 quickScheduleExpanded: isQuickScheduleExpanded,
@@ -843,6 +865,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 accountName: wo.accountName,
                 fullAddress: wo.fullAddress,
                 opportunityRecordType: wo.opportunityRecordType,
+                quoteLineItems: this.normalizeQuoteLineItems(wo.quoteLineItems),
                 quoteAttachmentUrl: wo.quoteAttachmentDownloadUrl || null,
                 quoteAttachmentDocumentId:
                     wo.quoteAttachmentDocumentId || null,
@@ -878,6 +901,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 workTypeName: wo.workTypeName,
                 workTypeClass: `sfs-worktype ${typeClass || ''}`.trim(),
                 opportunityRecordType: wo.opportunityRecordType,
+                quoteLineItems: this.normalizeQuoteLineItems(wo.quoteLineItems),
                 quoteAttachmentUrl: wo.quoteAttachmentDownloadUrl || null,
                 quoteAttachmentDocumentId: wo.quoteAttachmentDocumentId || null,
                 hasQuoteAttachment: Boolean(
@@ -908,6 +932,39 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         return status.startsWith('quote attached') ||
             (status === 'need quote' && hasAttachment);
+    }
+
+    normalizeQuoteLineItems(items) {
+        if (!items) {
+            return [];
+        }
+
+        return items.map(item => ({
+            lineItemId: item.lineItemId || item.id,
+            workOrderId: item.workOrderId,
+            productName: item.productName || '—',
+            description: item.description || '',
+            quantity:
+                item.quantity === 0 || item.quantity
+                    ? item.quantity
+                    : '',
+            unitPrice: item.unitPrice,
+            lineType: item.lineType || ''
+        }));
+    }
+
+    shouldShowQuoteLineItems(record) {
+        if (!record) {
+            return false;
+        }
+
+        const status = (record.workOrderStatus || record.status || '').toLowerCase();
+        const hasQuoteStatus =
+            status === 'need quote' || status === 'quote sent';
+
+        return hasQuoteStatus &&
+            Array.isArray(record.quoteLineItems) &&
+            record.quoteLineItems.length > 0;
     }
 
     findAppointmentByCardId(cardId) {
@@ -3416,6 +3473,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.isLoading = true;
         this.selectedAppointment = null;
         this.selectedAbsence = null;
+        this.quoteLineItemsExpanded = {};
 
         getMyAppointmentsOnline({ targetUserId: this.activeUserId })
             .then(result => {
@@ -3485,6 +3543,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     clone.cardId = `wo-${wo.workOrderId}`;
                     clone.hasAppointment = false;
                     clone.workTypeName = wo.workTypeName;
+                    clone.quoteLineItems = this.normalizeQuoteLineItems(
+                        wo.quoteLineItems
+                    );
                     clone.contactPhoneHref = wo.contactPhone
                         ? `tel:${wo.contactPhone.replace(/\D/g, '')}`
                         : null;
@@ -3604,6 +3665,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     clone.selectedCrewMemberId = null;
                     clone.disableAssignTech = true;
 
+                    clone.quoteLineItems = this.normalizeQuoteLineItems(
+                        appt.quoteLineItems
+                    );
                     clone.quoteAttachmentUrl = appt.quoteAttachmentDownloadUrl || null;
                     clone.quoteAttachmentDocumentId =
                         appt.quoteAttachmentDocumentId || null;
@@ -4280,6 +4344,20 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     handleCompactToggle(event) {
         this.isCompactListView = Boolean(event?.detail?.checked);
+    }
+
+    handleToggleQuoteLineItems(event) {
+        const cardId = event?.currentTarget?.dataset?.cardId;
+
+        if (!cardId) {
+            return;
+        }
+
+        const isExpanded = Boolean(this.quoteLineItemsExpanded[cardId]);
+        this.quoteLineItemsExpanded = {
+            ...this.quoteLineItemsExpanded,
+            [cardId]: !isExpanded
+        };
     }
 
     handleQuoteAttachmentClick(event) {
