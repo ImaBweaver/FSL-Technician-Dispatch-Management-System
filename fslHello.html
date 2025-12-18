@@ -395,7 +395,6 @@
                                                 </div>
                                             </template>
 
-
                                             <!-- Make / Model row -->
                                             <template if:true={appt.makeModel}>
                                                 <p class="sfs-line">
@@ -418,6 +417,54 @@
                                                         {appt.fullAddress}
                                                     </span>
                                                 </p>
+                                            </template>
+
+                                            <template if:true={appt.showQuoteLineItems}>
+                                                <div class="sfs-quote-lines">
+                                                    <button
+                                                        type="button"
+                                                        class="sfs-quote-lines__toggle"
+                                                        data-card-id={appt.cardId}
+                                                        onclick={handleToggleQuoteLineItems}
+                                                    >
+                                                        <lightning-icon
+                                                            icon-name={appt.quoteLineItemsExpandedIcon}
+                                                            size="x-small"
+                                                            class="sfs-quote-lines__toggle-icon"
+                                                        ></lightning-icon>
+                                                        <span class="sfs-quote-lines__toggle-label">
+                                                            {appt.quoteLineItemsToggleLabel}
+                                                        </span>
+                                                        <span class="sfs-quote-lines__count">
+                                                            ({appt.quoteLineItems.length})
+                                                        </span>
+                                                    </button>
+
+                                                    <template if:true={appt.quoteLineItemsExpanded}>
+                                                        <div class="sfs-quote-lines__table-wrapper">
+                                                            <table class="sfs-quote-lines__table">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th scope="col">Part</th>
+                                                                        <th scope="col" class="sfs-quote-lines__numeric">
+                                                                            Qty
+                                                                        </th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    <template for:each={appt.quoteLineItems} for:item="line">
+                                                                        <tr key={line.lineItemId}>
+                                                                            <td>{line.productName}</td>
+                                                                            <td class="sfs-quote-lines__numeric">
+                                                                                {line.quantity}
+                                                                            </td>
+                                                                        </tr>
+                                                                    </template>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </template>
+                                                </div>
                                             </template>
 
                                             <!-- Contact (name only) -->
