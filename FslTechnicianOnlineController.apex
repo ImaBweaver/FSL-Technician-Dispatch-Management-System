@@ -1270,6 +1270,7 @@ public with sharing class FslTechnicianOnlineController {
                 WorkOrderId,
                 Line_Type__c,
                 Product2.Name,
+            	Part_Name_D__c,
                 Description,
                 Quantity,
                 UnitPrice
@@ -1286,7 +1287,7 @@ public with sharing class FslTechnicianOnlineController {
             QuoteLineItemDTO dto = new QuoteLineItemDTO();
             dto.lineItemId = woli.Id;
             dto.workOrderId = woli.WorkOrderId;
-            dto.productName = woli.Product2 != null ? woli.Product2.Name : null;
+            dto.productName = woli.Part_Name_D__c;
             dto.description = woli.Description;
             dto.quantity = woli.Quantity;
             dto.unitPrice = woli.UnitPrice;
