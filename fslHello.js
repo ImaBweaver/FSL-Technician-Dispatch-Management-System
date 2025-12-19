@@ -4381,7 +4381,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             this.normalizeDownloadUrl(appt.quoteAttachmentUrl) ||
             this.buildDownloadUrlFromDocId(docId);
 
-        if (!docId && !downloadUrl) {
+        if (!downloadUrl) {
             this.showToast(
                 'Quote unavailable',
                 'We could not find a quote attachment for this appointment.',
@@ -4390,53 +4390,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
-        if (docId) {
-            // Use the native file previewer so the experience matches opening the
-            // attachment from the Files related list in the mobile app. If
-            // navigation fails (e.g. invalid record id for preview), fall back
-            // to the raw download URL so the tech can still access the file.
-            try {
-                const navPromise = this[NavigationMixin.Navigate]({
-                    type: 'standard__namedPage',
-                    attributes: {
-                        pageName: 'filePreview'
-                    },
-                    state: {
-                        recordIds: docId,
-                        selectedRecordId: docId
-                    }
-                });
-
-                if (navPromise && typeof navPromise.catch === 'function') {
-                    navPromise.catch(error =>
-                        this.handleNavigationError(downloadUrl, error)
-                    );
-                }
-            } catch (err) {
-                this.handleNavigationError(downloadUrl, err);
-            }
-
-            return;
-        }
-
         this.navigateToDownload(downloadUrl);
-    }
-
-    handleNavigationError(fallbackUrl, error) {
-        // If we have a direct download URL, use it as a fallback so the tech
-        // can still view the quote file. Otherwise, surface a toast so the user
-        // knows navigation failed instead of seeing a generic routing error.
-        if (fallbackUrl) {
-            this.navigateToDownload(fallbackUrl);
-            return;
-        }
-
-        const message =
-            (error &&
-                (error.message ||
-                    (error.body && error.body.message))) ||
-            'Unable to open the quote attachment.';
-        this.showToast('Navigation failed', message, 'error');
     }
 
     navigateToDownload(targetUrl) {
@@ -4446,6 +4400,19 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 'Unable to locate the quote attachment.',
                 'warning'
             );
+            return;
+        }
+
+        if (this.hasWindow && typeof document !== 'undefined') {
+            const anchor = document.createElement('a');
+            anchor.href = targetUrl;
+            anchor.setAttribute('download', '');
+            anchor.rel = 'noopener';
+            anchor.target = '_self';
+            anchor.style.display = 'none';
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
             return;
         }
 

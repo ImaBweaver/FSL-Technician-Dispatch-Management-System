@@ -326,6 +326,7 @@ public with sharing class FslTechnicianOnlineController {
         Map<Id, Id> quoteDocIdByWo = new Map<Id, Id>();
         Set<Id> workOrdersWithAttachment = new Set<Id>();
         Map<Id, String> quoteDownloadByWo = new Map<Id, String>();
+        Map<Id, Datetime> latestQuoteVersionByWo = new Map<Id, Datetime>();
         Set<Id> workOrdersWithThisTech = new Set<Id>();
 
         if (saIds.isEmpty()) {
@@ -342,6 +343,7 @@ public with sharing class FslTechnicianOnlineController {
                 pendingTransferWoIds,
                 workOrdersWithAttachment,
                 quoteDownloadByWo,
+                latestQuoteVersionByWo,
                 quoteDocIdByWo,
                 opportunityRecordTypeByWo
             );
@@ -433,28 +435,42 @@ public with sharing class FslTechnicianOnlineController {
                 SELECT LinkedEntityId,
                     ContentDocumentId,
                     ContentDocument.FileExtension,
-                    ContentDocument.LatestPublishedVersionId
+                    ContentDocument.LatestPublishedVersionId,
+                    ContentDocument.LatestPublishedVersion.CreatedDate
                 FROM ContentDocumentLink
                 WHERE LinkedEntityId IN :workOrderIds
             ]) {
                 if (cdl.LinkedEntityId != null) {
                     workOrdersWithAttachment.add(cdl.LinkedEntityId);
 
-                    if (cdl.ContentDocument != null &&
-                        String.isNotBlank(cdl.ContentDocument.LatestPublishedVersionId) &&
-                        !quoteDownloadByWo.containsKey(cdl.LinkedEntityId)) {
+                    Boolean isPdf = cdl.ContentDocument != null &&
+                        cdl.ContentDocument.FileExtension != null &&
+                        cdl.ContentDocument.FileExtension.toLowerCase() == 'pdf';
 
-                        quoteDownloadByWo.put(
-                            cdl.LinkedEntityId,
-                            '/sfc/servlet.shepherd/document/download/' +
-                                cdl.ContentDocumentId
-                        );
+                    Datetime created = (cdl.ContentDocument != null &&
+                        cdl.ContentDocument.LatestPublishedVersion != null)
+                        ? cdl.ContentDocument.LatestPublishedVersion.CreatedDate
+                        : null;
 
-                        if (cdl.ContentDocumentId != null) {
-                            quoteDocIdByWo.put(
+                    if (isPdf && String.isNotBlank(cdl.ContentDocument.LatestPublishedVersionId)) {
+                        Boolean isNewest = !latestQuoteVersionByWo.containsKey(cdl.LinkedEntityId) ||
+                            (created != null && created > latestQuoteVersionByWo.get(cdl.LinkedEntityId));
+
+                        if (isNewest) {
+                            latestQuoteVersionByWo.put(cdl.LinkedEntityId, created);
+
+                            quoteDownloadByWo.put(
                                 cdl.LinkedEntityId,
-                                cdl.ContentDocumentId
+                                '/sfc/servlet.shepherd/document/download/' +
+                                    cdl.ContentDocumentId
                             );
+
+                            if (cdl.ContentDocumentId != null) {
+                                quoteDocIdByWo.put(
+                                    cdl.LinkedEntityId,
+                                    cdl.ContentDocumentId
+                                );
+                            }
                         }
                     }
                 }
@@ -466,7 +482,8 @@ public with sharing class FslTechnicianOnlineController {
                 SELECT LinkedEntityId,
                     ContentDocumentId,
                     ContentDocument.FileExtension,
-                    ContentDocument.LatestPublishedVersionId
+                    ContentDocument.LatestPublishedVersionId,
+                    ContentDocument.LatestPublishedVersion.CreatedDate
                 FROM ContentDocumentLink
                 WHERE LinkedEntityId IN :opportunityIds
             ]) {
@@ -476,21 +493,34 @@ public with sharing class FslTechnicianOnlineController {
                     for (Id woId : workOrdersByOpportunity.get(cdl.LinkedEntityId)) {
                         workOrdersWithAttachment.add(woId);
 
-                        if (cdl.ContentDocument != null &&
-                            String.isNotBlank(cdl.ContentDocument.LatestPublishedVersionId) &&
-                            !quoteDownloadByWo.containsKey(woId)) {
+                        Boolean isPdf = cdl.ContentDocument != null &&
+                            cdl.ContentDocument.FileExtension != null &&
+                            cdl.ContentDocument.FileExtension.toLowerCase() == 'pdf';
 
-                            quoteDownloadByWo.put(
-                                woId,
-                                '/sfc/servlet.shepherd/document/download/' +
-                                    cdl.ContentDocumentId
-                            );
+                        Datetime created = (cdl.ContentDocument != null &&
+                            cdl.ContentDocument.LatestPublishedVersion != null)
+                            ? cdl.ContentDocument.LatestPublishedVersion.CreatedDate
+                            : null;
 
-                            if (cdl.ContentDocumentId != null) {
-                                quoteDocIdByWo.put(
+                        if (isPdf && String.isNotBlank(cdl.ContentDocument.LatestPublishedVersionId)) {
+                            Boolean isNewest = !latestQuoteVersionByWo.containsKey(woId) ||
+                                (created != null && created > latestQuoteVersionByWo.get(woId));
+
+                            if (isNewest) {
+                                latestQuoteVersionByWo.put(woId, created);
+
+                                quoteDownloadByWo.put(
                                     woId,
-                                    cdl.ContentDocumentId
+                                    '/sfc/servlet.shepherd/document/download/' +
+                                        cdl.ContentDocumentId
                                 );
+
+                                if (cdl.ContentDocumentId != null) {
+                                    quoteDocIdByWo.put(
+                                        woId,
+                                        cdl.ContentDocumentId
+                                    );
+                                }
                             }
                         }
                     }
@@ -681,6 +711,7 @@ public with sharing class FslTechnicianOnlineController {
             pendingTransferWoIds,
             workOrdersWithAttachment,
             quoteDownloadByWo,
+            latestQuoteVersionByWo,
             quoteDocIdByWo,
             opportunityRecordTypeByWo
         );
@@ -842,6 +873,7 @@ public with sharing class FslTechnicianOnlineController {
         Set<Id> pendingTransferWorkOrderIds,
         Set<Id> workOrdersWithAttachment,
         Map<Id, String> quoteDownloadByWo,
+        Map<Id, Datetime> latestQuoteVersionByWo,
         Map<Id, Id> quoteDocIdByWo,
         Map<Id, String> opportunityRecordTypeByWo
     ) {
@@ -1028,7 +1060,9 @@ public with sharing class FslTechnicianOnlineController {
             for (ContentDocumentLink cdl : [
                 SELECT LinkedEntityId,
                     ContentDocumentId,
-                    ContentDocument.LatestPublishedVersionId
+                    ContentDocument.FileExtension,
+                    ContentDocument.LatestPublishedVersionId,
+                    ContentDocument.LatestPublishedVersion.CreatedDate
                 FROM ContentDocumentLink
                 WHERE LinkedEntityId IN :candidateWoIds
             ]) {
@@ -1036,21 +1070,34 @@ public with sharing class FslTechnicianOnlineController {
 
                 workOrdersWithAttachment.add(cdl.LinkedEntityId);
 
-                if (cdl.ContentDocument != null &&
-                    String.isNotBlank(cdl.ContentDocument.LatestPublishedVersionId) &&
-                    !quoteDownloadByWo.containsKey(cdl.LinkedEntityId)) {
+                Boolean isPdf = cdl.ContentDocument != null &&
+                    cdl.ContentDocument.FileExtension != null &&
+                    cdl.ContentDocument.FileExtension.toLowerCase() == 'pdf';
 
-                    quoteDownloadByWo.put(
-                        cdl.LinkedEntityId,
-                        '/sfc/servlet.shepherd/document/download/' +
-                            cdl.ContentDocumentId
-                    );
+                Datetime created = (cdl.ContentDocument != null &&
+                    cdl.ContentDocument.LatestPublishedVersion != null)
+                    ? cdl.ContentDocument.LatestPublishedVersion.CreatedDate
+                    : null;
 
-                    if (cdl.ContentDocumentId != null) {
-                        quoteDocIdByWo.put(
+                if (isPdf && String.isNotBlank(cdl.ContentDocument.LatestPublishedVersionId)) {
+                    Boolean isNewest = !latestQuoteVersionByWo.containsKey(cdl.LinkedEntityId) ||
+                        (created != null && created > latestQuoteVersionByWo.get(cdl.LinkedEntityId));
+
+                    if (isNewest) {
+                        latestQuoteVersionByWo.put(cdl.LinkedEntityId, created);
+
+                        quoteDownloadByWo.put(
                             cdl.LinkedEntityId,
-                            cdl.ContentDocumentId
+                            '/sfc/servlet.shepherd/document/download/' +
+                                cdl.ContentDocumentId
                         );
+
+                        if (cdl.ContentDocumentId != null) {
+                            quoteDocIdByWo.put(
+                                cdl.LinkedEntityId,
+                                cdl.ContentDocumentId
+                            );
+                        }
                     }
                 }
             }
@@ -1060,7 +1107,9 @@ public with sharing class FslTechnicianOnlineController {
             for (ContentDocumentLink cdl : [
                 SELECT LinkedEntityId,
                     ContentDocumentId,
-                    ContentDocument.LatestPublishedVersionId
+                    ContentDocument.FileExtension,
+                    ContentDocument.LatestPublishedVersionId,
+                    ContentDocument.LatestPublishedVersion.CreatedDate
                 FROM ContentDocumentLink
                 WHERE LinkedEntityId IN :candidateOppIds
             ]) {
@@ -1072,21 +1121,34 @@ public with sharing class FslTechnicianOnlineController {
                 for (Id woId : candidateWoByOpp.get(cdl.LinkedEntityId)) {
                     workOrdersWithAttachment.add(woId);
 
-                    if (cdl.ContentDocument != null &&
-                        String.isNotBlank(cdl.ContentDocument.LatestPublishedVersionId) &&
-                        !quoteDownloadByWo.containsKey(woId)) {
+                    Boolean isPdf = cdl.ContentDocument != null &&
+                        cdl.ContentDocument.FileExtension != null &&
+                        cdl.ContentDocument.FileExtension.toLowerCase() == 'pdf';
 
-                        quoteDownloadByWo.put(
-                            woId,
-                            '/sfc/servlet.shepherd/document/download/' +
-                                cdl.ContentDocumentId
-                        );
+                    Datetime created = (cdl.ContentDocument != null &&
+                        cdl.ContentDocument.LatestPublishedVersion != null)
+                        ? cdl.ContentDocument.LatestPublishedVersion.CreatedDate
+                        : null;
 
-                        if (cdl.ContentDocumentId != null) {
-                            quoteDocIdByWo.put(
+                    if (isPdf && String.isNotBlank(cdl.ContentDocument.LatestPublishedVersionId)) {
+                        Boolean isNewest = !latestQuoteVersionByWo.containsKey(woId) ||
+                            (created != null && created > latestQuoteVersionByWo.get(woId));
+
+                        if (isNewest) {
+                            latestQuoteVersionByWo.put(woId, created);
+
+                            quoteDownloadByWo.put(
                                 woId,
-                                cdl.ContentDocumentId
+                                '/sfc/servlet.shepherd/document/download/' +
+                                    cdl.ContentDocumentId
                             );
+
+                            if (cdl.ContentDocumentId != null) {
+                                quoteDocIdByWo.put(
+                                    woId,
+                                    cdl.ContentDocumentId
+                                );
+                            }
                         }
                     }
                 }
