@@ -366,21 +366,21 @@
                                             <template if:true={appt.showQuoteActions}>
                                                 <div class="sfs-quote-bar">
                                                     <template if:true={appt.quoteAttachmentUrl}>
-                                                        <button
-                                                            type="button"
-                                                            class="sfs-quote-download"
-                                                            data-id={appt.cardId}
-                                                            onclick={handleQuoteAttachmentClick}
-                                                        >
-                                                            <lightning-icon
-                                                                icon-name="utility:download"
-                                                                size="x-small"
-                                                                class="sfs-quote-download__icon"
-                                                            ></lightning-icon>
-                                                            <span class="sfs-quote-download__label">
-                                                                Download Quote
-                                                            </span>
-                                                        </button>
+                                                    <button
+                                                        type="button"
+                                                        class="sfs-quote-download"
+                                                        data-id={appt.cardId}
+                                                        onclick={handleQuoteAttachmentClick}
+                                                    >
+                                                        <lightning-icon
+                                                            icon-name="utility:download"
+                                                            size="x-small"
+                                                            class="sfs-quote-download__icon"
+                                                        ></lightning-icon>
+                                                        <span class="sfs-quote-download__label">
+                                                            Go to Files
+                                                        </span>
+                                                    </button>
                                                     </template>
 
                                                     <template if:true={appt.showMarkQuoteSentAction}>
