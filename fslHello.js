@@ -4377,9 +4377,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const docId =
             appt.quoteAttachmentDocumentId ||
             this.extractContentDocumentId(appt.quoteAttachmentUrl);
-        const downloadUrl =
+        const downloadUrl = this.addDownloadHint(
             this.normalizeDownloadUrl(appt.quoteAttachmentUrl) ||
-            this.buildDownloadUrlFromDocId(docId);
+                this.buildDownloadUrlFromDocId(docId)
+        );
 
         if (!downloadUrl) {
             this.showToast(
@@ -4403,10 +4404,19 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
+        const isMobileFormFactor = !this.isDesktopFormFactor;
+
         if (this.hasWindow && typeof document !== 'undefined') {
+            if (isMobileFormFactor) {
+                // Let the OS handle the download in its native browser so the
+                // platform can present its own save/open sheet (avoids the
+                // Salesforce mobile deep-link prompt).
+                window.open(targetUrl, '_blank', 'noopener,noreferrer');
+                return;
+            }
+
             const anchor = document.createElement('a');
             anchor.href = targetUrl;
-            anchor.setAttribute('download', '');
             anchor.rel = 'noopener';
             anchor.target = '_self';
             anchor.style.display = 'none';
@@ -4458,6 +4468,38 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         // download or view URL so we can open the native file preview.
         const match = url.match(/\/document\/(?:download|view)\/([a-zA-Z0-9]{15,18})/);
         return match ? match[1] : null;
+    }
+
+    addDownloadHint(url) {
+        if (!url) {
+            return null;
+        }
+
+        const absoluteUrl = this.normalizeDownloadUrl(url);
+        if (!absoluteUrl) {
+            return null;
+        }
+
+        // Ensure the URL explicitly requests a download so iOS/Android show
+        // their native save/open sheet instead of attempting a deep-link into
+        // the Salesforce app.
+        try {
+            const parsed = new URL(absoluteUrl, this.hasWindow ? window.location.href : undefined);
+            if (!parsed.searchParams.has('download')) {
+                parsed.searchParams.set('download', '1');
+            }
+            if (!parsed.searchParams.has('operationContext')) {
+                parsed.searchParams.set('operationContext', 'S1');
+            }
+            return parsed.toString();
+        } catch (e) {
+            if (absoluteUrl.includes('download=')) {
+                return absoluteUrl;
+            }
+            return absoluteUrl.includes('?')
+                ? `${absoluteUrl}&download=1`
+                : `${absoluteUrl}?download=1`;
+        }
     }
 
     handleMarkQuoteSent(event) {
