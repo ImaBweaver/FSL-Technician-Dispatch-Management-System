@@ -4785,7 +4785,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             ? `?extension=${encodeURIComponent(this.quickQuoteFlowExtensionName)}`
             : '';
 
-        const deepLink = `com.salesforce.fieldservice://v1/sObject/${workOrderId}/quickaction/${quickActionApiName}${extensionParam}`;
+        const deepLink ='`com.salesforce.fieldservice://v1/sObject/${workOrderId}/quickaction/${quickActionApiName}${extensionParam}`';
 
         return this.navigateToUrl(deepLink);
     }
