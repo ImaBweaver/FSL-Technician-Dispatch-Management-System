@@ -4374,24 +4374,34 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
-        const docId =
-            appt.quoteAttachmentDocumentId ||
-            this.extractContentDocumentId(appt.quoteAttachmentUrl);
-        const downloadUrl = this.addDownloadHint(
-            this.normalizeDownloadUrl(appt.quoteAttachmentUrl) ||
-                this.buildDownloadUrlFromDocId(docId)
-        );
+        const deepLinkUrl = this.buildWorkOrderFilesDeepLink(appt.workOrderId);
 
-        if (!downloadUrl) {
+        if (!deepLinkUrl) {
             this.showToast(
-                'Quote unavailable',
-                'We could not find a quote attachment for this appointment.',
+                'Work order unavailable',
+                'We could not open the files for this work order.',
                 'warning'
             );
             return;
         }
 
-        this.navigateToDownload(downloadUrl);
+        if (this.hasWindow) {
+            window.location.href = deepLinkUrl;
+            return;
+        }
+
+        this[NavigationMixin.Navigate]({
+            type: 'standard__webPage',
+            attributes: { url: deepLinkUrl }
+        });
+    }
+
+    buildWorkOrderFilesDeepLink(workOrderId) {
+        if (!workOrderId) {
+            return null;
+        }
+
+        return `com.salesforce.fieldservice://v1/sObject/${workOrderId}/Related`;
     }
 
     navigateToDownload(targetUrl) {
