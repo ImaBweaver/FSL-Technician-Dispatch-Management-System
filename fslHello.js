@@ -4377,11 +4377,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const docId =
             appt.quoteAttachmentDocumentId ||
             this.extractContentDocumentId(appt.quoteAttachmentUrl);
-        const downloadUrl =
+        const downloadUrl = this.addDownloadHint(
             this.normalizeDownloadUrl(appt.quoteAttachmentUrl) ||
-            this.buildDownloadUrlFromDocId(docId);
+                this.buildDownloadUrlFromDocId(docId)
+        );
 
-        if (!docId && !downloadUrl) {
+        if (!downloadUrl) {
             this.showToast(
                 'Quote unavailable',
                 'We could not find a quote attachment for this appointment.',
@@ -4390,53 +4391,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
-        if (docId) {
-            // Use the native file previewer so the experience matches opening the
-            // attachment from the Files related list in the mobile app. If
-            // navigation fails (e.g. invalid record id for preview), fall back
-            // to the raw download URL so the tech can still access the file.
-            try {
-                const navPromise = this[NavigationMixin.Navigate]({
-                    type: 'standard__namedPage',
-                    attributes: {
-                        pageName: 'filePreview'
-                    },
-                    state: {
-                        recordIds: docId,
-                        selectedRecordId: docId
-                    }
-                });
-
-                if (navPromise && typeof navPromise.catch === 'function') {
-                    navPromise.catch(error =>
-                        this.handleNavigationError(downloadUrl, error)
-                    );
-                }
-            } catch (err) {
-                this.handleNavigationError(downloadUrl, err);
-            }
-
-            return;
-        }
-
         this.navigateToDownload(downloadUrl);
-    }
-
-    handleNavigationError(fallbackUrl, error) {
-        // If we have a direct download URL, use it as a fallback so the tech
-        // can still view the quote file. Otherwise, surface a toast so the user
-        // knows navigation failed instead of seeing a generic routing error.
-        if (fallbackUrl) {
-            this.navigateToDownload(fallbackUrl);
-            return;
-        }
-
-        const message =
-            (error &&
-                (error.message ||
-                    (error.body && error.body.message))) ||
-            'Unable to open the quote attachment.';
-        this.showToast('Navigation failed', message, 'error');
     }
 
     navigateToDownload(targetUrl) {
@@ -4446,6 +4401,28 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 'Unable to locate the quote attachment.',
                 'warning'
             );
+            return;
+        }
+
+        const isMobileFormFactor = !this.isDesktopFormFactor;
+
+        if (this.hasWindow && typeof document !== 'undefined') {
+            if (isMobileFormFactor) {
+                // Let the OS handle the download in its native browser so the
+                // platform can present its own save/open sheet (avoids the
+                // Salesforce mobile deep-link prompt).
+                window.open(targetUrl, '_blank', 'noopener,noreferrer');
+                return;
+            }
+
+            const anchor = document.createElement('a');
+            anchor.href = targetUrl;
+            anchor.rel = 'noopener';
+            anchor.target = '_self';
+            anchor.style.display = 'none';
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
             return;
         }
 
@@ -4491,6 +4468,38 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         // download or view URL so we can open the native file preview.
         const match = url.match(/\/document\/(?:download|view)\/([a-zA-Z0-9]{15,18})/);
         return match ? match[1] : null;
+    }
+
+    addDownloadHint(url) {
+        if (!url) {
+            return null;
+        }
+
+        const absoluteUrl = this.normalizeDownloadUrl(url);
+        if (!absoluteUrl) {
+            return null;
+        }
+
+        // Ensure the URL explicitly requests a download so iOS/Android show
+        // their native save/open sheet instead of attempting a deep-link into
+        // the Salesforce app.
+        try {
+            const parsed = new URL(absoluteUrl, this.hasWindow ? window.location.href : undefined);
+            if (!parsed.searchParams.has('download')) {
+                parsed.searchParams.set('download', '1');
+            }
+            if (!parsed.searchParams.has('operationContext')) {
+                parsed.searchParams.set('operationContext', 'S1');
+            }
+            return parsed.toString();
+        } catch (e) {
+            if (absoluteUrl.includes('download=')) {
+                return absoluteUrl;
+            }
+            return absoluteUrl.includes('?')
+                ? `${absoluteUrl}&download=1`
+                : `${absoluteUrl}?download=1`;
+        }
     }
 
     handleMarkQuoteSent(event) {
