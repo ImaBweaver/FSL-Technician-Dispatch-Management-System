@@ -638,15 +638,23 @@
                                                         class="sfs-option-button"
                                                     >
                                                     </lightning-button>
-                                                    <lightning-button
-                                                        variant="destructive-text"
-                                                        label="Request transfer to new technician"
+                                                    <lightning-button-menu
+                                                        alternative-text="More actions"
+                                                        icon-name="utility:rows"
+                                                        onselect={handleMoreActionsSelect}
+                                                        class="sfs-option-button sfs-more-actions-menu"
                                                         data-woid={appt.workOrderId}
                                                         data-id={appt.appointmentId}
-                                                        onclick={handleRequestReschedule}
-                                                        class="sfs-transfer-request-btn sfs-option-button"
                                                     >
-                                                    </lightning-button>
+                                                        <lightning-menu-item
+                                                            value="requestTransfer"
+                                                            label="Request transfer to new technician"
+                                                        ></lightning-menu-item>
+                                                        <lightning-menu-item
+                                                            value="cancelWorkOrder"
+                                                            label="Cancel work order"
+                                                        ></lightning-menu-item>
+                                                    </lightning-button-menu>
                                                 </div>
                                             </template>
 
@@ -1544,14 +1552,23 @@
                                 disabled={selectedAppointment.disableSave}
                             >
                             </lightning-button>
-                            <lightning-button
-                                variant="destructive-text"
-                                label="Request Reschedule w/ Another Tech"
-                                class="sfs-request-reschedule-btn"
+                            <lightning-button-menu
+                                alternative-text="More actions"
+                                icon-name="utility:rows"
+                                onselect={handleMoreActionsSelect}
+                                class="sfs-more-actions-menu"
                                 data-woid={selectedAppointment.workOrderId}
                                 data-id={selectedAppointment.appointmentId}
-                                onclick={handleRequestReschedule}
-                            ></lightning-button>
+                            >
+                                <lightning-menu-item
+                                    value="requestTransfer"
+                                    label="Request Reschedule w/ Another Tech"
+                                ></lightning-menu-item>
+                                <lightning-menu-item
+                                    value="cancelWorkOrder"
+                                    label="Cancel work order"
+                                ></lightning-menu-item>
+                            </lightning-button-menu>
                         </div>
                     </div>
                 </article>
@@ -1756,6 +1773,46 @@
                             variant="neutral"
                             label="Cancel"
                             onclick={closeRejectModal}
+                        ></lightning-button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <template if:true={isCancelModalOpen}>
+            <div class="sfs-modal-backdrop" onclick={closeCancelModal}>
+                <div class="sfs-modal" onclick={handleDetailCardClick}>
+                    <div class="sfs-modal-header">
+                        <h3 class="sfs-modal-title">Cancel work order</h3>
+                        <button
+                            class="sfs-modal-close"
+                            type="button"
+                            onclick={closeCancelModal}
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    <p class="sfs-modal-copy">
+                        Please provide a reason for canceling this work order. The note will be saved to Tech Support Notes.
+                    </p>
+                    <lightning-textarea
+                        name="cancelReason"
+                        label="Cancellation reason"
+                        value={cancelReason}
+                        onchange={handleCancelReasonChange}
+                        maxlength="1000"
+                    ></lightning-textarea>
+                    <div class="sfs-actions sfs-modal-actions">
+                        <lightning-button
+                            variant="brand"
+                            label="Submit cancellation"
+                            onclick={submitCancelWorkOrder}
+                            disabled={cancelSubmitDisabled}
+                        ></lightning-button>
+                        <lightning-button
+                            variant="neutral"
+                            label="Keep work order"
+                            onclick={closeCancelModal}
                         ></lightning-button>
                     </div>
                 </div>
