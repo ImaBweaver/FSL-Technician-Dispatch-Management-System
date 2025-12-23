@@ -4582,49 +4582,13 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
-        const flowApiName = this.quickQuoteFlowApiName;
-        const quickActionApiName = this.quickQuoteQuickActionApiName;
-        const workOrderId = this.getQuickQuoteContextWorkOrderId();
-
-        if (!workOrderId) {
-            this.showToast(
-                'Select a work order',
-                'Open a work order first so we can launch the flow for that record.',
-                'warning'
-            );
-            return;
-        }
+        const quickQuoteDeepLink =
+            'com.salesforce.fieldservice://v1/sObject/a4URo000000kypBMAQ/flow/FSL_Action_Quick_Quote_2';
 
         try {
-            await this.navigateToFieldServiceQuickAction(
-                quickActionApiName,
-                workOrderId
-            );
-            return;
+            this.navigateToUrl(quickQuoteDeepLink);
         } catch (error) {
-            console.error('Unable to open mobile flow deep link', error);
-        }
-
-        try {
-            const flowPageReference = this.buildFlowPageReference(
-                flowApiName,
-                workOrderId
-            );
-            this[NavigationMixin.Navigate](flowPageReference);
-            return;
-        } catch (error) {
-            console.error('Unable to navigate to Quick Quote flow', error);
-
-            try {
-                const flowUrl = await this.buildMobileFlowUrl(
-                    flowApiName,
-                    workOrderId
-                );
-                this.navigateToUrl(flowUrl);
-                return;
-            } catch (fallbackError) {
-                console.error('Fallback navigation also failed', fallbackError);
-            }
+            console.error('Unable to open Quick Quote deep link', error);
 
             this.showToast(
                 'Quick Quote unavailable',
