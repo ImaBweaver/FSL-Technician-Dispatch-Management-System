@@ -1,0 +1,67 @@
+@IsTest(SeeAllData=true)
+public class ContentDocumentLinkToWorkOrderSync_Test {
+
+    @IsTest
+    static void test_FileLinkedToServiceAppointmentAlsoLinksToWorkOrder() {
+        // 1) Find an existing Service Appointment that has a Work Order
+        ServiceAppointment sa = [
+            SELECT Id, WorkOrderId
+            FROM ServiceAppointment
+            WHERE WorkOrderId != null
+            LIMIT 1
+        ];
+        System.assertNotEquals(null, sa.WorkOrderId, 'Expected the Service Appointment to have a WorkOrderId.');
+
+        // 2) Create a "blank" PDF file as a ContentVersion
+        // Note: Salesforce does not require a fully valid PDF binary for tests,
+        // but we’ll provide a tiny PDF-like payload anyway.
+        Blob pdfBody = Blob.valueOf('%PDF-1.4\n%âãÏÓ\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF');
+
+        ContentVersion cv = new ContentVersion(
+            Title        = 'Unit Test PDF',
+            PathOnClient = 'UnitTest.pdf',
+            VersionData  = pdfBody,
+            IsMajorVersion = true
+        );
+        insert cv;
+
+        // 3) Get the ContentDocumentId created by this ContentVersion
+        cv = [
+            SELECT Id, ContentDocumentId
+            FROM ContentVersion
+            WHERE Id = :cv.Id
+            LIMIT 1
+        ];
+        System.assertNotEquals(null, cv.ContentDocumentId, 'Expected ContentDocumentId to be populated after insert.');
+
+        // 4) Insert the ContentDocumentLink to the Service Appointment (this should fire your trigger)
+        ContentDocumentLink saLink = new ContentDocumentLink(
+            ContentDocumentId = cv.ContentDocumentId,
+            LinkedEntityId    = sa.Id,
+            ShareType         = 'V',
+            Visibility        = 'AllUsers'
+        );
+
+        Test.startTest();
+        insert saLink;
+        Test.stopTest();
+
+        // 5) Verify the trigger created a second link to the Work Order
+        List<ContentDocumentLink> woLinks = [
+            SELECT Id, ContentDocumentId, LinkedEntityId, ShareType, Visibility
+            FROM ContentDocumentLink
+            WHERE ContentDocumentId = :cv.ContentDocumentId
+              AND LinkedEntityId    = :sa.WorkOrderId
+        ];
+
+        System.assertEquals(
+            1,
+            woLinks.size(),
+            'Expected exactly one ContentDocumentLink to be created for the Work Order.'
+        );
+
+        // Optional: confirm it mirrors the SA link settings (since handler copies them)
+        System.assertEquals('V', woLinks[0].ShareType, 'Expected ShareType to match the SA link.');
+        System.assertEquals('AllUsers', woLinks[0].Visibility, 'Expected Visibility to match the SA link.');
+    }
+}
