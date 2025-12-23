@@ -1,0 +1,5 @@
+trigger ContentDocumentLinkTrigger on ContentDocumentLink (after insert) {
+    if (Trigger.isAfter && Trigger.isInsert) {
+        ContentDocumentLinkToWorkOrderSync.handleAfterInsert(Trigger.new);
+    }
+}
