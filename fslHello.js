@@ -4376,127 +4376,39 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         const appt = this.findAppointmentByCardId(cardId);
 
-        if (!appt) {
-            return;
-        }
-
-        const docId =
-            appt.quoteAttachmentDocumentId ||
-            this.extractContentDocumentId(appt.quoteAttachmentUrl);
-        const downloadUrl =
-            this.normalizeDownloadUrl(appt.quoteAttachmentUrl) ||
-            this.buildDownloadUrlFromDocId(docId);
-
-        if (!docId && !downloadUrl) {
+        if (!appt || !appt.workOrderId) {
             this.showToast(
-                'Quote unavailable',
-                'We could not find a quote attachment for this appointment.',
+                'Work order unavailable',
+                'Unable to open the files for this work order.',
                 'warning'
             );
             return;
         }
 
-        if (docId) {
-            // Use the native file previewer so the experience matches opening the
-            // attachment from the Files related list in the mobile app. If
-            // navigation fails (e.g. invalid record id for preview), fall back
-            // to the raw download URL so the tech can still access the file.
-            try {
-                const navPromise = this[NavigationMixin.Navigate]({
-                    type: 'standard__namedPage',
-                    attributes: {
-                        pageName: 'filePreview'
-                    },
-                    state: {
-                        recordIds: docId,
-                        selectedRecordId: docId
-                    }
+        const filesDeepLink = `com.salesforce.fieldservice://v1/sObject/${appt.workOrderId}/related`;
+
+        try {
+            const navPromise = this[NavigationMixin.Navigate]({
+                type: 'standard__webPage',
+                attributes: { url: filesDeepLink }
+            });
+
+            if (navPromise && typeof navPromise.catch === 'function') {
+                navPromise.catch(error => {
+                    const message =
+                        (error &&
+                            (error.message ||
+                                (error.body && error.body.message))) ||
+                        'Unable to open the work order files.';
+                    this.showToast('Navigation failed', message, 'error');
                 });
-
-                if (navPromise && typeof navPromise.catch === 'function') {
-                    navPromise.catch(error =>
-                        this.handleNavigationError(downloadUrl, error)
-                    );
-                }
-            } catch (err) {
-                this.handleNavigationError(downloadUrl, err);
             }
-
-            return;
+        } catch (err) {
+            const message =
+                (err && (err.message || (err.body && err.body.message))) ||
+                'Unable to open the work order files.';
+            this.showToast('Navigation failed', message, 'error');
         }
-
-        this.navigateToDownload(downloadUrl);
-    }
-
-    handleNavigationError(fallbackUrl, error) {
-        // If we have a direct download URL, use it as a fallback so the tech
-        // can still view the quote file. Otherwise, surface a toast so the user
-        // knows navigation failed instead of seeing a generic routing error.
-        if (fallbackUrl) {
-            this.navigateToDownload(fallbackUrl);
-            return;
-        }
-
-        const message =
-            (error &&
-                (error.message ||
-                    (error.body && error.body.message))) ||
-            'Unable to open the quote attachment.';
-        this.showToast('Navigation failed', message, 'error');
-    }
-
-    navigateToDownload(targetUrl) {
-        if (!targetUrl) {
-            this.showToast(
-                'Attachment unavailable',
-                'Unable to locate the quote attachment.',
-                'warning'
-            );
-            return;
-        }
-
-        this[NavigationMixin.Navigate]({
-            type: 'standard__webPage',
-            attributes: { url: targetUrl }
-        });
-    }
-
-    normalizeDownloadUrl(url) {
-        if (!url) {
-            return null;
-        }
-
-        // Mobile apps require absolute URLs; the server returns a relative path
-        // (e.g. "/sfc/servlet.shepherd/document/download/<docId>"). Prefix with
-        // the current origin so the in-app browser can resolve it.
-        if (url.startsWith('/') && this.hasWindow) {
-            return `${window.location.origin}${url}`;
-        }
-
-        return url;
-    }
-
-    buildDownloadUrlFromDocId(docId) {
-        if (!docId) {
-            return null;
-        }
-
-        if (!this.hasWindow) {
-            return null;
-        }
-
-        return `${window.location.origin}/sfc/servlet.shepherd/document/download/${docId}`;
-    }
-
-    extractContentDocumentId(url) {
-        if (!url) {
-            return null;
-        }
-
-        // Extract the 15 or 18 character ContentDocumentId from a shepherd
-        // download or view URL so we can open the native file preview.
-        const match = url.match(/\/document\/(?:download|view)\/([a-zA-Z0-9]{15,18})/);
-        return match ? match[1] : null;
     }
 
     handleMarkQuoteSent(event) {
