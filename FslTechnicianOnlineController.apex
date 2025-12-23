@@ -1702,6 +1702,71 @@ public with sharing class FslTechnicianOnlineController {
     }
 
     @AuraEnabled
+    public static void cancelWorkOrder(Id workOrderId, String reason) {
+        if (workOrderId == null) {
+            throw new AuraHandledException('Work Order Id is required to cancel.');
+        }
+
+        String trimmedReason = (reason == null) ? '' : reason.trim();
+        if (String.isBlank(trimmedReason)) {
+            throw new AuraHandledException('Cancellation reason is required.');
+        }
+
+        WorkOrder wo = [
+            SELECT Id, Status, Tech_Support_Notes__c
+            FROM WorkOrder
+            WHERE Id = :workOrderId
+            LIMIT 1
+            FOR UPDATE
+        ];
+
+        wo.Status = 'Canceled';
+        wo.Tech_Support_Notes__c = trimmedReason;
+        update wo;
+
+        Set<String> closedStatuses = new Set<String>{
+            'Completed',
+            'Completed WO',
+            'Closed',
+            'Cannot Complete',
+            'Canceled',
+            'Closed - Submitted'
+        };
+
+        List<ServiceAppointment> openAppointments = [
+            SELECT Id
+            FROM ServiceAppointment
+            WHERE Work_Order__c = :workOrderId
+            AND Status NOT IN :closedStatuses
+            FOR UPDATE
+        ];
+
+        if (openAppointments.isEmpty()) {
+            return;
+        }
+
+        Set<Id> openApptIds = new Set<Id>();
+        for (ServiceAppointment sa : openAppointments) {
+            openApptIds.add(sa.Id);
+            sa.Status = 'Canceled';
+            sa.SchedStartTime = null;
+            sa.SchedEndTime = null;
+        }
+
+        List<AssignedResource> ars = [
+            SELECT Id
+            FROM AssignedResource
+            WHERE ServiceAppointmentId IN :openApptIds
+        ];
+
+        if (!ars.isEmpty()) {
+            delete ars;
+        }
+
+        update openAppointments;
+    }
+
+    @AuraEnabled
     public static void markWorkOrderQuoteSent(Id workOrderId) {
         if (workOrderId == null) {
             throw new AuraHandledException('Work Order Id is required.');

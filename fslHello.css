@@ -192,6 +192,14 @@
 .sfs-card-header {
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.sfs-card-header-pills {
+    display: flex;
+    align-items: center;
     gap: 0.35rem;
     flex-wrap: wrap;
 }
@@ -569,6 +577,15 @@
     --slds-c-button-destructive-text-line-height: 1.5rem;
     --slds-c-button-destructive-text-spacing-inline-start: 0.65rem;
     --slds-c-button-destructive-text-spacing-inline-end: 0.65rem;
+}
+
+.sfs-more-actions-menu {
+    --slds-c-button-menu-radius-border: 999px;
+    --slds-c-button-menu-spacing-inline-start: 0.65rem;
+    --slds-c-button-menu-spacing-inline-end: 0.65rem;
+    --slds-c-button-menu-color-border: #d8dde6;
+    --slds-c-button-menu-color-background: #ffffff;
+    --slds-c-button-menu-color-border-hover: #1b5297;
 }
 
 @media (max-width: 540px) {
