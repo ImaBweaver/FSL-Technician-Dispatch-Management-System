@@ -557,6 +557,68 @@ public class FslTechnicianOnlineController_Test {
         System.assertEquals(0, arCountAfter, 'Assignments should be removed when requesting reschedule.');
     }
 
+    @isTest
+    static void testCancelWorkOrderUpdatesStatusAndNotes() {
+        ResourceContext context = getActiveResourceContext();
+        WorkOrder wo           = ensureWorkOrder(context);
+
+        ServiceAppointment sa = new ServiceAppointment(
+            Work_Order__c      = wo.Id,
+            Subject            = 'Cancel Test',
+            Status             = 'New',
+            ServiceTerritoryId = context.stm.ServiceTerritoryId,
+            ParentRecordId     = wo.Id
+        );
+        insert sa;
+
+        sa = new ServiceAppointment(
+            Id             = sa.Id,
+            SchedStartTime = Datetime.now().addDays(2),
+            SchedEndTime   = Datetime.now().addDays(2).addHours(2),
+            Status         = 'New'
+        );
+        update sa;
+
+        AssignedResource ar = new AssignedResource(
+            ServiceAppointmentId = sa.Id,
+            ServiceResourceId    = context.resource.Id
+        );
+        insert ar;
+
+        String cancellationReason = 'Customer requested cancellation';
+
+        Test.startTest();
+        FslTechnicianOnlineController.cancelWorkOrder(wo.Id, cancellationReason);
+        Test.stopTest();
+
+        WorkOrder woAfter = [
+            SELECT Id, Status, Tech_Support_Notes__c
+            FROM WorkOrder
+            WHERE Id = :wo.Id
+            LIMIT 1
+        ];
+        System.assertEquals('Canceled', woAfter.Status, 'Work Order should be canceled.');
+        System.assertEquals(cancellationReason, woAfter.Tech_Support_Notes__c,
+            'Tech support notes should store the cancellation reason.');
+
+        ServiceAppointment saAfter = [
+            SELECT Id, Status, SchedStartTime, SchedEndTime
+            FROM ServiceAppointment
+            WHERE Id = :sa.Id
+            LIMIT 1
+        ];
+        System.assertEquals('Canceled', saAfter.Status, 'Appointment should be canceled.');
+        System.assertEquals(null, saAfter.SchedStartTime, 'Start time should be cleared.');
+        System.assertEquals(null, saAfter.SchedEndTime, 'End time should be cleared.');
+
+        Integer arCountAfter = [
+            SELECT COUNT()
+            FROM AssignedResource
+            WHERE ServiceAppointmentId = :sa.Id
+        ];
+        System.assertEquals(0, arCountAfter, 'Assignments should be removed when canceling.');
+    }
+
     // ------------------------- TRANSFER SYSTEM TESTS -------------------------
 
     @isTest
