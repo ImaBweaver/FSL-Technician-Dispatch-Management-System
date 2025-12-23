@@ -1,0 +1,96 @@
+public with sharing class ContentDocumentLinkToWorkOrderSync {
+
+    public static void handleAfterInsert(List<ContentDocumentLink> newLinks) {
+        if (newLinks == null || newLinks.isEmpty()) return;
+
+        // 1) Filter to links where the linked entity is a ServiceAppointment Id
+        Set<Id> saIds = new Set<Id>();
+        List<ContentDocumentLink> saLinks = new List<ContentDocumentLink>();
+
+        for (ContentDocumentLink cdl : newLinks) {
+            if (cdl == null || cdl.LinkedEntityId == null || cdl.ContentDocumentId == null) continue;
+            if (cdl.LinkedEntityId.getSObjectType() == ServiceAppointment.SObjectType) {
+                saIds.add(cdl.LinkedEntityId);
+                saLinks.add(cdl);
+            }
+        }
+
+        if (saIds.isEmpty()) return;
+
+        // 2) Load SA -> WorkOrder
+        Map<Id, ServiceAppointment> saById = new Map<Id, ServiceAppointment>([
+            SELECT Id, WorkOrderId
+            FROM ServiceAppointment
+            WHERE Id IN :saIds
+        ]);
+
+        // 3) Build desired WorkOrder links (docId + woId)
+        Set<Id> woIds = new Set<Id>();
+        Set<Id> docIds = new Set<Id>();
+
+        // We'll track "docId|woId" pairs we intend to create
+        Set<String> desiredPairs = new Set<String>();
+
+        // Also capture per-doc settings to copy from the original SA link
+        // (we'll use the first encountered as the source)
+        Map<String, ContentDocumentLink> sourceLinkByPair = new Map<String, ContentDocumentLink>();
+
+        for (ContentDocumentLink saLink : saLinks) {
+            ServiceAppointment sa = saById.get(saLink.LinkedEntityId);
+            if (sa == null || sa.WorkOrderId == null) continue;
+
+            Id woId = sa.WorkOrderId;
+            Id docId = saLink.ContentDocumentId;
+
+            woIds.add(woId);
+            docIds.add(docId);
+
+            String key = docId + '|' + woId;
+            desiredPairs.add(key);
+
+            // Keep a source link to copy ShareType/Visibility from
+            if (!sourceLinkByPair.containsKey(key)) {
+                sourceLinkByPair.put(key, saLink);
+            }
+        }
+
+        if (desiredPairs.isEmpty()) return;
+
+        // 4) Prevent duplicates: check existing links between these docs and work orders
+        Set<String> existingPairs = new Set<String>();
+        for (ContentDocumentLink existing : [
+            SELECT ContentDocumentId, LinkedEntityId
+            FROM ContentDocumentLink
+            WHERE ContentDocumentId IN :docIds
+              AND LinkedEntityId    IN :woIds
+        ]) {
+            existingPairs.add(existing.ContentDocumentId + '|' + existing.LinkedEntityId);
+        }
+
+        // 5) Create missing WorkOrder links
+        List<ContentDocumentLink> toInsert = new List<ContentDocumentLink>();
+        for (String key : desiredPairs) {
+            if (existingPairs.contains(key)) continue;
+
+            List<String> parts = key.split('\\|');
+            Id docId = (Id)parts[0];
+            Id woId  = (Id)parts[1];
+
+            ContentDocumentLink source = sourceLinkByPair.get(key);
+
+            ContentDocumentLink woLink = new ContentDocumentLink();
+            woLink.ContentDocumentId = docId;
+            woLink.LinkedEntityId    = woId;
+
+            // Copy from source if present; otherwise default safely
+            woLink.ShareType  = (source != null && source.ShareType != null) ? source.ShareType : 'V';
+            woLink.Visibility = (source != null && source.Visibility != null) ? source.Visibility : 'AllUsers';
+
+            toInsert.add(woLink);
+        }
+
+        if (!toInsert.isEmpty()) {
+            insert toInsert;
+        }
+    }
+}
