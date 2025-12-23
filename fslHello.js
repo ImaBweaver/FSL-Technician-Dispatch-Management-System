@@ -11,6 +11,7 @@ import getTerritoryResources from '@salesforce/apex/FslTechnicianOnlineControlle
 import createEngineerTransferRequest from '@salesforce/apex/FslTechnicianOnlineController.createEngineerTransferRequest';
 import acceptEngineerTransferRequest from '@salesforce/apex/FslTechnicianOnlineController.acceptEngineerTransferRequest';
 import rejectEngineerTransferRequest from '@salesforce/apex/FslTechnicianOnlineController.rejectEngineerTransferRequest';
+import cancelWorkOrder from '@salesforce/apex/FslTechnicianOnlineController.cancelWorkOrder';
 import markWorkOrderQuoteSent from '@salesforce/apex/FslTechnicianOnlineController.markWorkOrderQuoteSent';
 import updateResourceAbsence from '@salesforce/apex/FslTechnicianOnlineController.updateResourceAbsence';
 import deleteResourceAbsence from '@salesforce/apex/FslTechnicianOnlineController.deleteResourceAbsence';
@@ -116,6 +117,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     isRejectModalOpen = false;
     rejectReason = '';
     rejectRequestId = null;
+
+    // Cancel work order modal
+    isCancelModalOpen = false;
+    cancelReason = '';
+    cancelWorkOrderId = null;
 
     // Global error capture handlers
     _boundOnGlobalError = null;
@@ -6116,7 +6122,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             });
     }
 
-    handleRequestReschedule(event) {
+    getWorkOrderIdFromContext(event) {
+        if (!event || !event.currentTarget || !event.currentTarget.dataset) {
+            return null;
+        }
+
         let workOrderId = event.currentTarget.dataset.woid;
 
         // Fallback to appointment lookup when only the appointment id is present
@@ -6127,11 +6137,33 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             workOrderId = appt ? appt.workOrderId : null;
         }
 
+        return workOrderId;
+    }
+
+    handleRequestReschedule(event) {
+        const workOrderId = this.getWorkOrderIdFromContext(event);
+
         if (!workOrderId) {
             return;
         }
         event.stopPropagation();
         this.openRescheduleModal(workOrderId);
+    }
+
+    handleMoreActionsSelect(event) {
+        event.stopPropagation();
+        const action = event.detail.value;
+        const workOrderId = this.getWorkOrderIdFromContext(event);
+
+        if (!workOrderId) {
+            return;
+        }
+
+        if (action === 'requestTransfer') {
+            this.openRescheduleModal(workOrderId);
+        } else if (action === 'cancelWorkOrder') {
+            this.openCancelModal(workOrderId);
+        }
     }
 
     openRescheduleModal(workOrderId) {
@@ -6293,6 +6325,68 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             .catch(error => {
                 const message = this.reduceError(error);
                 this.showToast('Unable to reject transfer', message, 'error');
+            })
+            .finally(() => {
+                this.isLoading = false;
+            });
+    }
+
+    openCancelModal(workOrderId) {
+        if (!workOrderId) {
+            return;
+        }
+
+        this.cancelWorkOrderId = workOrderId;
+        this.cancelReason = '';
+        this.isCancelModalOpen = true;
+    }
+
+    closeCancelModal() {
+        this.isCancelModalOpen = false;
+        this.cancelReason = '';
+        this.cancelWorkOrderId = null;
+    }
+
+    handleCancelReasonChange(event) {
+        this.cancelReason = event.target.value;
+    }
+
+    get cancelSubmitDisabled() {
+        return this.isLoading || !this.cancelReason || !this.cancelReason.trim();
+    }
+
+    submitCancelWorkOrder() {
+        if (!this.cancelWorkOrderId || !this.cancelReason) {
+            return;
+        }
+
+        if (this.isOffline) {
+            this.showToast(
+                'Offline',
+                'You must be online to cancel a work order.',
+                'warning'
+            );
+            return;
+        }
+
+        this.isLoading = true;
+
+        cancelWorkOrder({
+            workOrderId: this.cancelWorkOrderId,
+            reason: this.cancelReason
+        })
+            .then(() => {
+                this.showToast(
+                    'Work order canceled',
+                    'The work order was canceled and the reason was saved.',
+                    'success'
+                );
+                this.closeCancelModal();
+                return this.loadAppointments();
+            })
+            .catch(error => {
+                const message = this.reduceError(error);
+                this.showToast('Unable to cancel work order', message, 'error');
             })
             .finally(() => {
                 this.isLoading = false;
