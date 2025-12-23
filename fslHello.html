@@ -314,21 +314,41 @@
                                             </button>
                                         </template>
                                         <div class="sfs-card-header">
-                                            <span class={appt.workTypeClass}>
-                                                {appt.workTypeName}
-                                            </span>
-
-                                            <template if:true={appt.opportunityRecordType}>
-                                                <span class="sfs-opportunity-pill">
-                                                    {appt.opportunityRecordType}
+                                            <div class="sfs-card-header-pills">
+                                                <span class={appt.workTypeClass}>
+                                                    {appt.workTypeName}
                                                 </span>
-                                            </template>
 
-                                            <template if:true={appt.makeModel}>
-                                                <span class="sfs-makemodel-pill">
-                                                    {appt.makeModel}
-                                                </span>
-                                            </template>
+                                                <template if:true={appt.opportunityRecordType}>
+                                                    <span class="sfs-opportunity-pill">
+                                                        {appt.opportunityRecordType}
+                                                    </span>
+                                                </template>
+
+                                                <template if:true={appt.makeModel}>
+                                                    <span class="sfs-makemodel-pill">
+                                                        {appt.makeModel}
+                                                    </span>
+                                                </template>
+                                            </div>
+
+                                            <lightning-button-menu
+                                                alternative-text="More actions"
+                                                icon-name="utility:rows"
+                                                onselect={handleMoreActionsSelect}
+                                                class="sfs-more-actions-menu sfs-card-header-more-actions"
+                                                data-woid={appt.workOrderId}
+                                                data-id={appt.appointmentId}
+                                            >
+                                                <lightning-menu-item
+                                                    value="requestTransfer"
+                                                    label="Request transfer to new technician"
+                                                ></lightning-menu-item>
+                                                <lightning-menu-item
+                                                    value="cancelWorkOrder"
+                                                    label="Cancel work order"
+                                                ></lightning-menu-item>
+                                            </lightning-button-menu>
                                         </div>
 
                                         <div class="sfs-card-body">
@@ -638,23 +658,6 @@
                                                         class="sfs-option-button"
                                                     >
                                                     </lightning-button>
-                                                    <lightning-button-menu
-                                                        alternative-text="More actions"
-                                                        icon-name="utility:rows"
-                                                        onselect={handleMoreActionsSelect}
-                                                        class="sfs-option-button sfs-more-actions-menu"
-                                                        data-woid={appt.workOrderId}
-                                                        data-id={appt.appointmentId}
-                                                    >
-                                                        <lightning-menu-item
-                                                            value="requestTransfer"
-                                                            label="Request transfer to new technician"
-                                                        ></lightning-menu-item>
-                                                        <lightning-menu-item
-                                                            value="cancelWorkOrder"
-                                                            label="Cancel work order"
-                                                        ></lightning-menu-item>
-                                                    </lightning-button-menu>
                                                 </div>
                                             </template>
 
