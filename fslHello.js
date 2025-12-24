@@ -5912,23 +5912,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     handleUnassignClick(event) {
         event.stopPropagation();
         const id = event.currentTarget.dataset.id;
-        if (!id) {
-            return;
-        }
-
-        const targetAppt = this.appointments.find(
-            appt => appt.appointmentId === id
-        );
-
-        this.unassignTarget = targetAppt
-            ? {
-                  id,
-                  subject: targetAppt.subject,
-                  workOrderNumber: targetAppt.workOrderNumber
-              }
-            : { id };
-
-        this.isUnassignModalOpen = true;
+        this.openUnassignModal(id);
     }
 
     closeUnassignModal() {
@@ -6030,6 +6014,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         event.stopPropagation();
         const action = event.detail.value;
         const workOrderId = this.getWorkOrderIdFromContext(event);
+        const appointmentId = event.currentTarget.dataset.id;
 
         if (!workOrderId) {
             return;
@@ -6039,7 +6024,29 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             this.openRescheduleModal(workOrderId);
         } else if (action === 'cancelWorkOrder') {
             this.openCancelModal(workOrderId);
+        } else if (action === 'unassign') {
+            this.openUnassignModal(appointmentId);
         }
+    }
+
+    openUnassignModal(appointmentId) {
+        if (!appointmentId) {
+            return;
+        }
+
+        const targetAppt = this.appointments.find(
+            appt => appt.appointmentId === appointmentId
+        );
+
+        this.unassignTarget = targetAppt
+            ? {
+                  id: appointmentId,
+                  subject: targetAppt.subject,
+                  workOrderNumber: targetAppt.workOrderNumber
+              }
+            : { id: appointmentId };
+
+        this.isUnassignModalOpen = true;
     }
 
     openRescheduleModal(workOrderId) {
