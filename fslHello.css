@@ -1309,6 +1309,9 @@
     margin: 0 0 0.4rem 0;
     font-size: 0.95rem;
     font-weight: 600;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
 }
 
 .sfs-detail-title-link {
@@ -1321,6 +1324,12 @@
     color: #0070d2;
     text-decoration: underline;
     cursor: pointer;
+}
+
+.sfs-detail-title-helper {
+    font-size: 0.8rem;
+    color: #4b596c;
+    font-weight: 400;
 }
 
 .sfs-detail-line {
