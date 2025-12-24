@@ -368,15 +368,14 @@
                                                     {appt.workOrderSubject}
                                                 </span>
 
-                                                <lightning-button-icon
-                                                    icon-name="utility:info"
-                                                    alternative-text="More info"
-                                                    variant="bare"
-                                                    size="small"
+                                                <button
+                                                    type="button"
+                                                    class="sfs-info-button"
                                                     data-id={appt.cardId}
                                                     onclick={handleListInfoClick}
-                                                    class="sfs-info-button"
-                                                ></lightning-button-icon>
+                                                >
+                                                    See more info
+                                                </button>
                                             </div>
 
                                             <template if:true={appt.showQuoteActions}>
