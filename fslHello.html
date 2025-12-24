@@ -302,17 +302,6 @@
                                                         class={appt.cardClass}
                                                         data-card-id={appt.cardId}
                                                     >
-                                        <template if:true={appt.hasAppointment}>
-                                            <button
-                                                class="sfs-unassign-btn"
-                                                title="Remove me from this work order"
-                                                data-id={appt.appointmentId}
-                                                onclick={handleUnassignClick}
-                                                type="button"
-                                            >
-                                                ✕
-                                            </button>
-                                        </template>
                                         <div class="sfs-card-header">
                                             <div class="sfs-card-header-pills">
                                                 <span class={appt.workTypeClass}>
@@ -341,6 +330,12 @@
                                                 data-woid={appt.workOrderId}
                                                 data-id={appt.appointmentId}
                                             >
+                                                <template if:true={appt.hasAppointment}>
+                                                    <lightning-menu-item
+                                                        value="unassign"
+                                                        label="Unschedule"
+                                                    ></lightning-menu-item>
+                                                </template>
                                                 <lightning-menu-item
                                                     value="requestTransfer"
                                                     label="Request transfer to new technician"
@@ -1673,7 +1668,7 @@
             <div class="sfs-modal-backdrop" onclick={closeUnassignModal}>
                 <div class="sfs-modal" onclick={handleDetailCardClick}>
                     <div class="sfs-modal-header">
-                        <h3 class="sfs-modal-title">Remove from schedule</h3>
+                        <h3 class="sfs-modal-title">Unschedule</h3>
                         <button
                             class="sfs-modal-close"
                             type="button"
@@ -1694,7 +1689,7 @@
                     <div class="sfs-actions sfs-modal-actions">
                         <lightning-button
                             variant="brand"
-                            label="Remove from schedule"
+                            label="Unschedule"
                             onclick={confirmUnassignAppointment}
                             disabled={isLoading}
                         ></lightning-button>
