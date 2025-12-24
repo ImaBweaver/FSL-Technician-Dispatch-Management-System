@@ -1460,20 +1460,17 @@
     margin-bottom: 0.25rem;
 }
 
-.sfs-info-button lightning-icon {
-    fill: #1b96ff;
-}
-
 .sfs-info-button {
-    --slds-c-icon-color-foreground-default: #1b96ff;
-    --slds-c-icon-color-foreground: #1b96ff;
-    --slds-c-button-color-border: transparent;
-    --slds-c-button-icon-spacing-inline-start: 0;
-    --slds-c-button-icon-spacing-inline-end: 0;
-    --slds-c-button-size: auto;
+    border: none;
+    background: none;
+    color: #1b96ff;
+    font-size: 0.75rem;
+    line-height: 1.1;
     padding: 0;
     margin: 0;
     min-height: auto;
+    white-space: nowrap;
+    cursor: pointer;
 }
 
 .sfs-line_address .sfs-label {
