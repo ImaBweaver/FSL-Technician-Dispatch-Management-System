@@ -43,7 +43,7 @@
                             class="slds-button slds-button_brand sfs-quick-quote-btn"
                             onclick={handleLaunchQuickQuoteFlow}
                         >
-                            Quick Quote (Don't use yet)
+                            Quick Quote
                         </button>
                         <lightning-button
                             variant="neutral"
@@ -302,17 +302,6 @@
                                                         class={appt.cardClass}
                                                         data-card-id={appt.cardId}
                                                     >
-                                        <template if:true={appt.hasAppointment}>
-                                            <button
-                                                class="sfs-unassign-btn"
-                                                title="Remove me from this work order"
-                                                data-id={appt.appointmentId}
-                                                onclick={handleUnassignClick}
-                                                type="button"
-                                            >
-                                                ✕
-                                            </button>
-                                        </template>
                                         <div class="sfs-card-header">
                                             <div class="sfs-card-header-pills">
                                                 <span class={appt.workTypeClass}>
@@ -341,6 +330,12 @@
                                                 data-woid={appt.workOrderId}
                                                 data-id={appt.appointmentId}
                                             >
+                                                <template if:true={appt.hasAppointment}>
+                                                    <lightning-menu-item
+                                                        value="unassign"
+                                                        label="Remove from schedule"
+                                                    ></lightning-menu-item>
+                                                </template>
                                                 <lightning-menu-item
                                                     value="requestTransfer"
                                                     label="Request transfer to new technician"

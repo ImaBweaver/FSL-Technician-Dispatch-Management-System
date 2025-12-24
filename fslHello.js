@@ -4582,49 +4582,13 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
-        const flowApiName = this.quickQuoteFlowApiName;
-        const quickActionApiName = this.quickQuoteQuickActionApiName;
-        const workOrderId = this.getQuickQuoteContextWorkOrderId();
-
-        if (!workOrderId) {
-            this.showToast(
-                'Select a work order',
-                'Open a work order first so we can launch the flow for that record.',
-                'warning'
-            );
-            return;
-        }
+        const quickQuoteDeepLink =
+            'com.salesforce.fieldservice://v1/sObject/a4URo000000kypBMAQ/flow/FSL_Action_Quick_Quote_2';
 
         try {
-            await this.navigateToFieldServiceQuickAction(
-                quickActionApiName,
-                workOrderId
-            );
-            return;
+            this.navigateToUrl(quickQuoteDeepLink);
         } catch (error) {
-            console.error('Unable to open mobile flow deep link', error);
-        }
-
-        try {
-            const flowPageReference = this.buildFlowPageReference(
-                flowApiName,
-                workOrderId
-            );
-            this[NavigationMixin.Navigate](flowPageReference);
-            return;
-        } catch (error) {
-            console.error('Unable to navigate to Quick Quote flow', error);
-
-            try {
-                const flowUrl = await this.buildMobileFlowUrl(
-                    flowApiName,
-                    workOrderId
-                );
-                this.navigateToUrl(flowUrl);
-                return;
-            } catch (fallbackError) {
-                console.error('Fallback navigation also failed', fallbackError);
-            }
+            console.error('Unable to open Quick Quote deep link', error);
 
             this.showToast(
                 'Quick Quote unavailable',
@@ -5948,23 +5912,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     handleUnassignClick(event) {
         event.stopPropagation();
         const id = event.currentTarget.dataset.id;
-        if (!id) {
-            return;
-        }
-
-        const targetAppt = this.appointments.find(
-            appt => appt.appointmentId === id
-        );
-
-        this.unassignTarget = targetAppt
-            ? {
-                  id,
-                  subject: targetAppt.subject,
-                  workOrderNumber: targetAppt.workOrderNumber
-              }
-            : { id };
-
-        this.isUnassignModalOpen = true;
+        this.openUnassignModal(id);
     }
 
     closeUnassignModal() {
@@ -6066,6 +6014,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         event.stopPropagation();
         const action = event.detail.value;
         const workOrderId = this.getWorkOrderIdFromContext(event);
+        const appointmentId = event.currentTarget.dataset.id;
 
         if (!workOrderId) {
             return;
@@ -6075,7 +6024,29 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             this.openRescheduleModal(workOrderId);
         } else if (action === 'cancelWorkOrder') {
             this.openCancelModal(workOrderId);
+        } else if (action === 'unassign') {
+            this.openUnassignModal(appointmentId);
         }
+    }
+
+    openUnassignModal(appointmentId) {
+        if (!appointmentId) {
+            return;
+        }
+
+        const targetAppt = this.appointments.find(
+            appt => appt.appointmentId === appointmentId
+        );
+
+        this.unassignTarget = targetAppt
+            ? {
+                  id: appointmentId,
+                  subject: targetAppt.subject,
+                  workOrderNumber: targetAppt.workOrderNumber
+              }
+            : { id: appointmentId };
+
+        this.isUnassignModalOpen = true;
     }
 
     openRescheduleModal(workOrderId) {
