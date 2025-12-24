@@ -333,7 +333,7 @@
                                                 <template if:true={appt.hasAppointment}>
                                                     <lightning-menu-item
                                                         value="unassign"
-                                                        label="Remove from schedule"
+                                                        label="Unschedule"
                                                     ></lightning-menu-item>
                                                 </template>
                                                 <lightning-menu-item
@@ -1668,7 +1668,7 @@
             <div class="sfs-modal-backdrop" onclick={closeUnassignModal}>
                 <div class="sfs-modal" onclick={handleDetailCardClick}>
                     <div class="sfs-modal-header">
-                        <h3 class="sfs-modal-title">Remove from schedule</h3>
+                        <h3 class="sfs-modal-title">Unschedule</h3>
                         <button
                             class="sfs-modal-close"
                             type="button"
@@ -1689,7 +1689,7 @@
                     <div class="sfs-actions sfs-modal-actions">
                         <lightning-button
                             variant="brand"
-                            label="Remove from schedule"
+                            label="Unschedule"
                             onclick={confirmUnassignAppointment}
                             disabled={isLoading}
                         ></lightning-button>
