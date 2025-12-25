@@ -844,6 +844,13 @@
     gap: 0.75rem;
 }
 
+.sfs-list-mode__right {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
 .sfs-view-combobox {
     --slds-c-combobox-menu-min-width: 14rem;
     --slds-c-combobox-sizing-min-width: 14rem;
@@ -860,6 +867,10 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.35rem;
+}
+
+.sfs-collapse-all-btn {
+    white-space: nowrap;
 }
 
 .sfs-mode-chip {
