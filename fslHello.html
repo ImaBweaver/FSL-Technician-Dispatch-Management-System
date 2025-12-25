@@ -638,34 +638,27 @@
                                                 </div>
                                             </template>
 
-                                            <!-- Start Date/Time + Reschedule -->
+                                            <!-- Start Date/Time display -->
                                             <template if:true={appt.hasAppointment}>
-                                                <div class="sfs-input-block">
-                                                    <lightning-input
-                                                        type="datetime-local"
-                                                        name="startDateTime"
-                                                        label="Start Date/Time"
-                                                        value={appt.newStart}
-                                                        onchange={handleDateChange}
-                                                        data-id={appt.appointmentId}
-                                                    >
-                                                    </lightning-input>
-                                                </div>
-
-                                                <div class="sfs-actions sfs-reschedule-actions sfs-option-actions">
-                                                    <lightning-button
-                                                        variant="brand"
-                                                        label="Reschedule"
-                                                        data-id={appt.appointmentId}
-                                                        onclick={handleReschedule}
-                                                        disabled={appt.disableSave}
-                                                        class="sfs-option-button"
-                                                    >
-                                                    </lightning-button>
+                                                <div class="sfs-input-block sfs-start-display">
+                                                    <div class="sfs-start-display__label">
+                                                        Start Date/Time
+                                                    </div>
+                                                    <div class="sfs-start-display__value">
+                                                        <lightning-formatted-date-time
+                                                            value={appt.schedStart}
+                                                            year="numeric"
+                                                            month="short"
+                                                            day="2-digit"
+                                                            hour="2-digit"
+                                                            minute="2-digit"
+                                                            time-zone={userTimeZoneId}
+                                                        ></lightning-formatted-date-time>
+                                                    </div>
                                                 </div>
                                             </template>
 
-                                            <template if:true={appt.showScheduleOnCalendar}>
+                                            <template if:true={appt.showQuickSchedule}>
                                                 <div class="sfs-actions sfs-schedule-actions sfs-quick-schedule__actions-inline sfs-option-actions">
                                                     <lightning-button
                                                         variant="neutral"
@@ -675,14 +668,16 @@
                                                         class="sfs-compact-button sfs-option-button"
                                                     >
                                                     </lightning-button>
-                                                    <lightning-button
-                                                        variant="brand"
-                                                        label="Schedule on Calendar"
-                                                        data-id={appt.cardId}
-                                                        onclick={handleScheduleOnCalendar}
-                                                        class="sfs-compact-button sfs-option-button"
-                                                    >
-                                                    </lightning-button>
+                                                    <template if:true={appt.showScheduleOnCalendar}>
+                                                        <lightning-button
+                                                            variant="brand"
+                                                            label="Schedule on Calendar"
+                                                            data-id={appt.cardId}
+                                                            onclick={handleScheduleOnCalendar}
+                                                            class="sfs-compact-button sfs-option-button"
+                                                        >
+                                                        </lightning-button>
+                                                    </template>
                                                 </div>
 
                                                 <template if:true={appt.quickScheduleExpanded}>
@@ -690,7 +685,7 @@
                                                         <lightning-input
                                                             type="datetime-local"
                                                             name="quickScheduleStart"
-                                                            label="Schedule Date/Time"
+                                                            label={appt.quickScheduleDateLabel}
                                                             value={appt.quickScheduleStart}
                                                             data-id={appt.cardId}
                                                             onchange={handleQuickScheduleChange}
@@ -701,7 +696,7 @@
                                                     <div class="sfs-actions sfs-schedule-actions sfs-quick-schedule__footer sfs-option-actions">
                                                         <lightning-button
                                                             variant="brand"
-                                                            label="Schedule"
+                                                            label={appt.quickScheduleActionLabel}
                                                             data-id={appt.cardId}
                                                             onclick={handleQuickSchedule}
                                                             class="sfs-compact-button sfs-option-button"
@@ -1546,22 +1541,17 @@
 
                         <!-- Inline reschedule inside detail sheet -->
                         <div class="sfs-detail-reschedule">
-                            <lightning-input
-                                type="datetime-local"
-                                name="detailStartDateTime"
-                                label="New Start Date/Time"
-                                value={selectedAppointment.newStart}
-                                onchange={handleDetailDateChange}
-                            >
-                            </lightning-input>
-
-                            <lightning-button
-                                variant="brand"
-                                label="Reschedule"
-                                onclick={handleDetailReschedule}
-                                disabled={selectedAppointment.disableSave}
-                            >
-                            </lightning-button>
+                            <p class="sfs-detail-note">
+                                Use Quick schedule to change the start date and time.
+                            </p>
+                            <template if:true={selectedAppointmentCanQuickSchedule}>
+                                <lightning-button
+                                    variant="brand"
+                                    label={selectedQuickScheduleLabel}
+                                    onclick={handleOpenQuickScheduleFromDetail}
+                                >
+                                </lightning-button>
+                            </template>
                             <lightning-button-menu
                                 alternative-text="More actions"
                                 icon-name="utility:rows"
