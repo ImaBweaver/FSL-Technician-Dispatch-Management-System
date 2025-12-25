@@ -383,6 +383,17 @@
     margin-top: 0.6rem;
 }
 
+.sfs-start-display__label {
+    font-weight: 600;
+    display: block;
+    margin-bottom: 0.1rem;
+}
+
+.sfs-start-display__value {
+    color: var(--lwc-colorTextDefault, #080707);
+    font-size: 0.95rem;
+}
+
 /* keep the lightning-input nicely contained */
 .sfs-input-block lightning-input {
     display: block;
@@ -1359,6 +1370,12 @@
     flex-direction: column;
     gap: 0.35rem;
     width: 92.5%;
+}
+
+.sfs-detail-note {
+    margin: 0;
+    color: #3e3e3c;
+    font-size: 0.85rem;
 }
 
 .sfs-request-reschedule-btn {

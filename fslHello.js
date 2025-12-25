@@ -709,10 +709,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             );
         }
 
-        const allowScheduleOnCalendar =
-            this.listMode === 'unscheduled' ||
-            this.listMode === 'partsReady' ||
-            this.listMode === 'quoteSent';
+        const allowScheduleOnCalendar = this.allowScheduleActionsOnCalendar;
 
         return baseList.map(item => {
             const isQuickScheduleExpanded = Boolean(
@@ -734,6 +731,14 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             const quoteLineItemsExpandedIcon = quoteLineItemsExpanded
                 ? 'utility:chevrondown'
                 : 'utility:chevronright';
+            const quickScheduleStart = this.getQuickScheduleValue(item);
+            const quickScheduleLabel = this.getQuickScheduleToggleLabel(
+                item,
+                isQuickScheduleExpanded
+            );
+
+            const showQuickSchedule =
+                allowScheduleOnCalendar || item.hasAppointment;
 
             return {
                 ...item,
@@ -743,11 +748,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 quoteLineItemsToggleLabel,
                 quoteLineItemsExpandedIcon,
                 showScheduleOnCalendar: allowScheduleOnCalendar,
-                quickScheduleStart: this.quickScheduleSelections[item.cardId] || '',
+                showQuickSchedule,
+                quickScheduleStart,
                 quickScheduleExpanded: isQuickScheduleExpanded,
-                quickScheduleLabel: isQuickScheduleExpanded
-                    ? 'Hide quick schedule'
-                    : 'Quick schedule',
+                quickScheduleLabel,
+                quickScheduleDateLabel: this.getQuickScheduleDateLabel(item),
+                quickScheduleActionLabel: this.getQuickScheduleActionLabel(item),
                 cardClass: 'sfs-card'
             };
         });
@@ -1012,6 +1018,64 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return (this.quoteWorkOrders || []).find(wo => wo.cardId === cardId);
     }
 
+    getQuickScheduleBaseLabel(item) {
+        return item && item.hasAppointment ? 'Reschedule' : 'Quick schedule';
+    }
+
+    getQuickScheduleToggleLabel(item, isExpanded) {
+        const baseLabel = this.getQuickScheduleBaseLabel(item);
+
+        if (!isExpanded) {
+            return baseLabel;
+        }
+
+        return item && item.hasAppointment ? 'Hide reschedule' : 'Hide quick schedule';
+    }
+
+    getQuickScheduleDateLabel(item) {
+        return item && item.hasAppointment
+            ? 'Reschedule Date/Time'
+            : 'Schedule Date/Time';
+    }
+
+    getQuickScheduleActionLabel(item) {
+        return item && item.hasAppointment ? 'Reschedule' : 'Schedule';
+    }
+
+    getQuickScheduleValue(item) {
+        if (!item) {
+            return '';
+        }
+
+        const savedValue = item.cardId
+            ? this.quickScheduleSelections[item.cardId]
+            : null;
+
+        if (savedValue) {
+            return savedValue;
+        }
+
+        return item.newStart || item.schedStart || '';
+    }
+
+    ensureQuickScheduleSelection(cardId, appt) {
+        if (!cardId || this.quickScheduleSelections[cardId]) {
+            return;
+        }
+
+        const fallbackValue =
+            (appt && (appt.newStart || appt.schedStart)) || '';
+
+        if (!fallbackValue) {
+            return;
+        }
+
+        this.quickScheduleSelections = {
+            ...this.quickScheduleSelections,
+            [cardId]: fallbackValue
+        };
+    }
+
     normalizeWorkOrderDetail(workOrder) {
         if (!workOrder) {
             return null;
@@ -1067,12 +1131,63 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return labels;
     }
 
+    get selectedQuickScheduleCardId() {
+        if (!this.selectedAppointment) {
+            return null;
+        }
+
+        return (
+            this.selectedAppointment.cardId ||
+            this.selectedAppointment.appointmentId ||
+            null
+        );
+    }
+
+    get selectedQuickScheduleExpanded() {
+        const cardId = this.selectedQuickScheduleCardId;
+        return cardId ? Boolean(this.quickScheduleExpanded[cardId]) : false;
+    }
+
+    get selectedQuickScheduleLabel() {
+        if (!this.selectedAppointment) {
+            return 'Quick schedule';
+        }
+
+        return this.getQuickScheduleToggleLabel(
+            this.selectedAppointment,
+            this.selectedQuickScheduleExpanded
+        );
+    }
+
+    get selectedAppointmentCanQuickSchedule() {
+        if (!this.selectedAppointment) {
+            return false;
+        }
+
+        if (this.selectedAppointment.showQuickSchedule !== undefined) {
+            return this.selectedAppointment.showQuickSchedule;
+        }
+
+        return (
+            this.selectedAppointment.hasAppointment ||
+            this.allowScheduleActionsOnCalendar
+        );
+    }
+
     get isCrewMode() {
         return this.listMode === 'crew';
     }
 
     get isTransferMode() {
         return this.listMode === 'transferRequests';
+    }
+
+    get allowScheduleActionsOnCalendar() {
+        return (
+            this.listMode === 'unscheduled' ||
+            this.listMode === 'partsReady' ||
+            this.listMode === 'quoteSent'
+        );
     }
 
     get listModeOptions() {
@@ -4841,10 +4956,16 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         const isExpanded = Boolean(this.quickScheduleExpanded[cardId]);
+        const nextExpanded = !isExpanded;
         this.quickScheduleExpanded = {
             ...this.quickScheduleExpanded,
-            [cardId]: !isExpanded
+            [cardId]: nextExpanded
         };
+
+        if (nextExpanded) {
+            const appt = this.findAppointmentByCardId(cardId);
+            this.ensureQuickScheduleSelection(cardId, appt);
+        }
     }
 
     handleQuickScheduleChange(event) {
@@ -5237,87 +5358,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             });
     }
 
-    // ======= DETAIL RESCHEDULE HANDLERS =======
-
-    handleDetailDateChange(event) {
-        const value = event.target.value;
-        if (!this.selectedAppointment) {
-            return;
-        }
-
-        const id = this.selectedAppointment.appointmentId;
-        const changed = value && value !== this.selectedAppointment.schedStart;
-
-        this.selectedAppointment = {
-            ...this.selectedAppointment,
-            newStart: value,
-            disableSave: !changed
-        };
-
-        this.appointments = this.appointments.map(appt => {
-            if (appt.appointmentId === id) {
-                return {
-                    ...appt,
-                    newStart: value,
-                    disableSave: !changed
-                };
-            }
-            return appt;
-        });
-    }
-
-    handleDetailReschedule() {
-        if (!this.selectedAppointment || !this.selectedAppointment.newStart) {
-            this.showToast(
-                'Pick a date and time',
-                'Select a new start date and time before rescheduling.',
-                'warning'
-            );
-            return;
-        }
-
-        const id = this.selectedAppointment.appointmentId;
-
-        this.checkOnline();
-        if (this.isOffline) {
-            this.showToast(
-                'Offline',
-                'You must be online to reschedule an appointment.',
-                'warning'
-            );
-            return;
-        }
-
-        this.isLoading = true;
-
-        rescheduleAppointment({
-            appointmentId: id,
-            newStart: this.selectedAppointment.newStart
-        })
-            .then(() => {
-                this.showToast(
-                    'Appointment updated',
-                    'The appointment has been rescheduled.',
-                    'success'
-                );
-                return this.loadAppointments();
-            })
-            .then(() => {
-                this.handleCalendarToday();
-            })
-            .catch(error => {
-                const message = this.reduceError(error);
-                this.debugInfo = {
-                    note: 'Error calling rescheduleAppointment',
-                    errorMessage: message
-                };
-                this.showToast('Error updating appointment', message, 'error');
-            })
-            .finally(() => {
-                this.isLoading = false;
-            });
-    }
-
     handleListInfoClick(event) {
         this.handleEventClick(event);
     }
@@ -5443,6 +5483,21 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     handleDetailCardClick(event) {
         event.stopPropagation();
+    }
+
+    handleOpenQuickScheduleFromDetail() {
+        const cardId = this.selectedQuickScheduleCardId;
+
+        if (!cardId) {
+            return;
+        }
+
+        this.ensureQuickScheduleSelection(cardId, this.selectedAppointment);
+
+        this.quickScheduleExpanded = {
+            ...this.quickScheduleExpanded,
+            [cardId]: true
+        };
     }
 
 
