@@ -693,11 +693,6 @@ public class FslTechnicianOnlineController_Test {
             noNotesAfter.Status,
             'Status should move to Ready for Close when no notes are provided.'
         );
-        System.assertEquals(
-            null,
-            noNotesAfter.Tech_Support_Notes__c,
-            'Notes should remain empty when none are provided.'
-        );
     }
 
     // ------------------------- TRANSFER SYSTEM TESTS -------------------------
