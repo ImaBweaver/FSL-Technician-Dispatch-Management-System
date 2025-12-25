@@ -862,6 +862,16 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return this.quoteStatuses.includes(status);
     }
 
+    hasWorkOrderSubject(record) {
+        if (!record) {
+            return false;
+        }
+
+        const subject =
+            (record.workOrderSubject || record.subject || '').trim();
+        return subject.length > 0;
+    }
+
     get quoteWorkOrders() {
         if (!this.unscheduledWorkOrders) {
             return [];
@@ -3658,7 +3668,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     result && result.unscheduledWorkOrders
                         ? result.unscheduledWorkOrders
                         : [];
-                this.unscheduledWorkOrders = unscheduled.map(wo => {
+                const unscheduledWithSubject = unscheduled.filter(wo =>
+                    this.hasWorkOrderSubject(wo)
+                );
+                this.unscheduledWorkOrders = unscheduledWithSubject.map(wo => {
                     const clone = { ...wo };
                     clone.isCrewAppointment = Boolean(wo.hasCrewAssignment);
                     clone.serviceAppointmentCount = wo.serviceAppointmentCount || 0;
@@ -3738,7 +3751,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     newEnd: abs.endTime
                 }));
 
-                this.appointments = appts.map(appt => {
+                const appointmentsWithSubject = appts.filter(appt =>
+                    this.hasWorkOrderSubject(appt)
+                );
+
+                this.appointments = appointmentsWithSubject.map(appt => {
                     const clone = { ...appt };
 
                     clone.newStart = appt.schedStart;
