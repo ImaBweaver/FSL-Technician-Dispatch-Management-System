@@ -14,6 +14,7 @@ import rejectEngineerTransferRequest from '@salesforce/apex/FslTechnicianOnlineC
 import cancelWorkOrder from '@salesforce/apex/FslTechnicianOnlineController.cancelWorkOrder';
 import markWorkOrderQuoteSent from '@salesforce/apex/FslTechnicianOnlineController.markWorkOrderQuoteSent';
 import markWorkOrderPoAttached from '@salesforce/apex/FslTechnicianOnlineController.markWorkOrderPoAttached';
+import markWorkOrderReadyForClose from '@salesforce/apex/FslTechnicianOnlineController.markWorkOrderReadyForClose';
 import updateResourceAbsence from '@salesforce/apex/FslTechnicianOnlineController.updateResourceAbsence';
 import deleteResourceAbsence from '@salesforce/apex/FslTechnicianOnlineController.deleteResourceAbsence';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
@@ -123,6 +124,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     isCancelModalOpen = false;
     cancelReason = '';
     cancelWorkOrderId = null;
+    // Ready for close modal
+    isReadyForCloseModalOpen = false;
+    readyForCloseNotes = '';
+    readyForCloseWorkOrderId = null;
 
     // Global error capture handlers
     _boundOnGlobalError = null;
@@ -536,6 +541,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 statuses.add(a.workOrderStatus);
             }
         });
+
+        // Always offer Ready for Close filter even if not yet seen in session
+        statuses.add('Ready for Close');
 
         const statusArray = Array.from(statuses).sort();
         const options = statusArray.map(s => ({
@@ -6179,6 +6187,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             this.openRescheduleModal(workOrderId);
         } else if (action === 'cancelWorkOrder') {
             this.openCancelModal(workOrderId);
+        } else if (action === 'readyForClose') {
+            this.openReadyForCloseModal(workOrderId);
         } else if (action === 'unassign') {
             this.openUnassignModal(appointmentId);
         }
@@ -6425,6 +6435,72 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             .catch(error => {
                 const message = this.reduceError(error);
                 this.showToast('Unable to cancel work order', message, 'error');
+            })
+            .finally(() => {
+                this.isLoading = false;
+            });
+    }
+
+    openReadyForCloseModal(workOrderId) {
+        if (!workOrderId) {
+            return;
+        }
+
+        this.readyForCloseWorkOrderId = workOrderId;
+        this.readyForCloseNotes = '';
+        this.isReadyForCloseModalOpen = true;
+    }
+
+    closeReadyForCloseModal() {
+        this.isReadyForCloseModalOpen = false;
+        this.readyForCloseNotes = '';
+        this.readyForCloseWorkOrderId = null;
+    }
+
+    handleReadyForCloseNotesChange(event) {
+        this.readyForCloseNotes = event.target.value;
+    }
+
+    get readyForCloseSubmitDisabled() {
+        return this.isLoading;
+    }
+
+    submitReadyForClose() {
+        if (!this.readyForCloseWorkOrderId) {
+            return;
+        }
+
+        if (this.isOffline) {
+            this.showToast(
+                'Offline',
+                'You must be online to update the work order status.',
+                'warning'
+            );
+            return;
+        }
+
+        this.isLoading = true;
+
+        markWorkOrderReadyForClose({
+            workOrderId: this.readyForCloseWorkOrderId,
+            notes: this.readyForCloseNotes
+        })
+            .then(() => {
+                this.showToast(
+                    'Status updated',
+                    'Work order marked as Ready for Close.',
+                    'success'
+                );
+                this.closeReadyForCloseModal();
+                return this.loadAppointments();
+            })
+            .catch(error => {
+                const message = this.reduceError(error);
+                this.debugInfo = {
+                    note: 'Error calling markWorkOrderReadyForClose',
+                    errorMessage: message
+                };
+                this.showToast('Error updating status', message, 'error');
             })
             .finally(() => {
                 this.isLoading = false;

@@ -350,6 +350,10 @@
                                                     label="Request transfer to new technician"
                                                 ></lightning-menu-item>
                                                 <lightning-menu-item
+                                                    value="readyForClose"
+                                                    label="Ready for Close"
+                                                ></lightning-menu-item>
+                                                <lightning-menu-item
                                                     value="cancelWorkOrder"
                                                     label="Cancel work order"
                                                 ></lightning-menu-item>
@@ -1561,24 +1565,28 @@
                                 >
                                 </lightning-button>
                             </template>
-                            <lightning-button-menu
-                                alternative-text="More actions"
-                                icon-name="utility:rows"
-                                onselect={handleMoreActionsSelect}
-                                class="sfs-more-actions-menu"
-                                menu-alignment="right"
-                                data-woid={selectedAppointment.workOrderId}
-                                data-id={selectedAppointment.appointmentId}
-                            >
-                                <lightning-menu-item
-                                    value="requestTransfer"
-                                    label="Request Reschedule w/ Another Tech"
-                                ></lightning-menu-item>
-                                <lightning-menu-item
-                                    value="cancelWorkOrder"
-                                    label="Cancel work order"
-                                ></lightning-menu-item>
-                            </lightning-button-menu>
+                                <lightning-button-menu
+                                    alternative-text="More actions"
+                                    icon-name="utility:rows"
+                                    onselect={handleMoreActionsSelect}
+                                    class="sfs-more-actions-menu"
+                                    menu-alignment="right"
+                                    data-woid={selectedAppointment.workOrderId}
+                                    data-id={selectedAppointment.appointmentId}
+                                >
+                                    <lightning-menu-item
+                                        value="requestTransfer"
+                                        label="Request Reschedule w/ Another Tech"
+                                    ></lightning-menu-item>
+                                    <lightning-menu-item
+                                        value="readyForClose"
+                                        label="Ready for Close"
+                                    ></lightning-menu-item>
+                                    <lightning-menu-item
+                                        value="cancelWorkOrder"
+                                        label="Cancel work order"
+                                    ></lightning-menu-item>
+                                </lightning-button-menu>
                         </div>
                     </div>
                 </article>
@@ -1823,6 +1831,46 @@
                             variant="neutral"
                             label="Keep work order"
                             onclick={closeCancelModal}
+                        ></lightning-button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <template if:true={isReadyForCloseModalOpen}>
+            <div class="sfs-modal-backdrop" onclick={closeReadyForCloseModal}>
+                <div class="sfs-modal" onclick={handleDetailCardClick}>
+                    <div class="sfs-modal-header">
+                        <h3 class="sfs-modal-title">Mark Ready for Close</h3>
+                        <button
+                            class="sfs-modal-close"
+                            type="button"
+                            onclick={closeReadyForCloseModal}
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    <p class="sfs-modal-copy">
+                        Add any notes for operations before marking this work order Ready for Close. Notes are optional.
+                    </p>
+                    <lightning-textarea
+                        name="readyForCloseNotes"
+                        label="Notes (optional)"
+                        value={readyForCloseNotes}
+                        onchange={handleReadyForCloseNotesChange}
+                        maxlength="1000"
+                    ></lightning-textarea>
+                    <div class="sfs-actions sfs-modal-actions">
+                        <lightning-button
+                            variant="brand"
+                            label="Send to operations"
+                            onclick={submitReadyForClose}
+                            disabled={readyForCloseSubmitDisabled}
+                        ></lightning-button>
+                        <lightning-button
+                            variant="neutral"
+                            label="Keep working"
+                            onclick={closeReadyForCloseModal}
                         ></lightning-button>
                     </div>
                 </div>
