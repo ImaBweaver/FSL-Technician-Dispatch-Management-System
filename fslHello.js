@@ -805,6 +805,15 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             });
     }
 
+    get collapseAllDisabled() {
+        const groups = this.appointmentGroups || [];
+        if (!groups.length) {
+            return true;
+        }
+
+        return groups.every(group => group.isCollapsed);
+    }
+
     getAppointmentGroup(appt) {
         const startDate = appt.schedStart ? new Date(appt.schedStart) : null;
         const hasValidStart = startDate && !Number.isNaN(startDate.getTime());
@@ -4748,6 +4757,20 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             ...this.collapsedDayGroups,
             [groupKey]: !this.collapsedDayGroups[groupKey]
         };
+    }
+
+    handleCollapseAllGroups() {
+        const groups = this.appointmentGroups || [];
+        if (!groups.length) {
+            return;
+        }
+
+        const collapsed = {};
+        groups.forEach(group => {
+            collapsed[group.key] = true;
+        });
+
+        this.collapsedDayGroups = collapsed;
     }
 
     handleRefresh() {

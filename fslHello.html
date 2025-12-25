@@ -47,6 +47,12 @@
                         </button>
                         <lightning-button
                             variant="neutral"
+                            label="Collapse All"
+                            onclick={handleCollapseAllGroups}
+                            disabled={collapseAllDisabled}
+                        ></lightning-button>
+                        <lightning-button
+                            variant="neutral"
                             label="Refresh"
                             onclick={handleRefresh}
                             class="sfs-refresh-btn"
