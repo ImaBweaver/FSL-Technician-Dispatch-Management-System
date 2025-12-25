@@ -407,6 +407,15 @@
                                                             class="sfs-quote-action-button"
                                                         ></lightning-button>
                                                     </template>
+                                                    <template if:true={appt.showMarkPoAttachedAction}>
+                                                        <lightning-button
+                                                            variant="brand"
+                                                            label="Mark PO Attached"
+                                                            data-woid={appt.workOrderId}
+                                                            onclick={handleMarkPoAttached}
+                                                            class="sfs-quote-action-button"
+                                                        ></lightning-button>
+                                                    </template>
                                                 </div>
                                             </template>
 

@@ -558,6 +558,29 @@ public class FslTechnicianOnlineController_Test {
     }
 
     @isTest
+    static void testMarkWorkOrderPoAttached() {
+        ResourceContext context = getActiveResourceContext();
+        WorkOrder wo           = ensureWorkOrder(context);
+
+        Test.startTest();
+        FslTechnicianOnlineController.markWorkOrderPoAttached(wo.Id);
+        Test.stopTest();
+
+        WorkOrder woAfter = [
+            SELECT Status
+            FROM WorkOrder
+            WHERE Id = :wo.Id
+            LIMIT 1
+        ];
+
+        System.assertEquals(
+            'PO Attached',
+            woAfter.Status,
+            'Work Order status should be PO Attached.'
+        );
+    }
+
+    @isTest
     static void testCancelWorkOrderUpdatesStatusAndNotes() {
         ResourceContext context = getActiveResourceContext();
         WorkOrder wo           = ensureWorkOrder(context);
