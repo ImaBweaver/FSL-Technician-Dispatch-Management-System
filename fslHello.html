@@ -69,20 +69,29 @@
                             onchange={handleListModeChange}
                         ></lightning-combobox>
                     </div>
-                    <div class="sfs-list-mode-chips" role="list">
-                        <template for:each={listModeChips} for:item="chip">
-                            <button
-                                key={chip.value}
-                                type="button"
-                                class={chip.className}
-                                data-mode={chip.value}
-                                onclick={handleListModeChange}
-                                aria-pressed={chip.isActive}
-                                role="listitem"
-                            >
-                                {chip.label}
-                            </button>
-                        </template>
+                    <div class="sfs-list-mode__right">
+                        <div class="sfs-list-mode-chips" role="list">
+                            <template for:each={listModeChips} for:item="chip">
+                                <button
+                                    key={chip.value}
+                                    type="button"
+                                    class={chip.className}
+                                    data-mode={chip.value}
+                                    onclick={handleListModeChange}
+                                    aria-pressed={chip.isActive}
+                                    role="listitem"
+                                >
+                                    {chip.label}
+                                </button>
+                            </template>
+                        </div>
+                        <lightning-button
+                            variant="neutral"
+                            label="Collapse All"
+                            onclick={handleCollapseAllGroups}
+                            disabled={collapseAllDisabled}
+                            class="sfs-collapse-all-btn"
+                        ></lightning-button>
                     </div>
                 </div>
 
