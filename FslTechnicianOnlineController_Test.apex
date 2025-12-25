@@ -642,6 +642,64 @@ public class FslTechnicianOnlineController_Test {
         System.assertEquals(0, arCountAfter, 'Assignments should be removed when canceling.');
     }
 
+    @isTest
+    static void testMarkWorkOrderReadyForCloseUpdatesStatusAndNotes() {
+        ResourceContext context = getActiveResourceContext();
+        WorkOrder woWithNotes   = ensureWorkOrder(context);
+        woWithNotes.Tech_Support_Notes__c = 'Existing note';
+        update woWithNotes;
+
+        WorkOrder woNoNotes = ensureWorkOrder(context);
+
+        Test.startTest();
+        FslTechnicianOnlineController.markWorkOrderReadyForClose(
+            woWithNotes.Id,
+            'Follow-up items listed'
+        );
+        FslTechnicianOnlineController.markWorkOrderReadyForClose(
+            woNoNotes.Id,
+            null
+        );
+        Test.stopTest();
+
+        WorkOrder withNotesAfter = [
+            SELECT Status, Tech_Support_Notes__c
+            FROM WorkOrder
+            WHERE Id = :woWithNotes.Id
+            LIMIT 1
+        ];
+        System.assertEquals(
+            'Ready for Close',
+            withNotesAfter.Status,
+            'Status should move to Ready for Close.'
+        );
+        System.assert(
+            withNotesAfter.Tech_Support_Notes__c.contains('Existing note'),
+            'Existing notes should be preserved.'
+        );
+        System.assert(
+            withNotesAfter.Tech_Support_Notes__c.contains('Ready for Close Notes: Follow-up items listed'),
+            'New Ready for Close notes should be appended.'
+        );
+
+        WorkOrder noNotesAfter = [
+            SELECT Status, Tech_Support_Notes__c
+            FROM WorkOrder
+            WHERE Id = :woNoNotes.Id
+            LIMIT 1
+        ];
+        System.assertEquals(
+            'Ready for Close',
+            noNotesAfter.Status,
+            'Status should move to Ready for Close when no notes are provided.'
+        );
+        System.assertEquals(
+            null,
+            noNotesAfter.Tech_Support_Notes__c,
+            'Notes should remain empty when none are provided.'
+        );
+    }
+
     // ------------------------- TRANSFER SYSTEM TESTS -------------------------
 
     @isTest

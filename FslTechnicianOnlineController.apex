@@ -1767,6 +1767,38 @@ public with sharing class FslTechnicianOnlineController {
     }
 
     @AuraEnabled
+    public static void markWorkOrderReadyForClose(Id workOrderId, String notes) {
+        if (workOrderId == null) {
+            throw new AuraHandledException('Work Order Id is required.');
+        }
+
+        WorkOrder wo = [
+            SELECT Id, Status, Tech_Support_Notes__c
+            FROM WorkOrder
+            WHERE Id = :workOrderId
+            LIMIT 1
+            FOR UPDATE
+        ];
+
+        String trimmedNotes = (notes == null) ? '' : notes.trim();
+
+        wo.Status = 'Ready for Close';
+
+        if (!String.isBlank(trimmedNotes)) {
+            if (String.isBlank(wo.Tech_Support_Notes__c)) {
+                wo.Tech_Support_Notes__c = trimmedNotes;
+            } else {
+                wo.Tech_Support_Notes__c = String.join(new List<String>{
+                    wo.Tech_Support_Notes__c,
+                    'Ready for Close Notes: ' + trimmedNotes
+                }, '\n\n');
+            }
+        }
+
+        update wo;
+    }
+
+    @AuraEnabled
     public static void markWorkOrderQuoteSent(Id workOrderId) {
         if (workOrderId == null) {
             throw new AuraHandledException('Work Order Id is required.');
