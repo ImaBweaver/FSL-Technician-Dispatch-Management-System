@@ -13,6 +13,7 @@ import acceptEngineerTransferRequest from '@salesforce/apex/FslTechnicianOnlineC
 import rejectEngineerTransferRequest from '@salesforce/apex/FslTechnicianOnlineController.rejectEngineerTransferRequest';
 import cancelWorkOrder from '@salesforce/apex/FslTechnicianOnlineController.cancelWorkOrder';
 import markWorkOrderQuoteSent from '@salesforce/apex/FslTechnicianOnlineController.markWorkOrderQuoteSent';
+import markWorkOrderPoAttached from '@salesforce/apex/FslTechnicianOnlineController.markWorkOrderPoAttached';
 import updateResourceAbsence from '@salesforce/apex/FslTechnicianOnlineController.updateResourceAbsence';
 import deleteResourceAbsence from '@salesforce/apex/FslTechnicianOnlineController.deleteResourceAbsence';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
@@ -169,7 +170,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     quickQuoteQuickActionApiName = 'QuickCreateQuote';
     quickQuoteFlowExtensionName = '';
 
-    quoteStatuses = ['Need Quote', 'PO Requested', 'Quote Sent', 'Quote Attached'];
+    quoteStatuses = ['Need Quote', 'PO Requested', 'Quote Sent', 'Quote Attached', 'PO Attached'];
     quoteLineItemsExpanded = {};
 
     // My-tab status filter (WorkOrder.Status)
@@ -709,7 +710,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         const allowScheduleOnCalendar =
-            this.listMode === 'unscheduled' || this.listMode === 'partsReady';
+            this.listMode === 'unscheduled' ||
+            this.listMode === 'partsReady' ||
+            this.listMode === 'quoteSent';
 
         return baseList.map(item => {
             const isQuickScheduleExpanded = Boolean(
@@ -882,8 +885,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 ),
                 showQuoteActions:
                     wo.status === 'Quote Sent' ||
+                    wo.status === 'PO Attached' ||
                     this.isQuoteAttachedAppointment(wo),
                 showMarkQuoteSentAction: this.isQuoteAttachedAppointment(wo),
+                showMarkPoAttachedAction: this.shouldShowMarkPoAttached(wo),
                 isExpanded: false,
                 workTypeName: 'Work Order',
                 workTypeClass: 'sfs-worktype'
@@ -917,8 +922,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 ),
                 showQuoteActions:
                     wo.status === 'Quote Sent' ||
+                    wo.status === 'PO Attached' ||
                     this.isQuoteAttachedAppointment(wo),
                 showMarkQuoteSentAction: this.isQuoteAttachedAppointment(wo),
+                showMarkPoAttachedAction: this.shouldShowMarkPoAttached(wo),
                 hasAppointment: false
             };
         });
@@ -937,7 +944,17 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         );
 
         return status.startsWith('quote attached') ||
+            status === 'po attached' ||
             (status === 'need quote' && hasAttachment);
+    }
+
+    shouldShowMarkPoAttached(record) {
+        if (!record) {
+            return false;
+        }
+
+        const status = (record.workOrderStatus || record.status || '').toLowerCase();
+        return status === 'quote sent' || status.startsWith('quote attached');
     }
 
     normalizeQuoteLineItems(items) {
@@ -3679,14 +3696,17 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                         appt.quoteAttachmentDocumentId || null;
                     clone.hasQuoteAttachment = Boolean(
                         appt.hasQuoteAttachment ||
-                            appt.workOrderStatus === 'Quote Attached'
+                            appt.workOrderStatus === 'Quote Attached' ||
+                            appt.workOrderStatus === 'PO Attached'
                     );
                     clone.showQuoteActions =
                         clone.workOrderStatus === 'Quote Sent' ||
+                        clone.workOrderStatus === 'PO Attached' ||
                         this.isQuoteAttachedAppointment(clone);
-                    clone.showMarkQuoteSentAction = this.isQuoteAttachedAppointment(
-                        clone
-                    );
+                    clone.showMarkQuoteSentAction =
+                        this.isQuoteAttachedAppointment(clone);
+                    clone.showMarkPoAttachedAction =
+                        this.shouldShowMarkPoAttached(clone);
                     clone.opportunityRecordType = appt.opportunityRecordType || null;
                     clone.cardId = appt.appointmentId;
                     clone.hasAppointment = true;
@@ -4442,6 +4462,46 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 const message = this.reduceError(error);
                 this.debugInfo = {
                     note: 'Error calling markWorkOrderQuoteSent',
+                    errorMessage: message
+                };
+                this.showToast('Error updating status', message, 'error');
+            })
+            .finally(() => {
+                this.isLoading = false;
+            });
+    }
+
+    handleMarkPoAttached(event) {
+        const workOrderId = event.target.dataset.woid;
+        if (!workOrderId) {
+            return;
+        }
+
+        this.checkOnline();
+        if (this.isOffline) {
+            this.showToast(
+                'Offline',
+                'You must be online to update the work order status.',
+                'warning'
+            );
+            return;
+        }
+
+        this.isLoading = true;
+
+        markWorkOrderPoAttached({ workOrderId })
+            .then(() => {
+                this.showToast(
+                    'Status updated',
+                    'Work order marked as PO Attached.',
+                    'success'
+                );
+                return this.loadAppointments();
+            })
+            .catch(error => {
+                const message = this.reduceError(error);
+                this.debugInfo = {
+                    note: 'Error calling markWorkOrderPoAttached',
                     errorMessage: message
                 };
                 this.showToast('Error updating status', message, 'error');
