@@ -16,6 +16,7 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public Id workOrderId;
         @AuraEnabled public String workOrderStatus;
         @AuraEnabled public String workOrderNumber;
+        @AuraEnabled public Integer completedVisitCount;
 
         @AuraEnabled public String reporterContactInfo;
         @AuraEnabled public String makeModel;
@@ -327,6 +328,7 @@ public with sharing class FslTechnicianOnlineController {
         Set<Id> workOrdersWithAttachment = new Set<Id>();
         Map<Id, String> quoteDownloadByWo = new Map<Id, String>();
         Set<Id> workOrdersWithThisTech = new Set<Id>();
+        Map<Id, Integer> completedVisitsByWo = new Map<Id, Integer>();
 
         if (saIds.isEmpty()) {
             dbg.note   = 'No AssignedResource / ServiceAppointment rows for these resources / crews.';
@@ -461,6 +463,36 @@ public with sharing class FslTechnicianOnlineController {
             }
         }
 
+        // Track completed visits for this technician on each Work Order
+        if (!workOrderIds.isEmpty() && (!userSrIds.isEmpty() || !crewIds.isEmpty())) {
+            Set<String> completedStatuses = new Set<String>{
+                'Completed',
+                'Completed WO'
+            };
+
+            for (AggregateResult ar : [
+                SELECT Work_Order__c woId,
+                    COUNT_DISTINCT(Id) cnt
+                FROM ServiceAppointment
+                WHERE Work_Order__c IN :workOrderIds
+                AND Status IN :completedStatuses
+                AND Id IN (
+                    SELECT ServiceAppointmentId
+                    FROM AssignedResource
+                    WHERE (ServiceResourceId IN :userSrIds
+                        OR ServiceCrewId IN :crewIds)
+                )
+                GROUP BY Work_Order__c
+            ]) {
+                Id woId = (Id) ar.get('woId');
+                Decimal countDecimal = (Decimal) ar.get('cnt');
+                Integer count = (countDecimal != null) ? countDecimal.intValue() : 0;
+                if (woId != null && count != null) {
+                    completedVisitsByWo.put(woId, count);
+                }
+            }
+        }
+
         if (!opportunityIds.isEmpty()) {
             for (ContentDocumentLink cdl : [
                 SELECT LinkedEntityId,
@@ -572,6 +604,10 @@ public with sharing class FslTechnicianOnlineController {
             dto.workOrderId           = sa.Work_Order__c;
             dto.workOrderStatus       = (sa.Work_Order__r != null)
                                         ? sa.Work_Order__r.Status : null;
+            dto.completedVisitCount   = (sa.Work_Order__c != null &&
+                completedVisitsByWo.containsKey(sa.Work_Order__c))
+                    ? completedVisitsByWo.get(sa.Work_Order__c)
+                    : 0;
 
             // Account resolution
             if (sa.AccountId != null && sa.Account != null) {
