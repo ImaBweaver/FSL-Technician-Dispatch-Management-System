@@ -1276,7 +1276,7 @@ public with sharing class FslTechnicianOnlineController {
                 UnitPrice
             FROM WorkOrderLineItem
             WHERE WorkOrderId IN :workOrderIds
-            AND Line_Type__c IN ('Need Quote', 'Part Quoted')
+            AND Line_Type__c IN ('Need Quote', 'Quote and Ship', 'Part Quoted')
         ]) {
             if (woli.WorkOrderId == null) continue;
 

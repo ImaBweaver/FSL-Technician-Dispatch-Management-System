@@ -175,7 +175,14 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     quickQuoteQuickActionApiName = 'QuickCreateQuote';
     quickQuoteFlowExtensionName = '';
 
-    quoteStatuses = ['Need Quote', 'PO Requested', 'Quote Sent', 'Quote Attached', 'PO Attached'];
+    quoteStatuses = [
+        'Need Quote',
+        'Quote and Ship',
+        'PO Requested',
+        'Quote Sent',
+        'Quote Attached',
+        'PO Attached'
+    ];
     quoteLineItemsExpanded = {};
 
     // My-tab status filter (WorkOrder.Status)
@@ -581,10 +588,13 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     get needQuoteCount() {
         return (
             this.ownedAppointments.filter(appt =>
-                appt.workOrderStatus === 'Need Quote'
+                appt.workOrderStatus === 'Need Quote' ||
+                appt.workOrderStatus === 'Quote and Ship'
             ).length +
-            this.quoteWorkOrders.filter(wo => wo.workOrderStatus === 'Need Quote')
-                .length
+            this.quoteWorkOrders.filter(wo =>
+                wo.workOrderStatus === 'Need Quote' ||
+                wo.workOrderStatus === 'Quote and Ship'
+            ).length
         );
     }
 
@@ -658,10 +668,15 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
             case 'needQuote':
                 baseList = ownedAppointments
-                    .filter(appt => appt.workOrderStatus === 'Need Quote')
+                    .filter(appt =>
+                        appt.workOrderStatus === 'Need Quote' ||
+                        appt.workOrderStatus === 'Quote and Ship'
+                    )
                     .concat(
                         quoteWorkOrders.filter(
-                            wo => wo.workOrderStatus === 'Need Quote'
+                            wo =>
+                                wo.workOrderStatus === 'Need Quote' ||
+                                wo.workOrderStatus === 'Quote and Ship'
                         )
                     );
                 break;
@@ -1016,7 +1031,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         const status = (record.workOrderStatus || record.status || '').toLowerCase();
         const hasQuoteStatus =
-            status === 'need quote' || status === 'quote sent';
+            status === 'need quote' ||
+            status === 'quote sent' ||
+            status === 'quote and ship';
 
         return hasQuoteStatus &&
             Array.isArray(record.quoteLineItems) &&
