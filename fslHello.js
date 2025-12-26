@@ -3806,6 +3806,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
                     const typeClass = this.getEventTypeClass(appt.workTypeName);
                     clone.workTypeClass = `sfs-worktype ${typeClass || ''}`.trim();
+                    clone.completedVisitCount = appt.completedVisitCount || 0;
+                    clone.visitNumber = clone.completedVisitCount + 1;
+                    clone.visitLabel = `Visit ${clone.visitNumber}`;
 
                     if (appt.contactPhone) {
                         const digits = appt.contactPhone.replace(/\D/g, '');
