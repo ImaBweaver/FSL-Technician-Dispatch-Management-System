@@ -81,6 +81,7 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public String workTypeName;
         @AuraEnabled public Integer serviceAppointmentCount;
         @AuraEnabled public Integer unscheduledServiceAppointmentCount;
+        @AuraEnabled public Integer completedVisitCount;
         @AuraEnabled public Boolean allServiceAppointmentsReturnRequired;
         @AuraEnabled public Boolean hasUnscheduledNonReturnAppointment;
         @AuraEnabled public Boolean hasAnyReturnVisitRequired;
@@ -345,7 +346,8 @@ public with sharing class FslTechnicianOnlineController {
                 workOrdersWithAttachment,
                 quoteDownloadByWo,
                 quoteDocIdByWo,
-                opportunityRecordTypeByWo
+                opportunityRecordTypeByWo,
+                completedVisitsByWo
             );
             assignQuoteLineItems(
                 wrapper.appointments,
@@ -718,7 +720,8 @@ public with sharing class FslTechnicianOnlineController {
             workOrdersWithAttachment,
             quoteDownloadByWo,
             quoteDocIdByWo,
-            opportunityRecordTypeByWo
+            opportunityRecordTypeByWo,
+            completedVisitsByWo
         );
         assignQuoteLineItems(results, unscheduledWorkOrders);
 
@@ -879,7 +882,8 @@ public with sharing class FslTechnicianOnlineController {
         Set<Id> workOrdersWithAttachment,
         Map<Id, String> quoteDownloadByWo,
         Map<Id, Id> quoteDocIdByWo,
-        Map<Id, String> opportunityRecordTypeByWo
+        Map<Id, String> opportunityRecordTypeByWo,
+        Map<Id, Integer> completedVisitsByWo
     ) {
         // Work Orders that are effectively "closed" from the technician perspective
         Set<String> closedStatuses = new Set<String>{
@@ -1216,6 +1220,9 @@ public with sharing class FslTechnicianOnlineController {
                     ? opportunityRecordTypeByWo.get(wo.Id)
                     : null;
             dto.recordTypeName   = wo.RecordType != null ? wo.RecordType.Name : null;
+            dto.completedVisitCount = completedVisitsByWo.containsKey(wo.Id)
+                ? completedVisitsByWo.get(wo.Id)
+                : 0;
             dto.hasQuoteAttachment =
                 workOrdersWithAttachment != null &&
                 workOrdersWithAttachment.contains(wo.Id);
