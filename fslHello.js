@@ -3727,6 +3727,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     clone.workOrderSubject = wo.subject;
                     clone.cardId = `wo-${wo.workOrderId}`;
                     clone.hasAppointment = false;
+                    clone.completedVisitCount = wo.completedVisitCount || 0;
+                    clone.visitNumber = clone.completedVisitCount + 1;
+                    clone.visitLabel = `Visit ${clone.visitNumber}`;
                     clone.workTypeName = wo.workTypeName;
                     clone.quoteLineItems = this.normalizeQuoteLineItems(
                         wo.quoteLineItems
