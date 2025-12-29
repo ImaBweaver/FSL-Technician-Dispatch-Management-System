@@ -362,23 +362,39 @@
                                                             <span class="sfs-journey__pill">
                                                                 Next: {appt.journey.nextLabel}
                                                             </span>
-                                                            <span class="sfs-journey__progress-label">
-                                                                {appt.journey.progressLabel}
-                                                            </span>
+                                                        </div>
+                                                        <div class="sfs-journey__summary">
+                                                            <div class="sfs-journey__summary-item">
+                                                                <span class="sfs-journey__summary-label">Next action</span>
+                                                                <span class="sfs-journey__summary-value">
+                                                                    {appt.journey.nextLabel}
+                                                                </span>
+                                                            </div>
+                                                            <div class="sfs-journey__summary-item">
+                                                                <span class="sfs-journey__summary-label">Steps</span>
+                                                                <span class="sfs-journey__summary-value">
+                                                                    {appt.journey.progressLabel}
+                                                                </span>
+                                                            </div>
+                                                            <template if:true={appt.journey.detourLabel}>
+                                                                <div class="sfs-journey__summary-item sfs-journey__summary-item_path">
+                                                                    <span class="sfs-journey__summary-label">Path</span>
+                                                                    <span class="sfs-journey__summary-value">
+                                                                        {appt.journey.detourLabel}
+                                                                    </span>
+                                                                </div>
+                                                            </template>
                                                         </div>
                                                     </div>
                                                     <div class="sfs-journey__header-actions">
                                                         <div class="sfs-journey__badges">
-                                                            <span class="sfs-journey__path-tag">Main path</span>
                                                             <template if:true={appt.journey.isOnHold}>
                                                                 <span class="sfs-journey__badge sfs-journey__badge_hold">
                                                                     On Hold
                                                                 </span>
                                                             </template>
                                                             <template if:true={appt.journey.hasDetour}>
-                                                                <span class="sfs-journey__badge sfs-journey__badge_detour">
-                                                                    {appt.journey.detourLabel}
-                                                                </span>
+                                                                <span class="sfs-journey__badge sfs-journey__badge_detour">Path: {appt.journey.detourLabel}</span>
                                                             </template>
                                                         </div>
                                                         <button
@@ -461,9 +477,6 @@
                                                         <div class="sfs-journey__detour">
                                                             <div class="sfs-journey__rail-heading">
                                                                 <div class="sfs-journey__rail-title">
-                                                                    <span class="sfs-journey__path-tag sfs-journey__path-tag_sub">
-                                                                        Quote path
-                                                                    </span>
                                                                     <span class="sfs-journey__detour-label">
                                                                         {appt.journey.detourLabel}
                                                                     </span>
