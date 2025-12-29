@@ -365,6 +365,7 @@
                                                         </div>
                                                     </div>
                                                     <div class="sfs-journey__badges">
+                                                        <span class="sfs-journey__path-tag">Main path</span>
                                                         <template if:true={appt.journey.isOnHold}>
                                                             <span class="sfs-journey__badge sfs-journey__badge_hold">
                                                                 On Hold
@@ -397,9 +398,14 @@
                                                 <template if:true={appt.journey.hasDetour}>
                                                     <div class="sfs-journey__detour">
                                                         <div class="sfs-journey__rail-heading">
-                                                            <span class="sfs-journey__detour-label">
-                                                                {appt.journey.detourLabel}
-                                                            </span>
+                                                            <div class="sfs-journey__rail-title">
+                                                                <span class="sfs-journey__path-tag sfs-journey__path-tag_sub">
+                                                                    Quote path
+                                                                </span>
+                                                                <span class="sfs-journey__detour-label">
+                                                                    {appt.journey.detourLabel}
+                                                                </span>
+                                                            </div>
                                                             <template if:true={appt.journey.detour.detourNext}>
                                                                 <span class="sfs-journey__pill sfs-journey__pill_subtle">
                                                                     Next: {appt.journey.detour.detourNext.label}
