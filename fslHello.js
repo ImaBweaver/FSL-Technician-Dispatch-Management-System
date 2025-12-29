@@ -747,6 +747,13 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             const quoteLineItemsExpanded = Boolean(
                 this.quoteLineItemsExpanded[item.cardId]
             );
+            const hasLineItemTracking = quoteLineItems.some(
+                line => line.trackingNumber
+            );
+            const resolvedTrackingNumber = this.resolveTrackingNumber(
+                item,
+                hasLineItemTracking
+            );
             const showQuoteLineItems = this.shouldShowQuoteLineItems({
                 ...item,
                 quoteLineItems
@@ -783,7 +790,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 quickScheduleLabel,
                 quickScheduleDateLabel: this.getQuickScheduleDateLabel(item),
                 quickScheduleActionLabel: this.getQuickScheduleActionLabel(item),
-                cardClass: 'sfs-card'
+                cardClass: 'sfs-card',
+                hasLineItemTracking,
+                resolvedTrackingNumber,
+                showResolvedTracking: Boolean(resolvedTrackingNumber)
             };
         });
     }
@@ -1036,7 +1046,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     ? item.quantity
                     : '',
             unitPrice: item.unitPrice,
-            lineType: item.lineType || ''
+            lineType: item.lineType || '',
+            trackingNumber: item.trackingNumber || ''
         }));
     }
 
@@ -1054,6 +1065,80 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return hasQuoteStatus &&
             Array.isArray(record.quoteLineItems) &&
             record.quoteLineItems.length > 0;
+    }
+
+    resolveTrackingNumber(record, hasLineItemTracking) {
+        if (!record || hasLineItemTracking) {
+            return null;
+        }
+
+        return (
+            record.latestServiceAppointmentTrackingNumber ||
+            record.serviceAppointmentTrackingNumber ||
+            record.workOrderTrackingNumber ||
+            record.opportunityTrackingNumber ||
+            null
+        );
+    }
+
+    handleCopyTracking(event) {
+        const trackingNumber =
+            event?.currentTarget?.dataset?.tracking ||
+            event?.target?.dataset?.tracking ||
+            null;
+
+        if (!trackingNumber) {
+            return;
+        }
+
+        this.copyTextToClipboard(trackingNumber);
+    }
+
+    copyTextToClipboard(value) {
+        if (!value) {
+            return;
+        }
+
+        const onError = () => {
+            this.showToast(
+                'Copy failed',
+                'Unable to copy the tracking number.',
+                'error'
+            );
+        };
+
+        if (navigator?.clipboard?.writeText) {
+            navigator.clipboard
+                .writeText(value)
+                .then(() =>
+                    this.showToast(
+                        'Copied',
+                        'Tracking number copied to clipboard.',
+                        'success'
+                    )
+                )
+                .catch(onError);
+            return;
+        }
+
+        try {
+            const textarea = document.createElement('textarea');
+            textarea.value = value;
+            textarea.setAttribute('readonly', '');
+            textarea.style.position = 'absolute';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            this.showToast(
+                'Copied',
+                'Tracking number copied to clipboard.',
+                'success'
+            );
+        } catch (e) {
+            onError();
+        }
     }
 
     findAppointmentByCardId(cardId) {
@@ -3767,6 +3852,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     clone.reporterPhoneHref = reporter.phoneHref;
                     clone.reporterEmail = reporter.email;
                     clone.reporterEmailHref = reporter.emailHref;
+                    clone.latestServiceAppointmentTrackingNumber =
+                        wo.latestServiceAppointmentTrackingNumber || null;
+                    clone.workOrderTrackingNumber =
+                        wo.workOrderTrackingNumber || null;
+                    clone.opportunityTrackingNumber =
+                        wo.opportunityTrackingNumber || null;
 
                     const parts = [
                         wo.street,
@@ -3856,6 +3947,14 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     clone.reporterEmail = reporter.email;
                     clone.reporterEmailHref = reporter.emailHref;
                     clone.workOrderNumber = appt.workOrderNumber;
+                    clone.serviceAppointmentTrackingNumber =
+                        appt.serviceAppointmentTrackingNumber || null;
+                    clone.latestServiceAppointmentTrackingNumber =
+                        appt.latestServiceAppointmentTrackingNumber || null;
+                    clone.workOrderTrackingNumber =
+                        appt.workOrderTrackingNumber || null;
+                    clone.opportunityTrackingNumber =
+                        appt.opportunityTrackingNumber || null;
 
 
                     const parts = [
