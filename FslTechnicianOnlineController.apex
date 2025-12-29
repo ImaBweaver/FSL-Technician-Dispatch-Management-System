@@ -16,6 +16,10 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public Id workOrderId;
         @AuraEnabled public String workOrderStatus;
         @AuraEnabled public String workOrderNumber;
+        @AuraEnabled public String serviceAppointmentTrackingNumber;
+        @AuraEnabled public String latestServiceAppointmentTrackingNumber;
+        @AuraEnabled public String workOrderTrackingNumber;
+        @AuraEnabled public String opportunityTrackingNumber;
         @AuraEnabled public Integer completedVisitCount;
 
         @AuraEnabled public String reporterContactInfo;
@@ -37,6 +41,7 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public Id quoteAttachmentDocumentId;
         @AuraEnabled public String opportunityRecordType;
         @AuraEnabled public List<QuoteLineItemDTO> quoteLineItems;
+        @AuraEnabled public String trackingNumber;
 
         @AuraEnabled public Id serviceCrewId;
         @AuraEnabled public List<CrewMemberDTO> crewMembers;
@@ -47,6 +52,7 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public Id workOrderId;
         @AuraEnabled public String productName;
         @AuraEnabled public String description;
+        @AuraEnabled public String trackingNumber;
         @AuraEnabled public Decimal quantity;
         @AuraEnabled public Decimal unitPrice;
         @AuraEnabled public String lineType;
@@ -107,6 +113,9 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public String country;
         @AuraEnabled public String recordTypeName;
         @AuraEnabled public List<QuoteLineItemDTO> quoteLineItems;
+        @AuraEnabled public String latestServiceAppointmentTrackingNumber;
+        @AuraEnabled public String workOrderTrackingNumber;
+        @AuraEnabled public String opportunityTrackingNumber;
     }
 
     public class TransferRequestDTO {
@@ -370,6 +379,7 @@ public with sharing class FslTechnicianOnlineController {
             Description,
             Work_Order__c,
             Work_Order__r.Status,
+            Work_Order__r.Tracking_Number__c,
             Work_Order__r.AccountId,
             Work_Order__r.Account.Name,
             Work_Order__r.ContactId,
@@ -378,6 +388,7 @@ public with sharing class FslTechnicianOnlineController {
             Work_Order__r.Contact.Email,
             Work_Order__r.Opportunity__c,
             Work_Order__r.Opportunity__r.RecordType.Name,
+            Work_Order__r.Opportunity__r.Tracking__c,
             Work_Order__r.Make_Model__c,
             Work_Order__r.Reporter_Contact_Info__c,
             Work_Order__r.WorkOrderNumber,
@@ -387,13 +398,18 @@ public with sharing class FslTechnicianOnlineController {
             City,
             State,
             PostalCode,
-            Country
+            Country,
+            Tracking_Number__c,
+            CreatedDate
             FROM ServiceAppointment
             WHERE Id IN :saIds
             AND Status != 'Canceled'
             ORDER BY SchedStartTime ASC
             LIMIT 200
         ];
+
+        Map<Id, Datetime> latestSaCreatedByWo = new Map<Id, Datetime>();
+        Map<Id, String> latestSaTrackingByWo = new Map<Id, String>();
 
         // 5) Work Orders referenced by these appointments
         Set<Id> workOrderIds = new Set<Id>();
@@ -424,6 +440,13 @@ public with sharing class FslTechnicianOnlineController {
                             sa.Work_Order__r.Opportunity__r.RecordType.Name
                         );
                     }
+                }
+            }
+            if (sa.Work_Order__c != null) {
+                Datetime latestCreated = latestSaCreatedByWo.get(sa.Work_Order__c);
+                if (latestCreated == null || sa.CreatedDate > latestCreated) {
+                    latestSaCreatedByWo.put(sa.Work_Order__c, sa.CreatedDate);
+                    latestSaTrackingByWo.put(sa.Work_Order__c, sa.Tracking_Number__c);
                 }
             }
         }
@@ -606,6 +629,26 @@ public with sharing class FslTechnicianOnlineController {
             dto.workOrderId           = sa.Work_Order__c;
             dto.workOrderStatus       = (sa.Work_Order__r != null)
                                         ? sa.Work_Order__r.Status : null;
+            dto.serviceAppointmentTrackingNumber = sa.Tracking_Number__c;
+            dto.latestServiceAppointmentTrackingNumber = (sa.Work_Order__c != null &&
+                latestSaTrackingByWo.containsKey(sa.Work_Order__c))
+                    ? latestSaTrackingByWo.get(sa.Work_Order__c)
+                    : null;
+            dto.workOrderTrackingNumber = (sa.Work_Order__r != null)
+                ? sa.Work_Order__r.Tracking_Number__c
+                : null;
+            dto.opportunityTrackingNumber = (sa.Work_Order__r != null &&
+                sa.Work_Order__r.Opportunity__r != null)
+                    ? sa.Work_Order__r.Opportunity__r.Tracking__c
+                    : null;
+            dto.trackingNumber =
+                dto.latestServiceAppointmentTrackingNumber != null
+                    ? dto.latestServiceAppointmentTrackingNumber
+                    : (dto.workOrderTrackingNumber != null
+                        ? dto.workOrderTrackingNumber
+                        : (dto.opportunityTrackingNumber != null
+                            ? dto.opportunityTrackingNumber
+                            : dto.serviceAppointmentTrackingNumber));
             dto.completedVisitCount   = (sa.Work_Order__c != null &&
                 completedVisitsByWo.containsKey(sa.Work_Order__c))
                     ? completedVisitsByWo.get(sa.Work_Order__c)
@@ -904,6 +947,7 @@ public with sharing class FslTechnicianOnlineController {
                 Subject,
                 Status,
                 WorkType.Name,
+                Tracking_Number__c,
                 AccountId,
                 Account.Name,
                 ContactId,
@@ -912,6 +956,7 @@ public with sharing class FslTechnicianOnlineController {
                 Contact.Email,
                 Opportunity__c,
                 Opportunity__r.RecordType.Name,
+                Opportunity__r.Tracking__c,
                 RecordType.Name,
                 Description,
                 Make_Model__c,
@@ -989,12 +1034,14 @@ public with sharing class FslTechnicianOnlineController {
         // appointment requested a return visit.
         Map<Id, Datetime> latestSaCreatedByWo = new Map<Id, Datetime>();
         Map<Id, Boolean> latestSaReturnVisitByWo = new Map<Id, Boolean>();
+        Map<Id, String> latestSaTrackingNumberByWo = new Map<Id, String>();
 
         for (ServiceAppointment sa : [
             SELECT Id,
                 Work_Order__c,
                 Return_Visit_Required__c,
-                CreatedDate
+                CreatedDate,
+                Tracking_Number__c
             FROM ServiceAppointment
             WHERE Work_Order__c IN :candidateWoIds
         ]) {
@@ -1011,6 +1058,10 @@ public with sharing class FslTechnicianOnlineController {
                 latestSaReturnVisitByWo.put(
                     sa.Work_Order__c,
                     sa.Return_Visit_Required__c == true
+                );
+                latestSaTrackingNumberByWo.put(
+                    sa.Work_Order__c,
+                    sa.Tracking_Number__c
                 );
             }
         }
@@ -1220,6 +1271,10 @@ public with sharing class FslTechnicianOnlineController {
                     ? opportunityRecordTypeByWo.get(wo.Id)
                     : null;
             dto.recordTypeName   = wo.RecordType != null ? wo.RecordType.Name : null;
+            dto.workOrderTrackingNumber = wo.Tracking_Number__c;
+            dto.opportunityTrackingNumber = (wo.Opportunity__r != null)
+                ? wo.Opportunity__r.Tracking__c
+                : null;
             dto.completedVisitCount = completedVisitsByWo.containsKey(wo.Id)
                 ? completedVisitsByWo.get(wo.Id)
                 : 0;
@@ -1242,6 +1297,10 @@ public with sharing class FslTechnicianOnlineController {
             dto.state           = wo.State;
             dto.postalCode      = wo.PostalCode;
             dto.country         = wo.Country;
+            dto.latestServiceAppointmentTrackingNumber =
+                latestSaTrackingNumberByWo.containsKey(wo.Id)
+                    ? latestSaTrackingNumberByWo.get(wo.Id)
+                    : null;
             dtos.add(dto);
         }
 
@@ -1316,7 +1375,8 @@ public with sharing class FslTechnicianOnlineController {
             	Part_Name_D__c,
                 Description,
                 Quantity,
-                UnitPrice
+                UnitPrice,
+                Tracking__c
             FROM WorkOrderLineItem
             WHERE WorkOrderId IN :workOrderIds
             AND Line_Type__c IN ('Need Quote', 'Quote and Ship', 'Part Quoted')
@@ -1335,6 +1395,7 @@ public with sharing class FslTechnicianOnlineController {
             dto.quantity = woli.Quantity;
             dto.unitPrice = woli.UnitPrice;
             dto.lineType = woli.Line_Type__c;
+            dto.trackingNumber = woli.Tracking__c;
 
             itemsByWo.get(woli.WorkOrderId).add(dto);
         }
