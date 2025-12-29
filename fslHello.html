@@ -362,92 +362,146 @@
                                                             <span class="sfs-journey__pill">
                                                                 Next: {appt.journey.nextLabel}
                                                             </span>
+                                                            <span class="sfs-journey__progress-label">
+                                                                {appt.journey.progressLabel}
+                                                            </span>
                                                         </div>
                                                     </div>
-                                                    <div class="sfs-journey__badges">
-                                                        <span class="sfs-journey__path-tag">Main path</span>
-                                                        <template if:true={appt.journey.isOnHold}>
-                                                            <span class="sfs-journey__badge sfs-journey__badge_hold">
-                                                                On Hold
-                                                            </span>
-                                                        </template>
-                                                        <template if:true={appt.journey.hasDetour}>
-                                                            <span class="sfs-journey__badge sfs-journey__badge_detour">
-                                                                {appt.journey.detourLabel}
-                                                            </span>
-                                                        </template>
-                                                    </div>
-                                                </div>
-
-                                                <div class="sfs-journey__rail" role="list" aria-label="Quote flow steps">
-                                                    <div class="sfs-journey__steps">
-                                                        <template
-                                                            for:each={appt.journey.mainSteps}
-                                                            for:item="step"
-                                                        >
-                                                            <div key={step.id} class={step.className} role="listitem">
-                                                                <span class="sfs-journey__dot"></span>
-                                                                <span class="sfs-journey__label">{step.label}</span>
-                                                            </div>
-                                                        </template>
-                                                    </div>
-                                                    <div class="sfs-journey__fade sfs-journey__fade_left"></div>
-                                                    <div class="sfs-journey__fade sfs-journey__fade_right"></div>
-                                                </div>
-
-                                                <template if:true={appt.journey.hasDetour}>
-                                                    <div class="sfs-journey__detour">
-                                                        <div class="sfs-journey__rail-heading">
-                                                            <div class="sfs-journey__rail-title">
-                                                                <span class="sfs-journey__path-tag sfs-journey__path-tag_sub">
-                                                                    Quote path
+                                                    <div class="sfs-journey__header-actions">
+                                                        <div class="sfs-journey__badges">
+                                                            <span class="sfs-journey__path-tag">Main path</span>
+                                                            <template if:true={appt.journey.isOnHold}>
+                                                                <span class="sfs-journey__badge sfs-journey__badge_hold">
+                                                                    On Hold
                                                                 </span>
-                                                                <span class="sfs-journey__detour-label">
+                                                            </template>
+                                                            <template if:true={appt.journey.hasDetour}>
+                                                                <span class="sfs-journey__badge sfs-journey__badge_detour">
                                                                     {appt.journey.detourLabel}
-                                                                </span>
-                                                            </div>
-                                                            <template if:true={appt.journey.detour.detourNext}>
-                                                                <span class="sfs-journey__pill sfs-journey__pill_subtle">
-                                                                    Next: {appt.journey.detour.detourNext.label}
                                                                 </span>
                                                             </template>
                                                         </div>
-                                                        <div
-                                                            class="sfs-journey__rail sfs-journey__rail_detour"
-                                                            role="list"
-                                                            aria-label="Detour steps"
+                                                        <button
+                                                            class="sfs-journey__toggle"
+                                                            type="button"
+                                                            data-card-id={appt.cardId}
+                                                            onclick={handleToggleJourney}
+                                                            aria-pressed={appt.journeyExpanded}
+                                                            title={appt.journeyExpanded ? 'Hide full path' : 'Show full path'}
                                                         >
-                                                            <div class="sfs-journey__steps sfs-journey__steps_detour">
-                                                                <template
-                                                                    for:each={appt.journey.detour.steps}
-                                                                    for:item="step"
-                                                                >
-                                                                    <div
-                                                                        key={step.id}
-                                                                        class={step.className}
-                                                                        role="listitem"
-                                                                    >
-                                                                        <span class="sfs-journey__dot"></span>
-                                                                        <span class="sfs-journey__label">
-                                                                            {step.label}
-                                                                        </span>
-                                                                    </div>
-                                                                </template>
-                                                            </div>
-                                                            <div class="sfs-journey__fade sfs-journey__fade_left"></div>
-                                                            <div class="sfs-journey__fade sfs-journey__fade_right"></div>
-                                                        </div>
-                                                    </div>
-                                                </template>
-
-                                                <div class="sfs-journey__compact">
-                                                    <div class="sfs-journey__compact-current">
-                                                        {appt.journey.currentLabel}
-                                                    </div>
-                                                    <div class="sfs-journey__compact-next">
-                                                        {appt.journey.compactHint}
+                                                            {appt.journeyExpanded ? 'Hide steps' : 'Show steps'}
+                                                        </button>
                                                     </div>
                                                 </div>
+
+                                                <div class="sfs-journey__glance">
+                                                    <div
+                                                        class="sfs-journey__progress"
+                                                        role="progressbar"
+                                                        aria-valuemin="0"
+                                                        aria-valuemax="100"
+                                                        aria-valuenow={appt.journey.progressPercent}
+                                                        aria-label="Quote progress"
+                                                    >
+                                                        <div class="sfs-journey__progress-track">
+                                                            <span
+                                                                class="sfs-journey__progress-fill"
+                                                                style={appt.journey.progressStyle}
+                                                            ></span>
+                                                        </div>
+                                                        <div class="sfs-journey__progress-meta">
+                                                            <span class="sfs-journey__compact-current">
+                                                                {appt.journey.currentLabel}
+                                                            </span>
+                                                            <span class="sfs-journey__compact-next">
+                                                                Next: {appt.journey.nextLabel}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="sfs-journey__compact-rail" role="list" aria-label="Key steps">
+                                                        <template if:true={appt.journey.compactSummary.completedBefore}>
+                                                            <span class="sfs-journey__chip sfs-journey__chip_muted" role="listitem">
+                                                                +{appt.journey.compactSummary.completedBefore} done
+                                                            </span>
+                                                        </template>
+                                                        <template
+                                                            for:each={appt.journey.compactSummary.visibleSteps}
+                                                            for:item="step"
+                                                        >
+                                                            <span key={step.id} class={step.compactClass} role="listitem">
+                                                                {step.label}
+                                                            </span>
+                                                        </template>
+                                                        <template if:true={appt.journey.compactSummary.upcomingAfter}>
+                                                            <span class="sfs-journey__chip sfs-journey__chip_muted" role="listitem">
+                                                                +{appt.journey.compactSummary.upcomingAfter} upcoming
+                                                            </span>
+                                                        </template>
+                                                    </div>
+                                                </div>
+
+                                                <template if:true={appt.journeyExpanded}>
+                                                    <div class="sfs-journey__rail" role="list" aria-label="Quote flow steps">
+                                                        <div class="sfs-journey__steps">
+                                                            <template
+                                                                for:each={appt.journey.mainSteps}
+                                                                for:item="step"
+                                                            >
+                                                                <div key={step.id} class={step.className} role="listitem">
+                                                                    <span class="sfs-journey__dot"></span>
+                                                                    <span class="sfs-journey__label">{step.label}</span>
+                                                                </div>
+                                                            </template>
+                                                        </div>
+                                                        <div class="sfs-journey__fade sfs-journey__fade_left"></div>
+                                                        <div class="sfs-journey__fade sfs-journey__fade_right"></div>
+                                                    </div>
+
+                                                    <template if:true={appt.journey.hasDetour}>
+                                                        <div class="sfs-journey__detour">
+                                                            <div class="sfs-journey__rail-heading">
+                                                                <div class="sfs-journey__rail-title">
+                                                                    <span class="sfs-journey__path-tag sfs-journey__path-tag_sub">
+                                                                        Quote path
+                                                                    </span>
+                                                                    <span class="sfs-journey__detour-label">
+                                                                        {appt.journey.detourLabel}
+                                                                    </span>
+                                                                </div>
+                                                                <template if:true={appt.journey.detour.detourNext}>
+                                                                    <span class="sfs-journey__pill sfs-journey__pill_subtle">
+                                                                        Next: {appt.journey.detour.detourNext.label}
+                                                                    </span>
+                                                                </template>
+                                                            </div>
+                                                            <div
+                                                                class="sfs-journey__rail sfs-journey__rail_detour"
+                                                                role="list"
+                                                                aria-label="Detour steps"
+                                                            >
+                                                                <div class="sfs-journey__steps sfs-journey__steps_detour">
+                                                                    <template
+                                                                        for:each={appt.journey.detour.steps}
+                                                                        for:item="step"
+                                                                    >
+                                                                        <div
+                                                                            key={step.id}
+                                                                            class={step.className}
+                                                                            role="listitem"
+                                                                        >
+                                                                            <span class="sfs-journey__dot"></span>
+                                                                            <span class="sfs-journey__label">
+                                                                                {step.label}
+                                                                            </span>
+                                                                        </div>
+                                                                    </template>
+                                                                </div>
+                                                                <div class="sfs-journey__fade sfs-journey__fade_left"></div>
+                                                                <div class="sfs-journey__fade sfs-journey__fade_right"></div>
+                                                            </div>
+                                                        </div>
+                                                    </template>
+                                                </template>
                                             </div>
                                             <!-- Subject opens the bottom sheet -->
                                             <div class="sfs-line sfs-wo-line">
