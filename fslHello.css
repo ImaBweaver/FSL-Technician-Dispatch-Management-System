@@ -349,6 +349,7 @@
     color: #1b2c48;
     scroll-snap-align: start;
     white-space: nowrap;
+    flex-shrink: 0;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
     position: relative;
     line-height: 1.2;
@@ -477,6 +478,7 @@
 
 .sfs-journey__steps_detour .sfs-journey__step {
     min-width: max-content;
+    flex: 0 0 auto;
 }
 
 .sfs-journey__rail_detour {
