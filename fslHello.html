@@ -351,6 +351,89 @@
                                         </div>
 
                                         <div class="sfs-card-body">
+                                            <div class="sfs-journey">
+                                                <div class="sfs-journey__summary">
+                                                    <div class="sfs-journey__current">
+                                                        {appt.journey.currentLabel}
+                                                    </div>
+                                                    <div class="sfs-journey__next">
+                                                        Next: {appt.journey.nextLabel}
+                                                    </div>
+                                                    <div class="sfs-journey__badges">
+                                                        <template if:true={appt.journey.isOnHold}>
+                                                            <span class="sfs-journey__badge sfs-journey__badge_hold">
+                                                                On Hold
+                                                            </span>
+                                                        </template>
+                                                        <template if:true={appt.journey.hasDetour}>
+                                                            <span class="sfs-journey__badge sfs-journey__badge_detour">
+                                                                {appt.journey.detourLabel}
+                                                            </span>
+                                                        </template>
+                                                    </div>
+                                                </div>
+
+                                                <div class="sfs-journey__rail" role="list">
+                                                    <div class="sfs-journey__steps">
+                                                        <template
+                                                            for:each={appt.journey.mainSteps}
+                                                            for:item="step"
+                                                        >
+                                                            <div key={step.id} class={step.className} role="listitem">
+                                                                <span class="sfs-journey__dot"></span>
+                                                                <span class="sfs-journey__label">{step.label}</span>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                    <div class="sfs-journey__fade sfs-journey__fade_left"></div>
+                                                    <div class="sfs-journey__fade sfs-journey__fade_right"></div>
+                                                </div>
+
+                                                <template if:true={appt.journey.hasDetour}>
+                                                    <div class="sfs-journey__detour">
+                                                        <div class="sfs-journey__detour-heading">
+                                                            <span class="sfs-journey__detour-label">
+                                                                {appt.journey.detourLabel}
+                                                            </span>
+                                                            <template if:true={appt.journey.detour.detourNext}>
+                                                                <span class="sfs-journey__detour-next">
+                                                                    Next: {appt.journey.detour.detourNext.label}
+                                                                </span>
+                                                            </template>
+                                                        </div>
+                                                        <div class="sfs-journey__rail sfs-journey__rail_detour" role="list">
+                                                            <div class="sfs-journey__steps sfs-journey__steps_detour">
+                                                                <template
+                                                                    for:each={appt.journey.detour.steps}
+                                                                    for:item="step"
+                                                                >
+                                                                    <div
+                                                                        key={step.id}
+                                                                        class={step.className}
+                                                                        role="listitem"
+                                                                    >
+                                                                        <span class="sfs-journey__dot"></span>
+                                                                        <span class="sfs-journey__label">
+                                                                            {step.label}
+                                                                        </span>
+                                                                    </div>
+                                                                </template>
+                                                            </div>
+                                                            <div class="sfs-journey__fade sfs-journey__fade_left"></div>
+                                                            <div class="sfs-journey__fade sfs-journey__fade_right"></div>
+                                                        </div>
+                                                    </div>
+                                                </template>
+
+                                                <div class="sfs-journey__compact">
+                                                    <div class="sfs-journey__compact-current">
+                                                        {appt.journey.currentLabel}
+                                                    </div>
+                                                    <div class="sfs-journey__compact-next">
+                                                        {appt.journey.compactHint}
+                                                    </div>
+                                                </div>
+                                            </div>
                                             <!-- Subject opens the bottom sheet -->
                                             <div class="sfs-line sfs-wo-line">
                                                 <span class="sfs-label">WO #</span>
