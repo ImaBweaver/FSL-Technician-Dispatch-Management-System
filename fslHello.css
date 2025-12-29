@@ -188,34 +188,55 @@
 .sfs-journey {
     border: 1px solid #e1e5f0;
     border-radius: 0.55rem;
-    padding: 0.55rem 0.6rem;
-    background: #f8f9fb;
+    padding: 0.55rem 0.65rem;
+    background: #fdfdff;
     margin-bottom: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
 }
 
-.sfs-journey__summary {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 0.35rem;
+.sfs-journey__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.sfs-journey__status-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.sfs-journey__eyebrow {
+    margin: 0;
+    font-size: 0.65rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #5c7093;
+    font-weight: 700;
+}
+
+.sfs-journey__status-row {
+    display: flex;
     align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
 }
 
 .sfs-journey__current {
-    font-weight: 700;
+    font-weight: 800;
     color: #12202f;
-}
-
-.sfs-journey__next {
-    font-size: 0.8rem;
-    color: #394b63;
-    text-align: right;
+    font-size: 1rem;
 }
 
 .sfs-journey__badges {
-    grid-column: 1 / -1;
     display: flex;
     flex-wrap: wrap;
     gap: 0.35rem;
+    justify-content: flex-end;
+    min-width: 0;
 }
 
 .sfs-journey__badge {
@@ -228,6 +249,25 @@
     border: 1px solid transparent;
     background: #eef3ff;
     color: #0b5cab;
+}
+
+.sfs-journey__pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 999px;
+    background: #eaf1ff;
+    color: #0b5cab;
+    font-weight: 700;
+    font-size: 0.8rem;
+    border: 1px solid #d5e4ff;
+}
+
+.sfs-journey__pill_subtle {
+    background: #f5f7fb;
+    border-color: #e5e8f2;
+    color: #3f4f6a;
 }
 
 .sfs-journey__badge_hold {
@@ -244,15 +284,18 @@
 
 .sfs-journey__rail {
     position: relative;
-    margin-top: 0.4rem;
+    margin-top: 0.25rem;
     overflow: hidden;
     border-radius: 0.45rem;
+    border: 1px solid #e6e9f2;
+    background: #ffffff;
+    padding: 0.25rem 0.35rem;
 }
 
 .sfs-journey__steps {
     display: flex;
-    gap: 0.4rem;
-    padding: 0.25rem 0.35rem 0.35rem;
+    gap: 0.35rem;
+    padding: 0.2rem 0.25rem 0.3rem;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     touch-action: pan-x;
@@ -271,19 +314,20 @@
 
 .sfs-journey__step {
     --journey-color: #d0d7e3;
-    min-width: 5rem;
-    padding: 0.35rem 0.5rem;
-    border-radius: 0.5rem;
+    min-width: 4.35rem;
+    padding: 0.32rem 0.45rem;
+    border-radius: 0.55rem;
     border: 1px solid #dfe3eb;
     background: #f6f8fb;
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    font-size: 0.78rem;
+    font-size: 0.76rem;
     font-weight: 700;
     color: #1b2c48;
     scroll-snap-align: start;
     white-space: nowrap;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .sfs-journey__step_done {
@@ -353,27 +397,23 @@
 }
 
 .sfs-journey__detour {
-    margin-top: 0.45rem;
-    padding-top: 0.35rem;
+    margin-top: 0.35rem;
+    padding-top: 0.4rem;
     border-top: 1px dashed #dcd7f4;
 }
 
-.sfs-journey__detour-heading {
+.sfs-journey__rail-heading {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 0.4rem;
-    margin-bottom: 0.2rem;
+    gap: 0.45rem;
+    margin-bottom: 0.35rem;
     color: #5a34a2;
 }
 
 .sfs-journey__detour-label {
     font-weight: 700;
     font-size: 0.82rem;
-}
-
-.sfs-journey__detour-next {
-    font-size: 0.75rem;
 }
 
 .sfs-journey__rail_detour .sfs-journey__steps {
@@ -386,7 +426,7 @@
 
 .sfs-journey__compact {
     display: none;
-    margin-top: 0.45rem;
+    margin-top: 0.15rem;
     padding: 0.45rem 0.55rem;
     background: #ffffff;
     border: 1px solid #e1e5f0;
@@ -405,7 +445,13 @@
 
 @media (max-width: 640px) {
     .sfs-journey {
-        padding: 0.5rem 0.5rem;
+        padding: 0.5rem 0.55rem;
+    }
+
+    .sfs-journey__header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.4rem;
     }
 
     .sfs-journey__steps {
@@ -413,24 +459,17 @@
     }
 
     .sfs-journey__step {
-        min-width: 4.25rem;
-        font-size: 0.75rem;
-        padding: 0.3rem 0.45rem;
+        min-width: 4.05rem;
+        font-size: 0.73rem;
+        padding: 0.3rem 0.4rem;
     }
 }
 
 @media (max-width: 520px) {
-    .sfs-journey__summary {
-        grid-template-columns: 1fr;
-    }
-
-    .sfs-journey__next {
-        text-align: left;
-    }
-
     .sfs-journey__compact {
         display: flex;
         flex-direction: column;
+        margin-top: 0.35rem;
     }
 }
 
