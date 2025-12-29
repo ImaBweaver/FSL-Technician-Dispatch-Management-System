@@ -1379,7 +1379,13 @@ public with sharing class FslTechnicianOnlineController {
                 Tracking__c
             FROM WorkOrderLineItem
             WHERE WorkOrderId IN :workOrderIds
-            AND Line_Type__c IN ('Need Quote', 'Quote and Ship', 'Part Quoted')
+            AND Line_Type__c IN (
+                'Need Quote',
+                'Quote and Ship',
+                'Part Quoted',
+                'Part Assigned',
+                'Part Enroute'
+            )
         ]) {
             if (woli.WorkOrderId == null) continue;
 

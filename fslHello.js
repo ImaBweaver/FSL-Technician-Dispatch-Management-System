@@ -751,6 +751,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 ...item,
                 quoteLineItems
             });
+            const groupedQuoteLineItems = this.groupQuoteLineItems(
+                quoteLineItems
+            );
             const quoteLineItemsToggleLabel = quoteLineItemsExpanded
                 ? 'Hide requested parts'
                 : 'Show requested parts';
@@ -786,7 +789,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 cardClass: 'sfs-card',
                 hasLineItemTracking,
                 resolvedTrackingNumber,
-                showResolvedTracking: Boolean(resolvedTrackingNumber)
+                showResolvedTracking: Boolean(resolvedTrackingNumber),
+                groupedQuoteLineItems
             };
         });
     }
@@ -1042,6 +1046,55 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             lineType: item.lineType || '',
             trackingNumber: item.trackingNumber || ''
         }));
+    }
+
+    groupQuoteLineItems(lines) {
+        if (!lines || !lines.length) {
+            return [];
+        }
+
+        const priority = [
+            'Quote and Ship',
+            'Part Assigned',
+            'Part Enroute',
+            'Need Quote',
+            'Part Quoted'
+        ];
+
+        const groups = new Map();
+
+        lines.forEach(line => {
+            const label = (line?.lineType || '').trim() || 'Other';
+            const key = label.toLowerCase();
+            const priorityIndex = priority.findIndex(
+                type => type.toLowerCase() === key
+            );
+
+            if (!groups.has(key)) {
+                groups.set(key, {
+                    key,
+                    label,
+                    priorityIndex:
+                        priorityIndex === -1 ? priority.length : priorityIndex,
+                    lines: []
+                });
+            }
+
+            groups.get(key).lines.push({
+                ...line,
+                lineTypeLabel: label || '—'
+            });
+        });
+
+        return Array.from(groups.values())
+            .sort((a, b) => {
+                if (a.priorityIndex === b.priorityIndex) {
+                    return a.label.localeCompare(b.label);
+                }
+
+                return a.priorityIndex - b.priorityIndex;
+            })
+            .map(({ priorityIndex, ...rest }) => rest);
     }
 
     shouldShowQuoteLineItems(record) {
