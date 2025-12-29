@@ -738,6 +738,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             const isQuickScheduleExpanded = Boolean(
                 this.quickScheduleExpanded[item.cardId]
             );
+            const completedVisitCount = item.completedVisitCount ?? 0;
+            const visitNumber = item.visitNumber || completedVisitCount + 1;
+            const visitLabel = item.visitLabel || `Visit ${visitNumber}`;
             const quoteLineItems = this.normalizeQuoteLineItems(
                 item.quoteLineItems
             );
@@ -770,6 +773,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 quoteLineItemsExpanded,
                 quoteLineItemsToggleLabel,
                 quoteLineItemsExpandedIcon,
+                completedVisitCount,
+                visitNumber,
+                visitLabel,
                 showScheduleOnCalendar: allowScheduleOnCalendar,
                 showQuickSchedule,
                 quickScheduleStart,
@@ -915,6 +921,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 cardId: `wo-${wo.workOrderId}`,
                 appointmentId: null,
                 hasAppointment: false,
+                completedVisitCount: wo.completedVisitCount || 0,
+                visitNumber: wo.visitNumber || (wo.completedVisitCount || 0) + 1,
+                visitLabel:
+                    wo.visitLabel ||
+                    `Visit ${wo.visitNumber || (wo.completedVisitCount || 0) + 1}`,
                 workOrderId: wo.workOrderId,
                 workOrderStatus: wo.status,
                 workOrderNumber: wo.workOrderNumber,
@@ -950,6 +961,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         return this.unscheduledWorkOrders.map(wo => {
             const typeClass = this.getEventTypeClass(wo.workTypeName);
+            const completedVisitCount = wo.completedVisitCount || 0;
+            const visitNumber = wo.visitNumber || completedVisitCount + 1;
             return {
                 ...wo,
                 cardId: wo.cardId || `wo-${wo.workOrderId}`,
@@ -959,6 +972,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 workOrderNumber: wo.workOrderNumber,
                 workTypeName: wo.workTypeName,
                 workTypeClass: `sfs-worktype ${typeClass || ''}`.trim(),
+                completedVisitCount,
+                visitNumber,
+                visitLabel: wo.visitLabel || `Visit ${visitNumber}`,
                 opportunityRecordType: wo.opportunityRecordType,
                 quoteLineItems: this.normalizeQuoteLineItems(wo.quoteLineItems),
                 quoteAttachmentUrl: wo.quoteAttachmentDownloadUrl || null,
