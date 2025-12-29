@@ -208,6 +208,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
     };
     quoteLineItemsExpanded = {};
+    journeyExpanded = {};
 
     // For auto-centering timeline
     hasAutoCentered = false;
@@ -746,6 +747,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
             const showScheduleActions = this.shouldShowScheduleActions(item);
             const journey = this.buildWorkOrderJourney(item);
+            const journeyExpanded = Boolean(this.journeyExpanded[item.cardId]);
 
             return {
                 ...item,
@@ -769,7 +771,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 resolvedTrackingNumber,
                 showResolvedTracking: Boolean(resolvedTrackingNumber),
                 groupedQuoteLineItems,
-                journey
+                journey,
+                journeyExpanded
             };
         });
     }
@@ -1206,6 +1209,38 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return steps.length ? steps[steps.length - 1].label : '';
     }
 
+    buildCompactJourneySummary(steps) {
+        if (!steps || !steps.length) {
+            return {
+                visibleSteps: [],
+                completedBefore: 0,
+                upcomingAfter: 0
+            };
+        }
+
+        const currentIndex = steps.findIndex(step => step.variant === 'current');
+        const focusIndex = currentIndex === -1 ? 0 : currentIndex;
+        const startIndex = Math.max(0, focusIndex - 1);
+        const endIndex = Math.min(steps.length - 1, focusIndex + 1);
+
+        const completedBefore = Math.max(0, startIndex);
+        const upcomingAfter = Math.max(0, steps.length - 1 - endIndex);
+
+        const visibleSteps = steps.slice(startIndex, endIndex + 1).map(step => {
+            const variant = step.variant || 'upcoming';
+            return {
+                ...step,
+                compactClass: `sfs-journey__chip sfs-journey__chip_${variant}`
+            };
+        });
+
+        return {
+            visibleSteps,
+            completedBefore,
+            upcomingAfter
+        };
+    }
+
     buildWorkOrderJourney(record) {
         const statusLabel = (record.workOrderStatus || record.status || 'New').trim();
         const normalizedStatus = this.normalizeStatusLabel(statusLabel);
@@ -1215,6 +1250,17 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             normalizedStatus,
             detour.detourComplete
         );
+
+        const completedSteps = mainSteps.filter(step => step.variant === 'done').length;
+        const activeIndex = mainSteps.findIndex(step => step.variant === 'current');
+        const segmentCount = Math.max(mainSteps.length - 1, 1);
+        const progressPortion = completedSteps + (activeIndex >= 0 ? 0.5 : 0);
+        const progressPercent = Math.min(
+            100,
+            Math.max(0, Math.round((progressPortion / segmentCount) * 100))
+        );
+        const progressLabel = `${completedSteps} of ${mainSteps.length} steps`;
+        const compactSummary = this.buildCompactJourneySummary(mainSteps);
 
         const detourActiveLabel =
             detour.hasDetour && detour.activeStep ? detour.activeStep.label : '';
@@ -1243,7 +1289,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             detourLabel: detour.label,
             detourKind: detour.kind,
             detourActiveLabel,
-            compactHint
+            compactHint,
+            progressPercent,
+            progressStyle: `width: ${progressPercent}%`,
+            progressLabel,
+            compactSummary
         };
     }
 
@@ -4951,6 +5001,20 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const isExpanded = Boolean(this.quoteLineItemsExpanded[cardId]);
         this.quoteLineItemsExpanded = {
             ...this.quoteLineItemsExpanded,
+            [cardId]: !isExpanded
+        };
+    }
+
+    handleToggleJourney(event) {
+        const cardId = event?.currentTarget?.dataset?.cardId;
+
+        if (!cardId) {
+            return;
+        }
+
+        const isExpanded = Boolean(this.journeyExpanded[cardId]);
+        this.journeyExpanded = {
+            ...this.journeyExpanded,
             [cardId]: !isExpanded
         };
     }

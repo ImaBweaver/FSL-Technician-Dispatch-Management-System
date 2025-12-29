@@ -187,13 +187,13 @@
 
 .sfs-journey {
     border: 1px solid #e1e5f0;
-    border-radius: 0.55rem;
-    padding: 0.55rem 0.65rem;
-    background: #fdfdff;
-    margin-bottom: 0.5rem;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.6rem;
+    background: linear-gradient(180deg, #fdfdff 0%, #f8f9ff 100%);
+    margin-bottom: 0.45rem;
     display: flex;
     flex-direction: column;
-    gap: 0.55rem;
+    gap: 0.5rem;
 }
 
 .sfs-journey__header {
@@ -221,7 +221,7 @@
 .sfs-journey__status-row {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.35rem;
     flex-wrap: wrap;
 }
 
@@ -229,6 +229,14 @@
     font-weight: 800;
     color: #12202f;
     font-size: 1rem;
+}
+
+.sfs-journey__header-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    align-items: flex-end;
+    min-width: 0;
 }
 
 .sfs-journey__badges {
@@ -281,6 +289,12 @@
     font-weight: 700;
     font-size: 0.8rem;
     border: 1px solid #d5e4ff;
+}
+
+.sfs-journey__progress-label {
+    font-size: 0.75rem;
+    color: #4d5a73;
+    font-weight: 700;
 }
 
 .sfs-journey__pill_subtle {
@@ -486,14 +500,45 @@
     background: linear-gradient(180deg, #fbf9ff 0%, #f7f0ff 100%);
 }
 
-.sfs-journey__compact {
-    display: none;
-    margin-top: 0.15rem;
-    padding: 0.45rem 0.55rem;
-    background: #ffffff;
-    border: 1px solid #e1e5f0;
-    border-radius: 0.45rem;
+.sfs-journey__glance {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.sfs-journey__progress {
+    display: flex;
+    flex-direction: column;
     gap: 0.25rem;
+}
+
+.sfs-journey__progress-track {
+    position: relative;
+    height: 0.35rem;
+    background: #e8edfb;
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid #d7def3;
+}
+
+.sfs-journey__progress-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #4b8bff 0%, #6cc1ff 100%);
+    box-shadow: 0 0 0 1px rgba(11, 92, 171, 0.18);
+}
+
+.sfs-journey__progress-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+    color: #3d4f6a;
 }
 
 .sfs-journey__compact-current {
@@ -503,6 +548,70 @@
 .sfs-journey__compact-next {
     font-size: 0.78rem;
     color: #394b63;
+}
+
+.sfs-journey__compact-rail {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 0.25rem 0.1rem;
+}
+
+.sfs-journey__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+    border: 1px solid #dce2f1;
+    background: #f7f8fc;
+    color: #2e3d55;
+}
+
+.sfs-journey__chip_done {
+    border-color: #b3e6c5;
+    background: #e8f8ee;
+    color: #256d3c;
+}
+
+.sfs-journey__chip_current {
+    border-color: #b7d3ff;
+    background: #eaf1ff;
+    color: #0b5cab;
+}
+
+.sfs-journey__chip_upcoming {
+    border-color: #dce2f1;
+    background: #f6f7fb;
+    color: #63708c;
+}
+
+.sfs-journey__chip_muted {
+    border-style: dashed;
+    color: #5f6f8d;
+}
+
+.sfs-journey__toggle {
+    border: 1px solid #d5e4ff;
+    background: #f3f6ff;
+    color: #0b5cab;
+    border-radius: 999px;
+    padding: 0.3rem 0.75rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 120ms ease, box-shadow 120ms ease;
+}
+
+.sfs-journey__toggle:hover,
+.sfs-journey__toggle:focus {
+    background: #eaf1ff;
+    box-shadow: 0 0 0 2px rgba(11, 92, 171, 0.12);
 }
 
 @media (max-width: 640px) {
@@ -516,6 +625,10 @@
         gap: 0.4rem;
     }
 
+    .sfs-journey__header-actions {
+        align-items: flex-start;
+    }
+
     .sfs-journey__steps {
         gap: 0.85rem;
     }
@@ -524,14 +637,6 @@
         min-width: 4.5rem;
         font-size: 0.73rem;
         padding: 0.3rem 0.4rem;
-    }
-}
-
-@media (max-width: 520px) {
-    .sfs-journey__compact {
-        display: flex;
-        flex-direction: column;
-        margin-top: 0.35rem;
     }
 }
 
