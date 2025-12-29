@@ -588,12 +588,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     get needQuoteCount() {
         return (
             this.ownedAppointments.filter(appt =>
-                appt.workOrderStatus === 'Need Quote' ||
-                appt.workOrderStatus === 'Quote and Ship'
+                appt.workOrderStatus === 'Need Quote'
             ).length +
-            this.quoteWorkOrders.filter(wo =>
-                wo.workOrderStatus === 'Need Quote' ||
-                wo.workOrderStatus === 'Quote and Ship'
+            this.quoteWorkOrders.filter(
+                wo => wo.workOrderStatus === 'Need Quote'
             ).length
         );
     }
@@ -668,15 +666,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
             case 'needQuote':
                 baseList = ownedAppointments
-                    .filter(appt =>
-                        appt.workOrderStatus === 'Need Quote' ||
-                        appt.workOrderStatus === 'Quote and Ship'
-                    )
+                    .filter(appt => appt.workOrderStatus === 'Need Quote')
                     .concat(
                         quoteWorkOrders.filter(
-                            wo =>
-                                wo.workOrderStatus === 'Need Quote' ||
-                                wo.workOrderStatus === 'Quote and Ship'
+                            wo => wo.workOrderStatus === 'Need Quote'
                         )
                     );
                 break;
@@ -938,6 +931,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     `Visit ${wo.visitNumber || (wo.completedVisitCount || 0) + 1}`,
                 workOrderId: wo.workOrderId,
                 workOrderStatus: wo.status,
+                workOrderStage: wo.workOrderStage || wo.stage,
                 workOrderNumber: wo.workOrderNumber,
                 workOrderSubject: wo.subject,
                 accountName: wo.accountName,
@@ -979,6 +973,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 workOrderId: wo.workOrderId,
                 workOrderSubject: wo.workOrderSubject || wo.subject,
                 workOrderStatus: wo.workOrderStatus || wo.status,
+                workOrderStage: wo.workOrderStage || wo.stage,
                 workOrderNumber: wo.workOrderNumber,
                 workTypeName: wo.workTypeName,
                 workTypeClass: `sfs-worktype ${typeClass || ''}`.trim(),
@@ -1011,15 +1006,13 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             appt.status ||
             ''
         ).toLowerCase();
-        const hasAttachment = appt.hasQuoteAttachment || Boolean(
-            appt.quoteAttachmentUrl ||
-                appt.quoteAttachmentDownloadUrl ||
-                appt.quoteAttachmentDocumentId
-        );
+        const stage = (appt.workOrderStage || appt.stage || '').toLowerCase();
 
-        return status.startsWith('quote attached') ||
-            status === 'po attached' ||
-            (status === 'need quote' && hasAttachment);
+        if (stage === 'quote attached') {
+            return true;
+        }
+
+        return status.startsWith('quote attached') || status === 'po attached';
     }
 
     shouldShowMarkPoAttached(record) {
@@ -3826,6 +3819,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                         wo.needsReturnVisitScheduling
                     );
                     clone.workOrderSubject = wo.subject;
+                    clone.workOrderStage =
+                        wo.workOrderStage || wo.stage || null;
                     clone.cardId = `wo-${wo.workOrderId}`;
                     clone.hasAppointment = false;
                     clone.completedVisitCount = wo.completedVisitCount || 0;
@@ -3911,6 +3906,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                         '/view';
 
                     clone.workOrderStatus = appt.workOrderStatus;
+                    clone.workOrderStage =
+                        appt.workOrderStage || appt.stage || null;
 
                     clone.isExpanded = false;
 
