@@ -725,8 +725,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             );
         }
 
-        const allowScheduleOnCalendar = this.allowScheduleActionsOnCalendar;
-
         return baseList.map(item => {
             const isQuickScheduleExpanded = Boolean(
                 this.quickScheduleExpanded[item.cardId]
@@ -766,8 +764,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 isQuickScheduleExpanded
             );
 
-            const showQuickSchedule =
-                allowScheduleOnCalendar || item.hasAppointment;
+            const showScheduleActions = this.shouldShowScheduleActions(item);
 
             return {
                 ...item,
@@ -779,8 +776,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 completedVisitCount,
                 visitNumber,
                 visitLabel,
-                showScheduleOnCalendar: allowScheduleOnCalendar,
-                showQuickSchedule,
+                showScheduleOnCalendar: showScheduleActions,
+                showQuickSchedule: showScheduleActions,
                 quickScheduleStart,
                 quickScheduleExpanded: isQuickScheduleExpanded,
                 quickScheduleLabel,
@@ -1355,14 +1352,19 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return false;
         }
 
+        const canShow = this.shouldShowScheduleActions(this.selectedAppointment);
+
         if (this.selectedAppointment.showQuickSchedule !== undefined) {
-            return this.selectedAppointment.showQuickSchedule;
+            return (
+                canShow && this.selectedAppointment.showQuickSchedule
+            );
         }
 
-        return (
-            this.selectedAppointment.hasAppointment ||
-            this.allowScheduleActionsOnCalendar
-        );
+        return canShow;
+    }
+
+    get showScheduleActionsInListMode() {
+        return this.listMode !== 'my' && this.listMode !== 'readyForClose';
     }
 
     get isCrewMode() {
@@ -1374,11 +1376,19 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     get allowScheduleActionsOnCalendar() {
-        return (
-            this.listMode === 'unscheduled' ||
-            this.listMode === 'partsReady' ||
-            this.listMode === 'quoteSent'
-        );
+        return this.showScheduleActionsInListMode;
+    }
+
+    shouldShowScheduleActions(item) {
+        if (!this.showScheduleActionsInListMode) {
+            return false;
+        }
+
+        if (!item) {
+            return false;
+        }
+
+        return item.workOrderStatus !== 'Ready for Close';
     }
 
     get listModeOptions() {
