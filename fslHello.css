@@ -540,6 +540,11 @@
     text-align: left;
 }
 
+.sfs-quote-lines__tracking {
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
 .sfs-quote-lines__table th {
     background: #f1f4fb;
     color: #16325c;
@@ -554,6 +559,28 @@
 .sfs-quote-lines__numeric {
     text-align: right;
     white-space: nowrap;
+}
+
+.sfs-quote-lines__tracking-value {
+    margin-right: 0.4rem;
+    display: inline-block;
+}
+
+.sfs-tracking-copy {
+    border: 1px solid #d8dde6;
+    background: #ffffff;
+    color: #0b5cab;
+    border-radius: 999px;
+    padding: 0.2rem 0.65rem;
+    font-size: 0.75rem;
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.sfs-tracking-copy:hover,
+.sfs-tracking-copy:focus {
+    background: #eef3ff;
+    outline: none;
 }
 
 .sfs-actions {
@@ -1534,6 +1561,16 @@
     text-align: right;
     white-space: normal;
     word-wrap: break-word;
+}
+
+.sfs-value_tracking {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.sfs-tracking-text {
+    word-break: break-all;
 }
 
 

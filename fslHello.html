@@ -460,6 +460,25 @@
                                                 </p>
                                             </template>
 
+                                            <template if:true={appt.showResolvedTracking}>
+                                                <p class="sfs-line">
+                                                    <span class="sfs-label">Tracking</span>
+                                                    <span class="sfs-value sfs-value_tracking">
+                                                        <span class="sfs-tracking-text">
+                                                            {appt.resolvedTrackingNumber}
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            class="sfs-tracking-copy"
+                                                            data-tracking={appt.resolvedTrackingNumber}
+                                                            onclick={handleCopyTracking}
+                                                        >
+                                                            Copy
+                                                        </button>
+                                                    </span>
+                                                </p>
+                                            </template>
+
                                             <template if:true={appt.showQuoteLineItems}>
                                                 <div class="sfs-quote-lines">
                                                     <button
@@ -487,6 +506,9 @@
                                                                 <thead>
                                                                     <tr>
                                                                         <th scope="col">Part</th>
+                                                                        <th scope="col" class="sfs-quote-lines__tracking">
+                                                                            Tracking
+                                                                        </th>
                                                                         <th scope="col" class="sfs-quote-lines__numeric">
                                                                             Qty
                                                                         </th>
@@ -496,6 +518,24 @@
                                                                     <template for:each={appt.quoteLineItems} for:item="line">
                                                                         <tr key={line.lineItemId}>
                                                                             <td>{line.productName}</td>
+                                                                            <td class="sfs-quote-lines__tracking">
+                                                                                <template if:true={line.trackingNumber}>
+                                                                                    <span class="sfs-quote-lines__tracking-value">
+                                                                                        {line.trackingNumber}
+                                                                                    </span>
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        class="sfs-tracking-copy"
+                                                                                        data-tracking={line.trackingNumber}
+                                                                                        onclick={handleCopyTracking}
+                                                                                    >
+                                                                                        Copy
+                                                                                    </button>
+                                                                                </template>
+                                                                                <template if:false={line.trackingNumber}>
+                                                                                    —
+                                                                                </template>
+                                                                            </td>
                                                                             <td class="sfs-quote-lines__numeric">
                                                                                 {line.quantity}
                                                                             </td>
