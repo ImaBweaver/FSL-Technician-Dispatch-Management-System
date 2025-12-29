@@ -748,6 +748,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             const showScheduleActions = this.shouldShowScheduleActions(item);
             const journey = this.buildWorkOrderJourney(item);
             const journeyExpanded = Boolean(this.journeyExpanded[item.cardId]);
+            const journeyToggleLabel = journeyExpanded ? 'Hide steps' : 'Show steps';
+            const journeyToggleTitle = journeyExpanded
+                ? 'Hide full path'
+                : 'Show full path';
 
             return {
                 ...item,
@@ -772,7 +776,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 showResolvedTracking: Boolean(resolvedTrackingNumber),
                 groupedQuoteLineItems,
                 journey,
-                journeyExpanded
+                journeyExpanded,
+                journeyToggleLabel,
+                journeyToggleTitle
             };
         });
     }
