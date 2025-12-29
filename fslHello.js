@@ -185,9 +185,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     ];
     quoteLineItemsExpanded = {};
 
-    // My-tab status filter (WorkOrder.Status)
-    selectedMyStatus = 'all';
-
     // For auto-centering timeline
     hasAutoCentered = false;
     todayDayIndex = null;
@@ -530,37 +527,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         ).length;
     }
 
-    // Status options for My tab filter (WorkOrder.Status)
-    get myStatusOptions() {
-        const statuses = new Set();
-
-        this.appointments.forEach(a => {
-            const anyFlagged = a.isMyAssignment || a.isCrewAssignment;
-            let isMy = false;
-
-            if (anyFlagged) {
-                isMy = a.isMyAssignment && !a.isCrewAssignment;
-            } else {
-                isMy = true;
-            }
-
-            if (isMy && a.workOrderStatus) {
-                statuses.add(a.workOrderStatus);
-            }
-        });
-
-        // Always offer Ready for Close filter even if not yet seen in session
-        statuses.add('Ready for Close');
-
-        const statusArray = Array.from(statuses).sort();
-        const options = statusArray.map(s => ({
-            label: s,
-            value: s
-        }));
-
-        return [{ label: 'All', value: 'all' }, ...options];
-    }
-
     get ownedAppointments() {
         if (!this.appointments) return [];
 
@@ -713,16 +679,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 baseList = ownedAppointments;
                 break;
             }
-        }
-
-        if (
-            this.listMode === 'my' &&
-            this.selectedMyStatus &&
-            this.selectedMyStatus !== 'all'
-        ) {
-            baseList = baseList.filter(
-                a => a.workOrderStatus === this.selectedMyStatus
-            );
         }
 
         return baseList.map(item => {
@@ -4856,10 +4812,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             .finally(() => {
                 this.isLoading = false;
             });
-    }
-
-    handleMyStatusChange(event) {
-        this.selectedMyStatus = event.detail.value;
     }
 
     handleCrewMemberChange(event) {

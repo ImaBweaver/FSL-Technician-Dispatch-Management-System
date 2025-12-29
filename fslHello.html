@@ -95,20 +95,6 @@
                     </div>
                 </div>
 
-                <!-- Status filter only shows when My tab is active -->
-                <template if:true={isMyMode}>
-                    <div class="sfs-my-status-filter">
-                        <lightning-combobox
-                            name="myStatusFilter"
-                            label="Status"
-                            value={selectedMyStatus}
-                            options={myStatusOptions}
-                            onchange={handleMyStatusChange}
-                        >
-                        </lightning-combobox>
-                    </div>
-                </template>
-
                 <template if:true={isOffline}>
                     <div class="sfs-offline-banner">
                         <lightning-icon
