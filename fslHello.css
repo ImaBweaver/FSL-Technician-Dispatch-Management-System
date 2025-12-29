@@ -561,6 +561,25 @@
     white-space: nowrap;
 }
 
+.sfs-quote-lines__status {
+    white-space: nowrap;
+}
+
+.sfs-quote-lines__group-row th {
+    background: #e8eef9;
+    color: #0f2a4f;
+    text-align: left;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.sfs-quote-lines__group-label {
+    display: inline-block;
+    padding: 0.1rem 0;
+}
+
 .sfs-actions {
     display: flex;
     justify-content: flex-end;
