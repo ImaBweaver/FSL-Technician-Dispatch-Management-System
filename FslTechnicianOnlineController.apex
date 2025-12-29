@@ -16,6 +16,7 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public Id workOrderId;
         @AuraEnabled public String workOrderStatus;
         @AuraEnabled public String workOrderNumber;
+        @AuraEnabled public Integer completedVisitCount;
 
         @AuraEnabled public String reporterContactInfo;
         @AuraEnabled public String makeModel;
@@ -80,6 +81,7 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public String workTypeName;
         @AuraEnabled public Integer serviceAppointmentCount;
         @AuraEnabled public Integer unscheduledServiceAppointmentCount;
+        @AuraEnabled public Integer completedVisitCount;
         @AuraEnabled public Boolean allServiceAppointmentsReturnRequired;
         @AuraEnabled public Boolean hasUnscheduledNonReturnAppointment;
         @AuraEnabled public Boolean hasAnyReturnVisitRequired;
@@ -327,6 +329,7 @@ public with sharing class FslTechnicianOnlineController {
         Set<Id> workOrdersWithAttachment = new Set<Id>();
         Map<Id, String> quoteDownloadByWo = new Map<Id, String>();
         Set<Id> workOrdersWithThisTech = new Set<Id>();
+        Map<Id, Integer> completedVisitsByWo = new Map<Id, Integer>();
 
         if (saIds.isEmpty()) {
             dbg.note   = 'No AssignedResource / ServiceAppointment rows for these resources / crews.';
@@ -343,7 +346,8 @@ public with sharing class FslTechnicianOnlineController {
                 workOrdersWithAttachment,
                 quoteDownloadByWo,
                 quoteDocIdByWo,
-                opportunityRecordTypeByWo
+                opportunityRecordTypeByWo,
+                completedVisitsByWo
             );
             assignQuoteLineItems(
                 wrapper.appointments,
@@ -461,6 +465,36 @@ public with sharing class FslTechnicianOnlineController {
             }
         }
 
+        // Track completed visits for this technician on each Work Order
+        if (!workOrderIds.isEmpty() && (!userSrIds.isEmpty() || !crewIds.isEmpty())) {
+            Set<String> completedStatuses = new Set<String>{
+                'Completed',
+                'Completed WO'
+            };
+
+            for (AggregateResult ar : [
+                SELECT Work_Order__c woId,
+                    COUNT_DISTINCT(Id) cnt
+                FROM ServiceAppointment
+                WHERE Work_Order__c IN :workOrderIds
+                AND Status IN :completedStatuses
+                AND Id IN (
+                    SELECT ServiceAppointmentId
+                    FROM AssignedResource
+                    WHERE (ServiceResourceId IN :userSrIds
+                        OR ServiceCrewId IN :crewIds)
+                )
+                GROUP BY Work_Order__c
+            ]) {
+                Id woId = (Id) ar.get('woId');
+                Decimal countDecimal = (Decimal) ar.get('cnt');
+                Integer count = (countDecimal != null) ? countDecimal.intValue() : 0;
+                if (woId != null && count != null) {
+                    completedVisitsByWo.put(woId, count);
+                }
+            }
+        }
+
         if (!opportunityIds.isEmpty()) {
             for (ContentDocumentLink cdl : [
                 SELECT LinkedEntityId,
@@ -572,6 +606,10 @@ public with sharing class FslTechnicianOnlineController {
             dto.workOrderId           = sa.Work_Order__c;
             dto.workOrderStatus       = (sa.Work_Order__r != null)
                                         ? sa.Work_Order__r.Status : null;
+            dto.completedVisitCount   = (sa.Work_Order__c != null &&
+                completedVisitsByWo.containsKey(sa.Work_Order__c))
+                    ? completedVisitsByWo.get(sa.Work_Order__c)
+                    : 0;
 
             // Account resolution
             if (sa.AccountId != null && sa.Account != null) {
@@ -682,7 +720,8 @@ public with sharing class FslTechnicianOnlineController {
             workOrdersWithAttachment,
             quoteDownloadByWo,
             quoteDocIdByWo,
-            opportunityRecordTypeByWo
+            opportunityRecordTypeByWo,
+            completedVisitsByWo
         );
         assignQuoteLineItems(results, unscheduledWorkOrders);
 
@@ -843,7 +882,8 @@ public with sharing class FslTechnicianOnlineController {
         Set<Id> workOrdersWithAttachment,
         Map<Id, String> quoteDownloadByWo,
         Map<Id, Id> quoteDocIdByWo,
-        Map<Id, String> opportunityRecordTypeByWo
+        Map<Id, String> opportunityRecordTypeByWo,
+        Map<Id, Integer> completedVisitsByWo
     ) {
         // Work Orders that are effectively "closed" from the technician perspective
         Set<String> closedStatuses = new Set<String>{
@@ -1180,6 +1220,9 @@ public with sharing class FslTechnicianOnlineController {
                     ? opportunityRecordTypeByWo.get(wo.Id)
                     : null;
             dto.recordTypeName   = wo.RecordType != null ? wo.RecordType.Name : null;
+            dto.completedVisitCount = completedVisitsByWo.containsKey(wo.Id)
+                ? completedVisitsByWo.get(wo.Id)
+                : 0;
             dto.hasQuoteAttachment =
                 workOrdersWithAttachment != null &&
                 workOrdersWithAttachment.contains(wo.Id);
@@ -1276,7 +1319,7 @@ public with sharing class FslTechnicianOnlineController {
                 UnitPrice
             FROM WorkOrderLineItem
             WHERE WorkOrderId IN :workOrderIds
-            AND Line_Type__c IN ('Need Quote', 'Part Quoted')
+            AND Line_Type__c IN ('Need Quote', 'Quote and Ship', 'Part Quoted')
         ]) {
             if (woli.WorkOrderId == null) continue;
 
@@ -1767,6 +1810,38 @@ public with sharing class FslTechnicianOnlineController {
     }
 
     @AuraEnabled
+    public static void markWorkOrderReadyForClose(Id workOrderId, String notes) {
+        if (workOrderId == null) {
+            throw new AuraHandledException('Work Order Id is required.');
+        }
+
+        WorkOrder wo = [
+            SELECT Id, Status, Tech_Support_Notes__c
+            FROM WorkOrder
+            WHERE Id = :workOrderId
+            LIMIT 1
+            FOR UPDATE
+        ];
+
+        String trimmedNotes = (notes == null) ? '' : notes.trim();
+
+        wo.Status = 'Ready for Close';
+
+        if (!String.isBlank(trimmedNotes)) {
+            if (String.isBlank(wo.Tech_Support_Notes__c)) {
+                wo.Tech_Support_Notes__c = trimmedNotes;
+            } else {
+                wo.Tech_Support_Notes__c = String.join(new List<String>{
+                    wo.Tech_Support_Notes__c,
+                    'Ready for Close Notes: ' + trimmedNotes
+                }, '\n\n');
+            }
+        }
+
+        update wo;
+    }
+
+    @AuraEnabled
     public static void markWorkOrderQuoteSent(Id workOrderId) {
         if (workOrderId == null) {
             throw new AuraHandledException('Work Order Id is required.');
@@ -1781,6 +1856,24 @@ public with sharing class FslTechnicianOnlineController {
         ];
 
         wo.Status = 'Quote Sent';
+        update wo;
+    }
+
+    @AuraEnabled
+    public static void markWorkOrderPoAttached(Id workOrderId) {
+        if (workOrderId == null) {
+            throw new AuraHandledException('Work Order Id is required.');
+        }
+
+        WorkOrder wo = [
+            SELECT Id, Status
+            FROM WorkOrder
+            WHERE Id = :workOrderId
+            LIMIT 1
+            FOR UPDATE
+        ];
+
+        wo.Status = 'PO Attached';
         update wo;
     }
 

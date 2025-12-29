@@ -13,6 +13,8 @@ import acceptEngineerTransferRequest from '@salesforce/apex/FslTechnicianOnlineC
 import rejectEngineerTransferRequest from '@salesforce/apex/FslTechnicianOnlineController.rejectEngineerTransferRequest';
 import cancelWorkOrder from '@salesforce/apex/FslTechnicianOnlineController.cancelWorkOrder';
 import markWorkOrderQuoteSent from '@salesforce/apex/FslTechnicianOnlineController.markWorkOrderQuoteSent';
+import markWorkOrderPoAttached from '@salesforce/apex/FslTechnicianOnlineController.markWorkOrderPoAttached';
+import markWorkOrderReadyForClose from '@salesforce/apex/FslTechnicianOnlineController.markWorkOrderReadyForClose';
 import updateResourceAbsence from '@salesforce/apex/FslTechnicianOnlineController.updateResourceAbsence';
 import deleteResourceAbsence from '@salesforce/apex/FslTechnicianOnlineController.deleteResourceAbsence';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
@@ -122,6 +124,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     isCancelModalOpen = false;
     cancelReason = '';
     cancelWorkOrderId = null;
+    // Ready for close modal
+    isReadyForCloseModalOpen = false;
+    readyForCloseNotes = '';
+    readyForCloseWorkOrderId = null;
 
     // Global error capture handlers
     _boundOnGlobalError = null;
@@ -169,7 +175,14 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     quickQuoteQuickActionApiName = 'QuickCreateQuote';
     quickQuoteFlowExtensionName = '';
 
-    quoteStatuses = ['Need Quote', 'PO Requested', 'Quote Sent', 'Quote Attached'];
+    quoteStatuses = [
+        'Need Quote',
+        'Quote and Ship',
+        'PO Requested',
+        'Quote Sent',
+        'Quote Attached',
+        'PO Attached'
+    ];
     quoteLineItemsExpanded = {};
 
     // My-tab status filter (WorkOrder.Status)
@@ -536,6 +549,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             }
         });
 
+        // Always offer Ready for Close filter even if not yet seen in session
+        statuses.add('Ready for Close');
+
         const statusArray = Array.from(statuses).sort();
         const options = statusArray.map(s => ({
             label: s,
@@ -572,10 +588,13 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     get needQuoteCount() {
         return (
             this.ownedAppointments.filter(appt =>
-                appt.workOrderStatus === 'Need Quote'
+                appt.workOrderStatus === 'Need Quote' ||
+                appt.workOrderStatus === 'Quote and Ship'
             ).length +
-            this.quoteWorkOrders.filter(wo => wo.workOrderStatus === 'Need Quote')
-                .length
+            this.quoteWorkOrders.filter(wo =>
+                wo.workOrderStatus === 'Need Quote' ||
+                wo.workOrderStatus === 'Quote and Ship'
+            ).length
         );
     }
 
@@ -649,10 +668,15 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
             case 'needQuote':
                 baseList = ownedAppointments
-                    .filter(appt => appt.workOrderStatus === 'Need Quote')
+                    .filter(appt =>
+                        appt.workOrderStatus === 'Need Quote' ||
+                        appt.workOrderStatus === 'Quote and Ship'
+                    )
                     .concat(
                         quoteWorkOrders.filter(
-                            wo => wo.workOrderStatus === 'Need Quote'
+                            wo =>
+                                wo.workOrderStatus === 'Need Quote' ||
+                                wo.workOrderStatus === 'Quote and Ship'
                         )
                     );
                 break;
@@ -708,13 +732,15 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             );
         }
 
-        const allowScheduleOnCalendar =
-            this.listMode === 'unscheduled' || this.listMode === 'partsReady';
+        const allowScheduleOnCalendar = this.allowScheduleActionsOnCalendar;
 
         return baseList.map(item => {
             const isQuickScheduleExpanded = Boolean(
                 this.quickScheduleExpanded[item.cardId]
             );
+            const completedVisitCount = item.completedVisitCount ?? 0;
+            const visitNumber = item.visitNumber || completedVisitCount + 1;
+            const visitLabel = item.visitLabel || `Visit ${visitNumber}`;
             const quoteLineItems = this.normalizeQuoteLineItems(
                 item.quoteLineItems
             );
@@ -731,6 +757,14 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             const quoteLineItemsExpandedIcon = quoteLineItemsExpanded
                 ? 'utility:chevrondown'
                 : 'utility:chevronright';
+            const quickScheduleStart = this.getQuickScheduleValue(item);
+            const quickScheduleLabel = this.getQuickScheduleToggleLabel(
+                item,
+                isQuickScheduleExpanded
+            );
+
+            const showQuickSchedule =
+                allowScheduleOnCalendar || item.hasAppointment;
 
             return {
                 ...item,
@@ -739,12 +773,16 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 quoteLineItemsExpanded,
                 quoteLineItemsToggleLabel,
                 quoteLineItemsExpandedIcon,
+                completedVisitCount,
+                visitNumber,
+                visitLabel,
                 showScheduleOnCalendar: allowScheduleOnCalendar,
-                quickScheduleStart: this.quickScheduleSelections[item.cardId] || '',
+                showQuickSchedule,
+                quickScheduleStart,
                 quickScheduleExpanded: isQuickScheduleExpanded,
-                quickScheduleLabel: isQuickScheduleExpanded
-                    ? 'Hide quick schedule'
-                    : 'Quick schedule',
+                quickScheduleLabel,
+                quickScheduleDateLabel: this.getQuickScheduleDateLabel(item),
+                quickScheduleActionLabel: this.getQuickScheduleActionLabel(item),
                 cardClass: 'sfs-card'
             };
         });
@@ -794,6 +832,15 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     toggleLabel: isCollapsed ? 'Expand' : 'Collapse'
                 };
             });
+    }
+
+    get collapseAllDisabled() {
+        const groups = this.appointmentGroups || [];
+        if (!groups.length) {
+            return true;
+        }
+
+        return groups.every(group => group.isCollapsed);
     }
 
     getAppointmentGroup(appt) {
@@ -853,6 +900,16 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return this.quoteStatuses.includes(status);
     }
 
+    hasWorkOrderSubject(record) {
+        if (!record) {
+            return false;
+        }
+
+        const subject =
+            (record.workOrderSubject || record.subject || '').trim();
+        return subject.length > 0;
+    }
+
     get quoteWorkOrders() {
         if (!this.unscheduledWorkOrders) {
             return [];
@@ -864,6 +921,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 cardId: `wo-${wo.workOrderId}`,
                 appointmentId: null,
                 hasAppointment: false,
+                completedVisitCount: wo.completedVisitCount || 0,
+                visitNumber: wo.visitNumber || (wo.completedVisitCount || 0) + 1,
+                visitLabel:
+                    wo.visitLabel ||
+                    `Visit ${wo.visitNumber || (wo.completedVisitCount || 0) + 1}`,
                 workOrderId: wo.workOrderId,
                 workOrderStatus: wo.status,
                 workOrderNumber: wo.workOrderNumber,
@@ -882,8 +944,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 ),
                 showQuoteActions:
                     wo.status === 'Quote Sent' ||
+                    wo.status === 'PO Attached' ||
                     this.isQuoteAttachedAppointment(wo),
                 showMarkQuoteSentAction: this.isQuoteAttachedAppointment(wo),
+                showMarkPoAttachedAction: this.shouldShowMarkPoAttached(wo),
                 isExpanded: false,
                 workTypeName: 'Work Order',
                 workTypeClass: 'sfs-worktype'
@@ -897,6 +961,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         return this.unscheduledWorkOrders.map(wo => {
             const typeClass = this.getEventTypeClass(wo.workTypeName);
+            const completedVisitCount = wo.completedVisitCount || 0;
+            const visitNumber = wo.visitNumber || completedVisitCount + 1;
             return {
                 ...wo,
                 cardId: wo.cardId || `wo-${wo.workOrderId}`,
@@ -906,6 +972,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 workOrderNumber: wo.workOrderNumber,
                 workTypeName: wo.workTypeName,
                 workTypeClass: `sfs-worktype ${typeClass || ''}`.trim(),
+                completedVisitCount,
+                visitNumber,
+                visitLabel: wo.visitLabel || `Visit ${visitNumber}`,
                 opportunityRecordType: wo.opportunityRecordType,
                 quoteLineItems: this.normalizeQuoteLineItems(wo.quoteLineItems),
                 quoteAttachmentUrl: wo.quoteAttachmentDownloadUrl || null,
@@ -917,8 +986,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 ),
                 showQuoteActions:
                     wo.status === 'Quote Sent' ||
+                    wo.status === 'PO Attached' ||
                     this.isQuoteAttachedAppointment(wo),
                 showMarkQuoteSentAction: this.isQuoteAttachedAppointment(wo),
+                showMarkPoAttachedAction: this.shouldShowMarkPoAttached(wo),
                 hasAppointment: false
             };
         });
@@ -937,7 +1008,17 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         );
 
         return status.startsWith('quote attached') ||
+            status === 'po attached' ||
             (status === 'need quote' && hasAttachment);
+    }
+
+    shouldShowMarkPoAttached(record) {
+        if (!record) {
+            return false;
+        }
+
+        const status = (record.workOrderStatus || record.status || '').toLowerCase();
+        return status === 'quote sent' || status.startsWith('quote attached');
     }
 
     normalizeQuoteLineItems(items) {
@@ -966,7 +1047,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         const status = (record.workOrderStatus || record.status || '').toLowerCase();
         const hasQuoteStatus =
-            status === 'need quote' || status === 'quote sent';
+            status === 'need quote' ||
+            status === 'quote sent' ||
+            status === 'quote and ship';
 
         return hasQuoteStatus &&
             Array.isArray(record.quoteLineItems) &&
@@ -993,6 +1076,64 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         return (this.quoteWorkOrders || []).find(wo => wo.cardId === cardId);
+    }
+
+    getQuickScheduleBaseLabel(item) {
+        return item && item.hasAppointment ? 'Reschedule' : 'Quick schedule';
+    }
+
+    getQuickScheduleToggleLabel(item, isExpanded) {
+        const baseLabel = this.getQuickScheduleBaseLabel(item);
+
+        if (!isExpanded) {
+            return baseLabel;
+        }
+
+        return item && item.hasAppointment ? 'Hide reschedule' : 'Hide quick schedule';
+    }
+
+    getQuickScheduleDateLabel(item) {
+        return item && item.hasAppointment
+            ? 'Reschedule Date/Time'
+            : 'Schedule Date/Time';
+    }
+
+    getQuickScheduleActionLabel(item) {
+        return item && item.hasAppointment ? 'Reschedule' : 'Schedule';
+    }
+
+    getQuickScheduleValue(item) {
+        if (!item) {
+            return '';
+        }
+
+        const savedValue = item.cardId
+            ? this.quickScheduleSelections[item.cardId]
+            : null;
+
+        if (savedValue) {
+            return savedValue;
+        }
+
+        return item.newStart || item.schedStart || '';
+    }
+
+    ensureQuickScheduleSelection(cardId, appt) {
+        if (!cardId || this.quickScheduleSelections[cardId]) {
+            return;
+        }
+
+        const fallbackValue =
+            (appt && (appt.newStart || appt.schedStart)) || '';
+
+        if (!fallbackValue) {
+            return;
+        }
+
+        this.quickScheduleSelections = {
+            ...this.quickScheduleSelections,
+            [cardId]: fallbackValue
+        };
     }
 
     normalizeWorkOrderDetail(workOrder) {
@@ -1050,12 +1191,63 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return labels;
     }
 
+    get selectedQuickScheduleCardId() {
+        if (!this.selectedAppointment) {
+            return null;
+        }
+
+        return (
+            this.selectedAppointment.cardId ||
+            this.selectedAppointment.appointmentId ||
+            null
+        );
+    }
+
+    get selectedQuickScheduleExpanded() {
+        const cardId = this.selectedQuickScheduleCardId;
+        return cardId ? Boolean(this.quickScheduleExpanded[cardId]) : false;
+    }
+
+    get selectedQuickScheduleLabel() {
+        if (!this.selectedAppointment) {
+            return 'Quick schedule';
+        }
+
+        return this.getQuickScheduleToggleLabel(
+            this.selectedAppointment,
+            this.selectedQuickScheduleExpanded
+        );
+    }
+
+    get selectedAppointmentCanQuickSchedule() {
+        if (!this.selectedAppointment) {
+            return false;
+        }
+
+        if (this.selectedAppointment.showQuickSchedule !== undefined) {
+            return this.selectedAppointment.showQuickSchedule;
+        }
+
+        return (
+            this.selectedAppointment.hasAppointment ||
+            this.allowScheduleActionsOnCalendar
+        );
+    }
+
     get isCrewMode() {
         return this.listMode === 'crew';
     }
 
     get isTransferMode() {
         return this.listMode === 'transferRequests';
+    }
+
+    get allowScheduleActionsOnCalendar() {
+        return (
+            this.listMode === 'unscheduled' ||
+            this.listMode === 'partsReady' ||
+            this.listMode === 'quoteSent'
+        );
     }
 
     get listModeOptions() {
@@ -3526,7 +3718,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     result && result.unscheduledWorkOrders
                         ? result.unscheduledWorkOrders
                         : [];
-                this.unscheduledWorkOrders = unscheduled.map(wo => {
+                const unscheduledWithSubject = unscheduled.filter(wo =>
+                    this.hasWorkOrderSubject(wo)
+                );
+                this.unscheduledWorkOrders = unscheduledWithSubject.map(wo => {
                     const clone = { ...wo };
                     clone.isCrewAppointment = Boolean(wo.hasCrewAssignment);
                     clone.serviceAppointmentCount = wo.serviceAppointmentCount || 0;
@@ -3548,6 +3743,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     clone.workOrderSubject = wo.subject;
                     clone.cardId = `wo-${wo.workOrderId}`;
                     clone.hasAppointment = false;
+                    clone.completedVisitCount = wo.completedVisitCount || 0;
+                    clone.visitNumber = clone.completedVisitCount + 1;
+                    clone.visitLabel = `Visit ${clone.visitNumber}`;
                     clone.workTypeName = wo.workTypeName;
                     clone.quoteLineItems = this.normalizeQuoteLineItems(
                         wo.quoteLineItems
@@ -3606,7 +3804,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     newEnd: abs.endTime
                 }));
 
-                this.appointments = appts.map(appt => {
+                const appointmentsWithSubject = appts.filter(appt =>
+                    this.hasWorkOrderSubject(appt)
+                );
+
+                this.appointments = appointmentsWithSubject.map(appt => {
                     const clone = { ...appt };
 
                     clone.newStart = appt.schedStart;
@@ -3623,6 +3825,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
                     const typeClass = this.getEventTypeClass(appt.workTypeName);
                     clone.workTypeClass = `sfs-worktype ${typeClass || ''}`.trim();
+                    clone.completedVisitCount = appt.completedVisitCount || 0;
+                    clone.visitNumber = clone.completedVisitCount + 1;
+                    clone.visitLabel = `Visit ${clone.visitNumber}`;
 
                     if (appt.contactPhone) {
                         const digits = appt.contactPhone.replace(/\D/g, '');
@@ -3679,14 +3884,17 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                         appt.quoteAttachmentDocumentId || null;
                     clone.hasQuoteAttachment = Boolean(
                         appt.hasQuoteAttachment ||
-                            appt.workOrderStatus === 'Quote Attached'
+                            appt.workOrderStatus === 'Quote Attached' ||
+                            appt.workOrderStatus === 'PO Attached'
                     );
                     clone.showQuoteActions =
                         clone.workOrderStatus === 'Quote Sent' ||
+                        clone.workOrderStatus === 'PO Attached' ||
                         this.isQuoteAttachedAppointment(clone);
-                    clone.showMarkQuoteSentAction = this.isQuoteAttachedAppointment(
-                        clone
-                    );
+                    clone.showMarkQuoteSentAction =
+                        this.isQuoteAttachedAppointment(clone);
+                    clone.showMarkPoAttachedAction =
+                        this.shouldShowMarkPoAttached(clone);
                     clone.opportunityRecordType = appt.opportunityRecordType || null;
                     clone.cardId = appt.appointmentId;
                     clone.hasAppointment = true;
@@ -4451,6 +4659,46 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             });
     }
 
+    handleMarkPoAttached(event) {
+        const workOrderId = event.target.dataset.woid;
+        if (!workOrderId) {
+            return;
+        }
+
+        this.checkOnline();
+        if (this.isOffline) {
+            this.showToast(
+                'Offline',
+                'You must be online to update the work order status.',
+                'warning'
+            );
+            return;
+        }
+
+        this.isLoading = true;
+
+        markWorkOrderPoAttached({ workOrderId })
+            .then(() => {
+                this.showToast(
+                    'Status updated',
+                    'Work order marked as PO Attached.',
+                    'success'
+                );
+                return this.loadAppointments();
+            })
+            .catch(error => {
+                const message = this.reduceError(error);
+                this.debugInfo = {
+                    note: 'Error calling markWorkOrderPoAttached',
+                    errorMessage: message
+                };
+                this.showToast('Error updating status', message, 'error');
+            })
+            .finally(() => {
+                this.isLoading = false;
+            });
+    }
+
     handleMyStatusChange(event) {
         this.selectedMyStatus = event.detail.value;
     }
@@ -4556,6 +4804,20 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             ...this.collapsedDayGroups,
             [groupKey]: !this.collapsedDayGroups[groupKey]
         };
+    }
+
+    handleCollapseAllGroups() {
+        const groups = this.appointmentGroups || [];
+        if (!groups.length) {
+            return;
+        }
+
+        const collapsed = {};
+        groups.forEach(group => {
+            collapsed[group.key] = true;
+        });
+
+        this.collapsedDayGroups = collapsed;
     }
 
     handleRefresh() {
@@ -4781,10 +5043,16 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         const isExpanded = Boolean(this.quickScheduleExpanded[cardId]);
+        const nextExpanded = !isExpanded;
         this.quickScheduleExpanded = {
             ...this.quickScheduleExpanded,
-            [cardId]: !isExpanded
+            [cardId]: nextExpanded
         };
+
+        if (nextExpanded) {
+            const appt = this.findAppointmentByCardId(cardId);
+            this.ensureQuickScheduleSelection(cardId, appt);
+        }
     }
 
     handleQuickScheduleChange(event) {
@@ -5177,87 +5445,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             });
     }
 
-    // ======= DETAIL RESCHEDULE HANDLERS =======
-
-    handleDetailDateChange(event) {
-        const value = event.target.value;
-        if (!this.selectedAppointment) {
-            return;
-        }
-
-        const id = this.selectedAppointment.appointmentId;
-        const changed = value && value !== this.selectedAppointment.schedStart;
-
-        this.selectedAppointment = {
-            ...this.selectedAppointment,
-            newStart: value,
-            disableSave: !changed
-        };
-
-        this.appointments = this.appointments.map(appt => {
-            if (appt.appointmentId === id) {
-                return {
-                    ...appt,
-                    newStart: value,
-                    disableSave: !changed
-                };
-            }
-            return appt;
-        });
-    }
-
-    handleDetailReschedule() {
-        if (!this.selectedAppointment || !this.selectedAppointment.newStart) {
-            this.showToast(
-                'Pick a date and time',
-                'Select a new start date and time before rescheduling.',
-                'warning'
-            );
-            return;
-        }
-
-        const id = this.selectedAppointment.appointmentId;
-
-        this.checkOnline();
-        if (this.isOffline) {
-            this.showToast(
-                'Offline',
-                'You must be online to reschedule an appointment.',
-                'warning'
-            );
-            return;
-        }
-
-        this.isLoading = true;
-
-        rescheduleAppointment({
-            appointmentId: id,
-            newStart: this.selectedAppointment.newStart
-        })
-            .then(() => {
-                this.showToast(
-                    'Appointment updated',
-                    'The appointment has been rescheduled.',
-                    'success'
-                );
-                return this.loadAppointments();
-            })
-            .then(() => {
-                this.handleCalendarToday();
-            })
-            .catch(error => {
-                const message = this.reduceError(error);
-                this.debugInfo = {
-                    note: 'Error calling rescheduleAppointment',
-                    errorMessage: message
-                };
-                this.showToast('Error updating appointment', message, 'error');
-            })
-            .finally(() => {
-                this.isLoading = false;
-            });
-    }
-
     handleListInfoClick(event) {
         this.handleEventClick(event);
     }
@@ -5383,6 +5570,21 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     handleDetailCardClick(event) {
         event.stopPropagation();
+    }
+
+    handleOpenQuickScheduleFromDetail() {
+        const cardId = this.selectedQuickScheduleCardId;
+
+        if (!cardId) {
+            return;
+        }
+
+        this.ensureQuickScheduleSelection(cardId, this.selectedAppointment);
+
+        this.quickScheduleExpanded = {
+            ...this.quickScheduleExpanded,
+            [cardId]: true
+        };
     }
 
 
@@ -6024,6 +6226,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             this.openRescheduleModal(workOrderId);
         } else if (action === 'cancelWorkOrder') {
             this.openCancelModal(workOrderId);
+        } else if (action === 'readyForClose') {
+            this.openReadyForCloseModal(workOrderId);
         } else if (action === 'unassign') {
             this.openUnassignModal(appointmentId);
         }
@@ -6270,6 +6474,72 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             .catch(error => {
                 const message = this.reduceError(error);
                 this.showToast('Unable to cancel work order', message, 'error');
+            })
+            .finally(() => {
+                this.isLoading = false;
+            });
+    }
+
+    openReadyForCloseModal(workOrderId) {
+        if (!workOrderId) {
+            return;
+        }
+
+        this.readyForCloseWorkOrderId = workOrderId;
+        this.readyForCloseNotes = '';
+        this.isReadyForCloseModalOpen = true;
+    }
+
+    closeReadyForCloseModal() {
+        this.isReadyForCloseModalOpen = false;
+        this.readyForCloseNotes = '';
+        this.readyForCloseWorkOrderId = null;
+    }
+
+    handleReadyForCloseNotesChange(event) {
+        this.readyForCloseNotes = event.target.value;
+    }
+
+    get readyForCloseSubmitDisabled() {
+        return this.isLoading;
+    }
+
+    submitReadyForClose() {
+        if (!this.readyForCloseWorkOrderId) {
+            return;
+        }
+
+        if (this.isOffline) {
+            this.showToast(
+                'Offline',
+                'You must be online to update the work order status.',
+                'warning'
+            );
+            return;
+        }
+
+        this.isLoading = true;
+
+        markWorkOrderReadyForClose({
+            workOrderId: this.readyForCloseWorkOrderId,
+            notes: this.readyForCloseNotes
+        })
+            .then(() => {
+                this.showToast(
+                    'Status updated',
+                    'Work order marked as Ready for Close.',
+                    'success'
+                );
+                this.closeReadyForCloseModal();
+                return this.loadAppointments();
+            })
+            .catch(error => {
+                const message = this.reduceError(error);
+                this.debugInfo = {
+                    note: 'Error calling markWorkOrderReadyForClose',
+                    errorMessage: message
+                };
+                this.showToast('Error updating status', message, 'error');
             })
             .finally(() => {
                 this.isLoading = false;

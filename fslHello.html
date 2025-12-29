@@ -69,20 +69,29 @@
                             onchange={handleListModeChange}
                         ></lightning-combobox>
                     </div>
-                    <div class="sfs-list-mode-chips" role="list">
-                        <template for:each={listModeChips} for:item="chip">
-                            <button
-                                key={chip.value}
-                                type="button"
-                                class={chip.className}
-                                data-mode={chip.value}
-                                onclick={handleListModeChange}
-                                aria-pressed={chip.isActive}
-                                role="listitem"
-                            >
-                                {chip.label}
-                            </button>
-                        </template>
+                    <div class="sfs-list-mode__right">
+                        <div class="sfs-list-mode-chips" role="list">
+                            <template for:each={listModeChips} for:item="chip">
+                                <button
+                                    key={chip.value}
+                                    type="button"
+                                    class={chip.className}
+                                    data-mode={chip.value}
+                                    onclick={handleListModeChange}
+                                    aria-pressed={chip.isActive}
+                                    role="listitem"
+                                >
+                                    {chip.label}
+                                </button>
+                            </template>
+                        </div>
+                        <lightning-button
+                            variant="neutral"
+                            label="Collapse All"
+                            onclick={handleCollapseAllGroups}
+                            disabled={collapseAllDisabled}
+                            class="sfs-collapse-all-btn"
+                        ></lightning-button>
                     </div>
                 </div>
 
@@ -308,6 +317,10 @@
                                                     {appt.workTypeName}
                                                 </span>
 
+                                                <span class="sfs-visit-pill">
+                                                    {appt.visitLabel}
+                                                </span>
+
                                                 <template if:true={appt.opportunityRecordType}>
                                                     <span class="sfs-opportunity-pill">
                                                         {appt.opportunityRecordType}
@@ -341,6 +354,10 @@
                                                     label="Request transfer to new technician"
                                                 ></lightning-menu-item>
                                                 <lightning-menu-item
+                                                    value="readyForClose"
+                                                    label="Ready for Close"
+                                                ></lightning-menu-item>
+                                                <lightning-menu-item
                                                     value="cancelWorkOrder"
                                                     label="Cancel work order"
                                                 ></lightning-menu-item>
@@ -368,15 +385,14 @@
                                                     {appt.workOrderSubject}
                                                 </span>
 
-                                                <lightning-button-icon
-                                                    icon-name="utility:info"
-                                                    alternative-text="More info"
-                                                    variant="bare"
-                                                    size="small"
+                                                <button
+                                                    type="button"
+                                                    class="sfs-info-button"
                                                     data-id={appt.cardId}
                                                     onclick={handleListInfoClick}
-                                                    class="sfs-info-button"
-                                                ></lightning-button-icon>
+                                                >
+                                                    See more info
+                                                </button>
                                             </div>
 
                                             <template if:true={appt.showQuoteActions}>
@@ -405,6 +421,15 @@
                                                             label="Mark Quote Sent"
                                                             data-woid={appt.workOrderId}
                                                             onclick={handleMarkQuoteSent}
+                                                            class="sfs-quote-action-button"
+                                                        ></lightning-button>
+                                                    </template>
+                                                    <template if:true={appt.showMarkPoAttachedAction}>
+                                                        <lightning-button
+                                                            variant="brand"
+                                                            label="Mark PO Attached"
+                                                            data-woid={appt.workOrderId}
+                                                            onclick={handleMarkPoAttached}
                                                             class="sfs-quote-action-button"
                                                         ></lightning-button>
                                                     </template>
@@ -630,34 +655,27 @@
                                                 </div>
                                             </template>
 
-                                            <!-- Start Date/Time + Reschedule -->
+                                            <!-- Start Date/Time display -->
                                             <template if:true={appt.hasAppointment}>
-                                                <div class="sfs-input-block">
-                                                    <lightning-input
-                                                        type="datetime-local"
-                                                        name="startDateTime"
-                                                        label="Start Date/Time"
-                                                        value={appt.newStart}
-                                                        onchange={handleDateChange}
-                                                        data-id={appt.appointmentId}
-                                                    >
-                                                    </lightning-input>
-                                                </div>
-
-                                                <div class="sfs-actions sfs-reschedule-actions sfs-option-actions">
-                                                    <lightning-button
-                                                        variant="brand"
-                                                        label="Reschedule"
-                                                        data-id={appt.appointmentId}
-                                                        onclick={handleReschedule}
-                                                        disabled={appt.disableSave}
-                                                        class="sfs-option-button"
-                                                    >
-                                                    </lightning-button>
+                                                <div class="sfs-input-block sfs-start-display">
+                                                    <div class="sfs-start-display__label">
+                                                        Start Date/Time
+                                                    </div>
+                                                    <div class="sfs-start-display__value">
+                                                        <lightning-formatted-date-time
+                                                            value={appt.schedStart}
+                                                            year="numeric"
+                                                            month="short"
+                                                            day="2-digit"
+                                                            hour="2-digit"
+                                                            minute="2-digit"
+                                                            time-zone={userTimeZoneId}
+                                                        ></lightning-formatted-date-time>
+                                                    </div>
                                                 </div>
                                             </template>
 
-                                            <template if:true={appt.showScheduleOnCalendar}>
+                                            <template if:true={appt.showQuickSchedule}>
                                                 <div class="sfs-actions sfs-schedule-actions sfs-quick-schedule__actions-inline sfs-option-actions">
                                                     <lightning-button
                                                         variant="neutral"
@@ -667,14 +685,16 @@
                                                         class="sfs-compact-button sfs-option-button"
                                                     >
                                                     </lightning-button>
-                                                    <lightning-button
-                                                        variant="brand"
-                                                        label="Schedule on Calendar"
-                                                        data-id={appt.cardId}
-                                                        onclick={handleScheduleOnCalendar}
-                                                        class="sfs-compact-button sfs-option-button"
-                                                    >
-                                                    </lightning-button>
+                                                    <template if:true={appt.showScheduleOnCalendar}>
+                                                        <lightning-button
+                                                            variant="brand"
+                                                            label="Schedule on Calendar"
+                                                            data-id={appt.cardId}
+                                                            onclick={handleScheduleOnCalendar}
+                                                            class="sfs-compact-button sfs-option-button"
+                                                        >
+                                                        </lightning-button>
+                                                    </template>
                                                 </div>
 
                                                 <template if:true={appt.quickScheduleExpanded}>
@@ -682,7 +702,7 @@
                                                         <lightning-input
                                                             type="datetime-local"
                                                             name="quickScheduleStart"
-                                                            label="Schedule Date/Time"
+                                                            label={appt.quickScheduleDateLabel}
                                                             value={appt.quickScheduleStart}
                                                             data-id={appt.cardId}
                                                             onchange={handleQuickScheduleChange}
@@ -693,7 +713,7 @@
                                                     <div class="sfs-actions sfs-schedule-actions sfs-quick-schedule__footer sfs-option-actions">
                                                         <lightning-button
                                                             variant="brand"
-                                                            label="Schedule"
+                                                            label={appt.quickScheduleActionLabel}
                                                             data-id={appt.cardId}
                                                             onclick={handleQuickSchedule}
                                                             class="sfs-compact-button sfs-option-button"
@@ -1340,6 +1360,9 @@
                         >
                             {selectedAppointment.workOrderSubject}
                         </button>
+                        <span class="sfs-detail-title-helper">
+                            Click to open this work order in the app
+                        </span>
                     </h3>
 
                     <!-- JOB SECTION -->
@@ -1535,40 +1558,39 @@
 
                         <!-- Inline reschedule inside detail sheet -->
                         <div class="sfs-detail-reschedule">
-                            <lightning-input
-                                type="datetime-local"
-                                name="detailStartDateTime"
-                                label="New Start Date/Time"
-                                value={selectedAppointment.newStart}
-                                onchange={handleDetailDateChange}
-                            >
-                            </lightning-input>
-
-                            <lightning-button
-                                variant="brand"
-                                label="Reschedule"
-                                onclick={handleDetailReschedule}
-                                disabled={selectedAppointment.disableSave}
-                            >
-                            </lightning-button>
-                            <lightning-button-menu
-                                alternative-text="More actions"
-                                icon-name="utility:rows"
-                                onselect={handleMoreActionsSelect}
-                                class="sfs-more-actions-menu"
-                                menu-alignment="right"
-                                data-woid={selectedAppointment.workOrderId}
-                                data-id={selectedAppointment.appointmentId}
-                            >
-                                <lightning-menu-item
-                                    value="requestTransfer"
-                                    label="Request Reschedule w/ Another Tech"
-                                ></lightning-menu-item>
-                                <lightning-menu-item
-                                    value="cancelWorkOrder"
-                                    label="Cancel work order"
-                                ></lightning-menu-item>
-                            </lightning-button-menu>
+                            <p class="sfs-detail-note">
+                                Use Quick schedule to change the start date and time.
+                            </p>
+                            <template if:true={selectedAppointmentCanQuickSchedule}>
+                                <lightning-button
+                                    variant="brand"
+                                    label={selectedQuickScheduleLabel}
+                                    onclick={handleOpenQuickScheduleFromDetail}
+                                >
+                                </lightning-button>
+                            </template>
+                                <lightning-button-menu
+                                    alternative-text="More actions"
+                                    icon-name="utility:rows"
+                                    onselect={handleMoreActionsSelect}
+                                    class="sfs-more-actions-menu"
+                                    menu-alignment="right"
+                                    data-woid={selectedAppointment.workOrderId}
+                                    data-id={selectedAppointment.appointmentId}
+                                >
+                                    <lightning-menu-item
+                                        value="requestTransfer"
+                                        label="Request Reschedule w/ Another Tech"
+                                    ></lightning-menu-item>
+                                    <lightning-menu-item
+                                        value="readyForClose"
+                                        label="Ready for Close"
+                                    ></lightning-menu-item>
+                                    <lightning-menu-item
+                                        value="cancelWorkOrder"
+                                        label="Cancel work order"
+                                    ></lightning-menu-item>
+                                </lightning-button-menu>
                         </div>
                     </div>
                 </article>
@@ -1813,6 +1835,46 @@
                             variant="neutral"
                             label="Keep work order"
                             onclick={closeCancelModal}
+                        ></lightning-button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <template if:true={isReadyForCloseModalOpen}>
+            <div class="sfs-modal-backdrop" onclick={closeReadyForCloseModal}>
+                <div class="sfs-modal" onclick={handleDetailCardClick}>
+                    <div class="sfs-modal-header">
+                        <h3 class="sfs-modal-title">Mark Ready for Close</h3>
+                        <button
+                            class="sfs-modal-close"
+                            type="button"
+                            onclick={closeReadyForCloseModal}
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    <p class="sfs-modal-copy">
+                        Add any notes for operations before marking this work order Ready for Close. Notes are optional.
+                    </p>
+                    <lightning-textarea
+                        name="readyForCloseNotes"
+                        label="Notes (optional)"
+                        value={readyForCloseNotes}
+                        onchange={handleReadyForCloseNotesChange}
+                        maxlength="1000"
+                    ></lightning-textarea>
+                    <div class="sfs-actions sfs-modal-actions">
+                        <lightning-button
+                            variant="brand"
+                            label="Send to operations"
+                            onclick={submitReadyForClose}
+                            disabled={readyForCloseSubmitDisabled}
+                        ></lightning-button>
+                        <lightning-button
+                            variant="neutral"
+                            label="Keep working"
+                            onclick={closeReadyForCloseModal}
                         ></lightning-button>
                     </div>
                 </div>

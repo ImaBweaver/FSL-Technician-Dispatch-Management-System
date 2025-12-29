@@ -204,6 +204,18 @@
     flex-wrap: wrap;
 }
 
+.sfs-visit-pill {
+    display: inline-block;
+    padding: 0.2rem 0.55rem;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    border-radius: 999px;
+    background: #002c8f;
+    color: white;
+    text-transform: uppercase;
+}
+
 .sfs-transfer-header {
     justify-content: space-between;
 }
@@ -381,6 +393,17 @@
 
 .sfs-input-block {
     margin-top: 0.6rem;
+}
+
+.sfs-start-display__label {
+    font-weight: 600;
+    display: block;
+    margin-bottom: 0.1rem;
+}
+
+.sfs-start-display__value {
+    color: var(--lwc-colorTextDefault, #080707);
+    font-size: 0.95rem;
 }
 
 /* keep the lightning-input nicely contained */
@@ -833,6 +856,13 @@
     gap: 0.75rem;
 }
 
+.sfs-list-mode__right {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
 .sfs-view-combobox {
     --slds-c-combobox-menu-min-width: 14rem;
     --slds-c-combobox-sizing-min-width: 14rem;
@@ -849,6 +879,14 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.35rem;
+}
+
+.sfs-collapse-all-btn {
+    --slds-c-button-neutral-spacing-inline-start: 0.85rem;
+    --slds-c-button-neutral-spacing-inline-end: 0.85rem;
+    min-width: 7.5rem;
+    white-space: nowrap;
+    justify-self: flex-end;
 }
 
 .sfs-mode-chip {
@@ -1309,6 +1347,9 @@
     margin: 0 0 0.4rem 0;
     font-size: 0.95rem;
     font-weight: 600;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
 }
 
 .sfs-detail-title-link {
@@ -1321,6 +1362,12 @@
     color: #0070d2;
     text-decoration: underline;
     cursor: pointer;
+}
+
+.sfs-detail-title-helper {
+    font-size: 0.8rem;
+    color: #4b596c;
+    font-weight: 400;
 }
 
 .sfs-detail-line {
@@ -1350,6 +1397,12 @@
     flex-direction: column;
     gap: 0.35rem;
     width: 92.5%;
+}
+
+.sfs-detail-note {
+    margin: 0;
+    color: #3e3e3c;
+    font-size: 0.85rem;
 }
 
 .sfs-request-reschedule-btn {
@@ -1460,20 +1513,17 @@
     margin-bottom: 0.25rem;
 }
 
-.sfs-info-button lightning-icon {
-    fill: #1b96ff;
-}
-
 .sfs-info-button {
-    --slds-c-icon-color-foreground-default: #1b96ff;
-    --slds-c-icon-color-foreground: #1b96ff;
-    --slds-c-button-color-border: transparent;
-    --slds-c-button-icon-spacing-inline-start: 0;
-    --slds-c-button-icon-spacing-inline-end: 0;
-    --slds-c-button-size: auto;
+    border: none;
+    background: none;
+    color: #1b96ff;
+    font-size: 0.75rem;
+    line-height: 1.1;
     padding: 0;
     margin: 0;
     min-height: auto;
+    white-space: nowrap;
+    cursor: pointer;
 }
 
 .sfs-line_address .sfs-label {
