@@ -185,9 +185,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     ];
     quoteLineItemsExpanded = {};
 
-    // My-tab status filter (WorkOrder.Status)
-    selectedMyStatus = 'all';
-
     // For auto-centering timeline
     hasAutoCentered = false;
     todayDayIndex = null;
@@ -530,37 +527,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         ).length;
     }
 
-    // Status options for My tab filter (WorkOrder.Status)
-    get myStatusOptions() {
-        const statuses = new Set();
-
-        this.appointments.forEach(a => {
-            const anyFlagged = a.isMyAssignment || a.isCrewAssignment;
-            let isMy = false;
-
-            if (anyFlagged) {
-                isMy = a.isMyAssignment && !a.isCrewAssignment;
-            } else {
-                isMy = true;
-            }
-
-            if (isMy && a.workOrderStatus) {
-                statuses.add(a.workOrderStatus);
-            }
-        });
-
-        // Always offer Ready for Close filter even if not yet seen in session
-        statuses.add('Ready for Close');
-
-        const statusArray = Array.from(statuses).sort();
-        const options = statusArray.map(s => ({
-            label: s,
-            value: s
-        }));
-
-        return [{ label: 'All', value: 'all' }, ...options];
-    }
-
     get ownedAppointments() {
         if (!this.appointments) return [];
 
@@ -588,12 +554,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     get needQuoteCount() {
         return (
             this.ownedAppointments.filter(appt =>
-                appt.workOrderStatus === 'Need Quote' ||
-                appt.workOrderStatus === 'Quote and Ship'
+                appt.workOrderStatus === 'Need Quote'
             ).length +
-            this.quoteWorkOrders.filter(wo =>
-                wo.workOrderStatus === 'Need Quote' ||
-                wo.workOrderStatus === 'Quote and Ship'
+            this.quoteWorkOrders.filter(
+                wo => wo.workOrderStatus === 'Need Quote'
             ).length
         );
     }
@@ -668,15 +632,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
             case 'needQuote':
                 baseList = ownedAppointments
-                    .filter(appt =>
-                        appt.workOrderStatus === 'Need Quote' ||
-                        appt.workOrderStatus === 'Quote and Ship'
-                    )
+                    .filter(appt => appt.workOrderStatus === 'Need Quote')
                     .concat(
                         quoteWorkOrders.filter(
-                            wo =>
-                                wo.workOrderStatus === 'Need Quote' ||
-                                wo.workOrderStatus === 'Quote and Ship'
+                            wo => wo.workOrderStatus === 'Need Quote'
                         )
                     );
                 break;
@@ -722,18 +681,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             }
         }
 
-        if (
-            this.listMode === 'my' &&
-            this.selectedMyStatus &&
-            this.selectedMyStatus !== 'all'
-        ) {
-            baseList = baseList.filter(
-                a => a.workOrderStatus === this.selectedMyStatus
-            );
-        }
-
-        const allowScheduleOnCalendar = this.allowScheduleActionsOnCalendar;
-
         return baseList.map(item => {
             const isQuickScheduleExpanded = Boolean(
                 this.quickScheduleExpanded[item.cardId]
@@ -758,6 +705,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 ...item,
                 quoteLineItems
             });
+            const groupedQuoteLineItems = this.groupQuoteLineItems(
+                quoteLineItems
+            );
             const quoteLineItemsToggleLabel = quoteLineItemsExpanded
                 ? 'Hide requested parts'
                 : 'Show requested parts';
@@ -770,8 +720,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 isQuickScheduleExpanded
             );
 
-            const showQuickSchedule =
-                allowScheduleOnCalendar || item.hasAppointment;
+            const showScheduleActions = this.shouldShowScheduleActions(item);
 
             return {
                 ...item,
@@ -783,8 +732,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 completedVisitCount,
                 visitNumber,
                 visitLabel,
-                showScheduleOnCalendar: allowScheduleOnCalendar,
-                showQuickSchedule,
+                showScheduleOnCalendar: showScheduleActions,
+                showQuickSchedule: showScheduleActions,
                 quickScheduleStart,
                 quickScheduleExpanded: isQuickScheduleExpanded,
                 quickScheduleLabel,
@@ -793,7 +742,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 cardClass: 'sfs-card',
                 hasLineItemTracking,
                 resolvedTrackingNumber,
-                showResolvedTracking: Boolean(resolvedTrackingNumber)
+                showResolvedTracking: Boolean(resolvedTrackingNumber),
+                groupedQuoteLineItems
             };
         });
     }
@@ -938,6 +888,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     `Visit ${wo.visitNumber || (wo.completedVisitCount || 0) + 1}`,
                 workOrderId: wo.workOrderId,
                 workOrderStatus: wo.status,
+                workOrderStage: wo.workOrderStage || wo.stage,
                 workOrderNumber: wo.workOrderNumber,
                 workOrderSubject: wo.subject,
                 accountName: wo.accountName,
@@ -979,6 +930,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 workOrderId: wo.workOrderId,
                 workOrderSubject: wo.workOrderSubject || wo.subject,
                 workOrderStatus: wo.workOrderStatus || wo.status,
+                workOrderStage: wo.workOrderStage || wo.stage,
                 workOrderNumber: wo.workOrderNumber,
                 workTypeName: wo.workTypeName,
                 workTypeClass: `sfs-worktype ${typeClass || ''}`.trim(),
@@ -1011,15 +963,13 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             appt.status ||
             ''
         ).toLowerCase();
-        const hasAttachment = appt.hasQuoteAttachment || Boolean(
-            appt.quoteAttachmentUrl ||
-                appt.quoteAttachmentDownloadUrl ||
-                appt.quoteAttachmentDocumentId
-        );
+        const stage = (appt.workOrderStage || appt.stage || '').toLowerCase();
 
-        return status.startsWith('quote attached') ||
-            status === 'po attached' ||
-            (status === 'need quote' && hasAttachment);
+        if (stage === 'quote attached') {
+            return true;
+        }
+
+        return status.startsWith('quote attached') || status === 'po attached';
     }
 
     shouldShowMarkPoAttached(record) {
@@ -1049,6 +999,55 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             lineType: item.lineType || '',
             trackingNumber: item.trackingNumber || ''
         }));
+    }
+
+    groupQuoteLineItems(lines) {
+        if (!lines || !lines.length) {
+            return [];
+        }
+
+        const priority = [
+            'Quote and Ship',
+            'Part Assigned',
+            'Part Enroute',
+            'Need Quote',
+            'Part Quoted'
+        ];
+
+        const groups = new Map();
+
+        lines.forEach(line => {
+            const label = (line?.lineType || '').trim() || 'Other';
+            const key = label.toLowerCase();
+            const priorityIndex = priority.findIndex(
+                type => type.toLowerCase() === key
+            );
+
+            if (!groups.has(key)) {
+                groups.set(key, {
+                    key,
+                    label,
+                    priorityIndex:
+                        priorityIndex === -1 ? priority.length : priorityIndex,
+                    lines: []
+                });
+            }
+
+            groups.get(key).lines.push({
+                ...line,
+                lineTypeLabel: label || '—'
+            });
+        });
+
+        return Array.from(groups.values())
+            .sort((a, b) => {
+                if (a.priorityIndex === b.priorityIndex) {
+                    return a.label.localeCompare(b.label);
+                }
+
+                return a.priorityIndex - b.priorityIndex;
+            })
+            .map(({ priorityIndex, ...rest }) => rest);
     }
 
     shouldShowQuoteLineItems(record) {
@@ -1309,14 +1308,19 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return false;
         }
 
+        const canShow = this.shouldShowScheduleActions(this.selectedAppointment);
+
         if (this.selectedAppointment.showQuickSchedule !== undefined) {
-            return this.selectedAppointment.showQuickSchedule;
+            return (
+                canShow && this.selectedAppointment.showQuickSchedule
+            );
         }
 
-        return (
-            this.selectedAppointment.hasAppointment ||
-            this.allowScheduleActionsOnCalendar
-        );
+        return canShow;
+    }
+
+    get showScheduleActionsInListMode() {
+        return this.listMode !== 'my' && this.listMode !== 'readyForClose';
     }
 
     get isCrewMode() {
@@ -1328,11 +1332,19 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     get allowScheduleActionsOnCalendar() {
-        return (
-            this.listMode === 'unscheduled' ||
-            this.listMode === 'partsReady' ||
-            this.listMode === 'quoteSent'
-        );
+        return this.showScheduleActionsInListMode;
+    }
+
+    shouldShowScheduleActions(item) {
+        if (!this.showScheduleActionsInListMode) {
+            return false;
+        }
+
+        if (!item) {
+            return false;
+        }
+
+        return item.workOrderStatus !== 'Ready for Close';
     }
 
     get listModeOptions() {
@@ -3826,6 +3838,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                         wo.needsReturnVisitScheduling
                     );
                     clone.workOrderSubject = wo.subject;
+                    clone.workOrderStage =
+                        wo.workOrderStage || wo.stage || null;
                     clone.cardId = `wo-${wo.workOrderId}`;
                     clone.hasAppointment = false;
                     clone.completedVisitCount = wo.completedVisitCount || 0;
@@ -3911,6 +3925,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                         '/view';
 
                     clone.workOrderStatus = appt.workOrderStatus;
+                    clone.workOrderStage =
+                        appt.workOrderStage || appt.stage || null;
 
                     clone.isExpanded = false;
 
@@ -4796,10 +4812,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             .finally(() => {
                 this.isLoading = false;
             });
-    }
-
-    handleMyStatusChange(event) {
-        this.selectedMyStatus = event.detail.value;
     }
 
     handleCrewMemberChange(event) {
