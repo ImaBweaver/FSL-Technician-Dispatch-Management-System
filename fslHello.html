@@ -464,16 +464,15 @@
                                                 <p class="sfs-line">
                                                     <span class="sfs-label">Tracking</span>
                                                     <span class="sfs-value sfs-value_tracking">
-                                                        <span class="sfs-tracking-text">
-                                                            {appt.resolvedTrackingNumber}
-                                                        </span>
                                                         <button
                                                             type="button"
-                                                            class="sfs-tracking-copy"
+                                                            class="sfs-tracking-link"
                                                             data-tracking={appt.resolvedTrackingNumber}
                                                             onclick={handleCopyTracking}
+                                                            title="Copy tracking number"
+                                                            aria-label="Copy tracking number"
                                                         >
-                                                            Copy
+                                                            {appt.resolvedTrackingNumber}
                                                         </button>
                                                     </span>
                                                 </p>
@@ -520,16 +519,15 @@
                                                                             <td>{line.productName}</td>
                                                                             <td class="sfs-quote-lines__tracking">
                                                                                 <template if:true={line.trackingNumber}>
-                                                                                    <span class="sfs-quote-lines__tracking-value">
-                                                                                        {line.trackingNumber}
-                                                                                    </span>
                                                                                     <button
                                                                                         type="button"
-                                                                                        class="sfs-tracking-copy"
+                                                                                        class="sfs-tracking-link sfs-tracking-link_table"
                                                                                         data-tracking={line.trackingNumber}
                                                                                         onclick={handleCopyTracking}
+                                                                                        title="Copy tracking number"
+                                                                                        aria-label="Copy tracking number"
                                                                                     >
-                                                                                        Copy
+                                                                                        {line.trackingNumber}
                                                                                     </button>
                                                                                 </template>
                                                                                 <template if:false={line.trackingNumber}>
