@@ -1257,15 +1257,19 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             detour.detourComplete
         );
 
-        const completedSteps = mainSteps.filter(step => step.variant === 'done').length;
-        const activeIndex = mainSteps.findIndex(step => step.variant === 'current');
-        const segmentCount = Math.max(mainSteps.length - 1, 1);
+        const progressSteps =
+            detour.hasDetour && !detour.detourComplete && detour.steps.length
+                ? detour.steps
+                : mainSteps;
+        const completedSteps = progressSteps.filter(step => step.variant === 'done').length;
+        const activeIndex = progressSteps.findIndex(step => step.variant === 'current');
+        const segmentCount = Math.max(progressSteps.length - 1, 1);
         const progressPortion = completedSteps + (activeIndex >= 0 ? 0.5 : 0);
         const progressPercent = Math.min(
             100,
             Math.max(0, Math.round((progressPortion / segmentCount) * 100))
         );
-        const progressLabel = `${completedSteps} of ${mainSteps.length} steps`;
+        const progressLabel = `${completedSteps} of ${progressSteps.length} steps`;
         const stepsForSummary =
             detour.hasDetour && !detour.detourComplete && detour.steps.length
                 ? detour.steps
