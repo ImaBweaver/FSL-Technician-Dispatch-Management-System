@@ -6653,6 +6653,17 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return workOrderId;
     }
 
+    openWorkOrderFromActionMenu(appointmentId, workOrderId) {
+        if (appointmentId) {
+            this.navigateToServiceAppointment(appointmentId, workOrderId);
+            return;
+        }
+
+        if (workOrderId) {
+            this.navigateToWorkOrderRecord(workOrderId);
+        }
+    }
+
     handleRequestReschedule(event) {
         const workOrderId = this.getWorkOrderIdFromContext(event);
 
@@ -6666,8 +6677,13 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     handleMoreActionsSelect(event) {
         event.stopPropagation();
         const action = event.detail.value;
-        const workOrderId = this.getWorkOrderIdFromContext(event);
         const appointmentId = event.currentTarget.dataset.id;
+        const workOrderId = this.getWorkOrderIdFromContext(event);
+
+        if (action === 'openInApp') {
+            this.openWorkOrderFromActionMenu(appointmentId, workOrderId);
+            return;
+        }
 
         if (!workOrderId) {
             return;

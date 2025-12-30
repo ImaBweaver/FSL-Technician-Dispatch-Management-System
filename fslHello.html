@@ -329,6 +329,10 @@
                                                 data-woid={appt.workOrderId}
                                                 data-id={appt.appointmentId}
                                             >
+                                                <lightning-menu-item
+                                                    value="openInApp"
+                                                    label="Open in app"
+                                                ></lightning-menu-item>
                                                 <template if:true={appt.hasAppointment}>
                                                     <lightning-menu-item
                                                         value="unassign"
@@ -1749,6 +1753,10 @@
                                     data-woid={selectedAppointment.workOrderId}
                                     data-id={selectedAppointment.appointmentId}
                                 >
+                                    <lightning-menu-item
+                                        value="openInApp"
+                                        label="Open in app"
+                                    ></lightning-menu-item>
                                     <lightning-menu-item
                                         value="requestTransfer"
                                         label="Request Reschedule w/ Another Tech"
