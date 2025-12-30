@@ -354,8 +354,7 @@
                                             </lightning-button-menu>
                                         </div>
 
-                                        <div class="sfs-card-body">
-                                            <div class="sfs-journey sfs-journey_compact">
+                                        <div class="sfs-card-body">                                         
                                                 <div class="sfs-journey__compact-header">
                                                     <template if:true={appt.journey.isOnHold}>
                                                         <span class="sfs-journey__badge sfs-journey__badge_hold">
@@ -363,14 +362,6 @@
                                                         </span>
                                                     </template>
                                                 </div>
-                                                <div
-                                                    class="sfs-journey__progress"
-                                                    role="progressbar"
-                                                    aria-valuemin="0"
-                                                    aria-valuemax="100"
-                                                    aria-valuenow={appt.journey.progressPercent}
-                                                    aria-label="Quote progress"
-                                                >
                                                     <div class="sfs-journey__progress-track">
                                                         <span
                                                             class="sfs-journey__progress-fill"
@@ -385,12 +376,11 @@
                                                             Next: {appt.journey.nextLabel}
                                                         </span>
                                                     </div>
-                                                </div>
-                                            </div>
+                                                    <br/>
                                             <!-- Subject opens the bottom sheet -->
                                             <div class="sfs-line sfs-wo-line">
-                                                <span class="sfs-label">WO #</span>
-                                                <span class="sfs-value">
+                                                <span class=".sfs-label-WOLabel">WO #</span>
+                                                <span class="sfs-value-wonumber">
                                                     <template if:true={appt.workOrderNumber}>
                                                         {appt.workOrderNumber}
                                                     </template>
