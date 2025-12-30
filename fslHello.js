@@ -990,6 +990,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return parts.join(', ');
     }
 
+    hasStreetValue(record) {
+        return Boolean(this.normalizeAddressValue(record?.street));
+    }
+
     hasCompleteAddress(record) {
         if (!record) {
             return false;
@@ -1056,6 +1060,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 workOrderSubject: wo.subject,
                 accountName: wo.accountName,
                 fullAddress: wo.fullAddress,
+                hasFullAddress: this.hasStreetValue(wo),
                 opportunityRecordType: wo.opportunityRecordType,
                 quoteLineItems: this.normalizeQuoteLineItems(wo.quoteLineItems),
                 quoteAttachmentUrl: wo.quoteAttachmentDownloadUrl || null,
@@ -4372,7 +4377,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                         wo.opportunityTrackingNumber || null;
 
                     clone.fullAddress = this.composeFullAddress(wo);
-                    clone.hasFullAddress = Boolean(clone.fullAddress);
+                    clone.hasFullAddress = this.hasStreetValue(wo);
                     return clone;
                 });
 
@@ -4465,7 +4470,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                         appt.opportunityTrackingNumber || null;
 
                     clone.fullAddress = this.composeFullAddress(appt);
-                    clone.hasFullAddress = Boolean(clone.fullAddress);
+                    clone.hasFullAddress = this.hasStreetValue(appt);
 
                     const crewMembers = appt.crewMembers || [];
                     clone.crewMembers = crewMembers;
@@ -6391,7 +6396,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     ...appt,
                     ...address,
                     fullAddress,
-                    hasFullAddress: Boolean(fullAddress)
+                    hasFullAddress: this.hasStreetValue(address)
                 };
             }
             return appt;
@@ -6405,7 +6410,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                         ...wo,
                         ...address,
                         fullAddress,
-                        hasFullAddress: Boolean(fullAddress)
+                        hasFullAddress: this.hasStreetValue(address)
                     };
                 }
                 return wo;
@@ -6424,7 +6429,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 ...this.selectedAppointment,
                 ...address,
                 fullAddress,
-                hasFullAddress: Boolean(fullAddress)
+                hasFullAddress: this.hasStreetValue(address)
             };
         }
 
@@ -7454,6 +7459,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             postalCode: req.postalCode,
             country: req.country
         });
+        clone.hasFullAddress = this.hasStreetValue(req);
 
         const statusMeta = this.getTransferStatusMeta(req);
         clone.statusLabel = statusMeta.statusLabel;
