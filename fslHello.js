@@ -4372,6 +4372,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                         wo.opportunityTrackingNumber || null;
 
                     clone.fullAddress = this.composeFullAddress(wo);
+                    clone.hasFullAddress = Boolean(clone.fullAddress);
                     return clone;
                 });
 
@@ -4464,6 +4465,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                         appt.opportunityTrackingNumber || null;
 
                     clone.fullAddress = this.composeFullAddress(appt);
+                    clone.hasFullAddress = Boolean(clone.fullAddress);
 
                     const crewMembers = appt.crewMembers || [];
                     clone.crewMembers = crewMembers;
@@ -6384,10 +6386,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 (workOrderId && appt.workOrderId === workOrderId) ||
                 (appointmentId && appt.appointmentId === appointmentId)
             ) {
+                const fullAddress = address.fullAddress;
                 return {
                     ...appt,
                     ...address,
-                    fullAddress: address.fullAddress
+                    fullAddress,
+                    hasFullAddress: Boolean(fullAddress)
                 };
             }
             return appt;
@@ -6396,10 +6400,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.unscheduledWorkOrders = (this.unscheduledWorkOrders || []).map(
             wo => {
                 if (wo.workOrderId === workOrderId) {
+                    const fullAddress = address.fullAddress;
                     return {
                         ...wo,
                         ...address,
-                        fullAddress: address.fullAddress
+                        fullAddress,
+                        hasFullAddress: Boolean(fullAddress)
                     };
                 }
                 return wo;
@@ -6413,10 +6419,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 (appointmentId &&
                     this.selectedAppointment.appointmentId === appointmentId))
         ) {
+            const fullAddress = address.fullAddress;
             this.selectedAppointment = {
                 ...this.selectedAppointment,
                 ...address,
-                fullAddress: address.fullAddress
+                fullAddress,
+                hasFullAddress: Boolean(fullAddress)
             };
         }
 
