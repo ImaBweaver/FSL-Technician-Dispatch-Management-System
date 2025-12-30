@@ -865,8 +865,8 @@
 }
 
 .sfs-label-WOLabel {
-    font-weight: 600;
-    font-size: 40px !important;
+    font-weight: 700;
+    font-size: 1.05rem;
 }
 
 .sfs-value {
@@ -875,8 +875,8 @@
 
 .sfs-value-wonumber {
     text-align: right;
-    font-weight: 600;
-    font-size: 20;
+    font-weight: 700;
+    font-size: 1.5rem;
 }
 
 .sfs-value_left {
@@ -2000,7 +2000,7 @@
     margin: 0;
     border: none;
     background: transparent;
-    font-size: 0.9rem;
+    font-size: 1.05rem;
     font-weight: 600;
     color: #080707;
     cursor: pointer;
