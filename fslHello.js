@@ -17,6 +17,7 @@ import markWorkOrderPoAttached from '@salesforce/apex/FslTechnicianOnlineControl
 import markWorkOrderReadyForClose from '@salesforce/apex/FslTechnicianOnlineController.markWorkOrderReadyForClose';
 import updateResourceAbsence from '@salesforce/apex/FslTechnicianOnlineController.updateResourceAbsence';
 import deleteResourceAbsence from '@salesforce/apex/FslTechnicianOnlineController.deleteResourceAbsence';
+import updateWorkOrderAddress from '@salesforce/apex/FslTechnicianOnlineController.updateWorkOrderAddress';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
 export default class FslHello extends NavigationMixin(LightningElement) {
@@ -174,6 +175,21 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     quickQuoteFlowApiName = 'FSL_Action_Quick_Quote_2';
     quickQuoteQuickActionApiName = 'QuickCreateQuote';
     quickQuoteFlowExtensionName = '';
+    // Address modal state
+    isAddressModalOpen = false;
+    addressSaving = false;
+    addressModalWorkOrderId = null;
+    addressModalAppointmentId = null;
+    addressModalCardId = null;
+    addressForm = {
+        street: '',
+        city: '',
+        state: '',
+        country: 'United States',
+        postalCode: ''
+    };
+    addressHelpCardId = null;
+    _addressHelpTimeout = null;
 
     quoteStatuses = [
         'Need Quote',
@@ -752,6 +768,34 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             const journeyToggleTitle = journeyExpanded
                 ? 'Hide full checklist'
                 : 'View full checklist';
+            const hasCompleteAddress = this.hasCompleteAddress(item);
+            const scheduleDisabled = !hasCompleteAddress;
+            const scheduleBlockedReason = this.getAddressBlockedReason(item);
+            const showAddressHelpBubble = this.addressHelpCardId === item.cardId;
+            const scheduleActionsClass = [
+                'sfs-actions',
+                'sfs-schedule-actions',
+                'sfs-quick-schedule__actions-inline',
+                'sfs-option-actions',
+                scheduleDisabled ? 'sfs-schedule-actions_disabled' : ''
+            ]
+                .filter(Boolean)
+                .join(' ');
+            const quickScheduleButtonClass = [
+                'sfs-compact-button',
+                'sfs-option-button',
+                scheduleDisabled ? 'sfs-option-button_disabled' : ''
+            ]
+                .filter(Boolean)
+                .join(' ');
+            const calendarButtonClass = [
+                'sfs-compact-button',
+                'sfs-option-button',
+                'sfs-option-button_primary',
+                scheduleDisabled ? 'sfs-option-button_disabled' : ''
+            ]
+                .filter(Boolean)
+                .join(' ');
 
             return {
                 ...item,
@@ -778,7 +822,14 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 journey,
                 journeyExpanded,
                 journeyToggleLabel,
-                journeyToggleTitle
+                journeyToggleTitle,
+                hasCompleteAddress,
+                scheduleDisabled,
+                scheduleBlockedReason,
+                scheduleActionsClass,
+                quickScheduleButtonClass,
+                calendarButtonClass,
+                showAddressHelpBubble
             };
         });
     }
@@ -903,6 +954,64 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const subject =
             (record.workOrderSubject || record.subject || '').trim();
         return subject.length > 0;
+    }
+
+    normalizeAddressValue(value) {
+        return (value || '').toString().trim();
+    }
+
+    composeFullAddress({ street, city, state, postalCode, country }) {
+        const parts = [
+            this.normalizeAddressValue(street),
+            this.normalizeAddressValue(city),
+            this.normalizeAddressValue(state),
+            this.normalizeAddressValue(postalCode),
+            this.normalizeAddressValue(country)
+        ].filter(Boolean);
+        return parts.join(', ');
+    }
+
+    hasCompleteAddress(record) {
+        if (!record) {
+            return false;
+        }
+
+        const street = this.normalizeAddressValue(record.street);
+        const city = this.normalizeAddressValue(record.city);
+        const state = this.normalizeAddressValue(record.state);
+        const postalCode = this.normalizeAddressValue(record.postalCode);
+        const country = this.normalizeAddressValue(record.country);
+
+        return (
+            Boolean(street) &&
+            Boolean(city) &&
+            Boolean(state) &&
+            Boolean(postalCode) &&
+            Boolean(country)
+        );
+    }
+
+    getAddressBlockedReason(record) {
+        if (this.hasCompleteAddress(record)) {
+            return null;
+        }
+
+        return 'Enter the full address before scheduling.';
+    }
+
+    showAddressRequiredHelp(cardId = null) {
+        this.addressHelpCardId = cardId;
+        this.safeClearTimeout(this._addressHelpTimeout);
+
+        this._addressHelpTimeout = this.safeSetTimeout(() => {
+            this.addressHelpCardId = null;
+        }, 4000);
+
+        this.showToast(
+            'Add address',
+            'Enter the full address before scheduling.',
+            'warning'
+        );
     }
 
     get quoteWorkOrders() {
@@ -1647,6 +1756,33 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         return canShow;
+    }
+
+    get selectedAppointmentScheduleBlocked() {
+        return !this.hasCompleteAddress(this.selectedAppointment);
+    }
+
+    get selectedScheduleBlockedReason() {
+        return this.getAddressBlockedReason(this.selectedAppointment);
+    }
+
+    get selectedAddressHelpVisible() {
+        const cardId = this.selectedQuickScheduleCardId;
+        return cardId ? this.addressHelpCardId === cardId : false;
+    }
+
+    get selectedDetailQuickScheduleClass() {
+        return this.selectedAppointmentScheduleBlocked
+            ? 'sfs-option-button sfs-option-button_disabled'
+            : 'sfs-option-button';
+    }
+
+    get isAddressFormValid() {
+        return this.hasCompleteAddress(this.addressForm);
+    }
+
+    get addressSubmitDisabled() {
+        return this.addressSaving || !this.isAddressFormValid;
     }
 
     get showScheduleActionsInListMode() {
@@ -2488,6 +2624,16 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const card = event.currentTarget;
         const workOrderId = card.dataset && card.dataset.woid;
         if (!workOrderId) {
+            return;
+        }
+
+        const addressSource = (this.unscheduledWorkOrders || []).find(
+            wo => wo.workOrderId === workOrderId
+        );
+
+        if (!this.hasCompleteAddress(addressSource)) {
+            const cardId = addressSource ? addressSource.cardId : workOrderId;
+            this.showAddressRequiredHelp(cardId);
             return;
         }
 
@@ -5472,7 +5618,27 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
+        if (!this.hasCompleteAddress(appt)) {
+            this.showAddressRequiredHelp(id);
+            return;
+        }
+
         this.rescheduleExistingAppointment(id, appt.newStart);
+    }
+
+    handleScheduleActionClick(event) {
+        const isBlocked =
+            event?.currentTarget?.dataset?.blocked === 'true' ||
+            event?.currentTarget?.dataset?.blocked === true;
+
+        if (!isBlocked || event.target !== event.currentTarget) {
+            return;
+        }
+
+        const cardId = event?.currentTarget?.dataset?.id || null;
+        this.showAddressRequiredHelp(cardId);
+        event.stopPropagation();
+        event.preventDefault();
     }
 
     handleScheduleOnCalendar(event) {
@@ -5488,6 +5654,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const target = this.findAppointmentByCardId(cardId);
 
         if (!target) {
+            return;
+        }
+
+        if (!this.hasCompleteAddress(target)) {
+            this.showAddressRequiredHelp(cardId);
             return;
         }
 
@@ -5507,6 +5678,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
+        const appt = this.findAppointmentByCardId(cardId);
+        if (!this.hasCompleteAddress(appt)) {
+            this.showAddressRequiredHelp(cardId);
+            return;
+        }
+
         const isExpanded = Boolean(this.quickScheduleExpanded[cardId]);
         const nextExpanded = !isExpanded;
         this.quickScheduleExpanded = {
@@ -5515,7 +5692,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         };
 
         if (nextExpanded) {
-            const appt = this.findAppointmentByCardId(cardId);
             this.ensureQuickScheduleSelection(cardId, appt);
         }
     }
@@ -5545,6 +5721,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         const startValue = this.quickScheduleSelections[cardId];
+        const appt = this.findAppointmentByCardId(cardId);
+
+        if (!this.hasCompleteAddress(appt)) {
+            this.showAddressRequiredHelp(cardId);
+            return;
+        }
 
         if (!startValue) {
             this.showToast(
@@ -5597,6 +5779,13 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     startScheduleOnCalendar(target) {
         if (!target) {
+            return;
+        }
+
+        const cardId = target.cardId || target.appointmentId || target.workOrderId;
+
+        if (!this.hasCompleteAddress(target)) {
+            this.showAddressRequiredHelp(cardId);
             return;
         }
 
@@ -6037,10 +6226,192 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         event.stopPropagation();
     }
 
+    // ======= ADDRESS EDITING =======
+
+    openAddressModal(event) {
+        const dataset = event?.currentTarget?.dataset || {};
+        const cardId = dataset.id || dataset.cardId || null;
+        const workOrderId = dataset.woid || dataset.workorderid || null;
+        const appointmentId =
+            dataset.appointmentId || dataset.appointmentid || null;
+
+        const record =
+            this.findAppointmentByCardId(cardId) ||
+            (workOrderId
+                ? (this.unscheduledWorkOrders || []).find(
+                      wo => wo.workOrderId === workOrderId
+                  )
+                : null);
+
+        this.addressForm = {
+            street: this.normalizeAddressValue(record?.street),
+            city: this.normalizeAddressValue(record?.city),
+            state: this.normalizeAddressValue(record?.state),
+            country:
+                this.normalizeAddressValue(record?.country) || 'United States',
+            postalCode: this.normalizeAddressValue(record?.postalCode)
+        };
+
+        this.addressModalWorkOrderId =
+            workOrderId || record?.workOrderId || null;
+        this.addressModalAppointmentId =
+            appointmentId || record?.appointmentId || null;
+        this.addressModalCardId = cardId;
+        this.isAddressModalOpen = true;
+        this.addressSaving = false;
+    }
+
+    closeAddressModal() {
+        this.isAddressModalOpen = false;
+        this.addressSaving = false;
+        this.addressModalWorkOrderId = null;
+        this.addressModalAppointmentId = null;
+        this.addressModalCardId = null;
+        this.addressForm = {
+            street: '',
+            city: '',
+            state: '',
+            country: 'United States',
+            postalCode: ''
+        };
+    }
+
+    handleAddressInputChange(event) {
+        const field = event.target.name;
+        const value =
+            (event.detail && event.detail.value) || event.target.value || '';
+
+        this.addressForm = {
+            ...this.addressForm,
+            [field]: value
+        };
+    }
+
+    submitAddressUpdate() {
+        const workOrderId = this.addressModalWorkOrderId;
+        const serviceAppointmentId = this.addressModalAppointmentId;
+
+        if (!workOrderId) {
+            this.showToast(
+                'Missing work order',
+                'Select a work order before saving the address.',
+                'error'
+            );
+            return;
+        }
+
+        if (!this.hasCompleteAddress(this.addressForm)) {
+            this.showToast(
+                'Add address',
+                'Street, City, State, Postal Code, and Country are required.',
+                'warning'
+            );
+            return;
+        }
+
+        this.addressSaving = true;
+
+        updateWorkOrderAddress({
+            workOrderId,
+            serviceAppointmentId,
+            street: this.addressForm.street,
+            city: this.addressForm.city,
+            state: this.addressForm.state,
+            postalCode: this.addressForm.postalCode,
+            country: this.addressForm.country
+        })
+            .then(result => {
+                this.applyAddressUpdate(result);
+                this.showToast(
+                    'Address saved',
+                    'The work order address was updated.',
+                    'success'
+                );
+                this.closeAddressModal();
+            })
+            .catch(error => {
+                const message = this.reduceError(error);
+                this.showToast('Error saving address', message, 'error');
+            })
+            .finally(() => {
+                this.addressSaving = false;
+            });
+    }
+
+    applyAddressUpdate(result) {
+        if (!result) {
+            return;
+        }
+
+        const address = {
+            street: this.normalizeAddressValue(result.street),
+            city: this.normalizeAddressValue(result.city),
+            state: this.normalizeAddressValue(result.state),
+            country:
+                this.normalizeAddressValue(result.country) || 'United States',
+            postalCode: this.normalizeAddressValue(result.postalCode)
+        };
+
+        address.fullAddress = this.composeFullAddress(address);
+
+        const workOrderId = result.workOrderId;
+        const appointmentId = result.serviceAppointmentId;
+
+        this.appointments = (this.appointments || []).map(appt => {
+            if (
+                (workOrderId && appt.workOrderId === workOrderId) ||
+                (appointmentId && appt.appointmentId === appointmentId)
+            ) {
+                return {
+                    ...appt,
+                    ...address,
+                    fullAddress: address.fullAddress
+                };
+            }
+            return appt;
+        });
+
+        this.unscheduledWorkOrders = (this.unscheduledWorkOrders || []).map(
+            wo => {
+                if (wo.workOrderId === workOrderId) {
+                    return {
+                        ...wo,
+                        ...address,
+                        fullAddress: address.fullAddress
+                    };
+                }
+                return wo;
+            }
+        );
+
+        if (
+            this.selectedAppointment &&
+            ((workOrderId &&
+                this.selectedAppointment.workOrderId === workOrderId) ||
+                (appointmentId &&
+                    this.selectedAppointment.appointmentId === appointmentId))
+        ) {
+            this.selectedAppointment = {
+                ...this.selectedAppointment,
+                ...address,
+                fullAddress: address.fullAddress
+            };
+        }
+
+        this.addressHelpCardId = null;
+        this.safeClearTimeout(this._addressHelpTimeout);
+    }
+
+    // ======= DETAIL SCHEDULING =======
     handleOpenQuickScheduleFromDetail() {
         const cardId = this.selectedQuickScheduleCardId;
 
         if (!cardId) {
+            return;
+        }
+
+        if (!this.hasCompleteAddress(this.selectedAppointment)) {
+            this.showAddressRequiredHelp(cardId);
             return;
         }
 
@@ -6499,6 +6870,23 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 'You must be online to schedule an appointment.',
                 'warning'
             );
+            return;
+        }
+
+        const addressSource =
+            (this.appointments || []).find(
+                appt => appt.workOrderId === workOrderId
+            ) ||
+            (this.unscheduledWorkOrders || []).find(
+                wo => wo.workOrderId === workOrderId
+            );
+
+        if (!this.hasCompleteAddress(addressSource)) {
+            const cardId =
+                (addressSource && (addressSource.cardId || addressSource.appointmentId)) ||
+                workOrderId;
+            this.showAddressRequiredHelp(cardId);
+            this.isLoading = false;
             return;
         }
 
