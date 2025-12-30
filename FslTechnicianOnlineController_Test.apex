@@ -133,6 +133,49 @@ public class FslTechnicianOnlineController_Test {
     }
 
     /**
+     * Ensure a StateTranslation__mdt record exists for the provided abbreviation.
+     */
+    private static void ensureStateTranslationMetadata(String abbreviation, String stateName) {
+        List<StateTranslation__mdt> existing = [
+            SELECT QualifiedApiName
+            FROM StateTranslation__mdt
+            WHERE State_Abbreviation__c = :abbreviation
+            LIMIT 1
+        ];
+
+        if (!existing.isEmpty()) {
+            return;
+        }
+
+        Metadata.CustomMetadata translation = new Metadata.CustomMetadata();
+        translation.fullName = 'StateTranslation__mdt.' + abbreviation;
+
+        Metadata.CustomMetadataValue abbrevValue = new Metadata.CustomMetadataValue();
+        abbrevValue.field = 'State_Abbreviation__c';
+        abbrevValue.value = abbreviation;
+        translation.values.add(abbrevValue);
+
+        Metadata.CustomMetadataValue nameValue = new Metadata.CustomMetadataValue();
+        nameValue.field = 'State_Name__c';
+        nameValue.value = stateName;
+        translation.values.add(nameValue);
+
+        Metadata.DeployContainer container = new Metadata.DeployContainer();
+        container.addMetadata(translation);
+
+        Test.startTest();
+        Id jobId = Metadata.Operations.enqueueDeployment(container, null);
+        Test.stopTest();
+
+        Metadata.DeployResult result = Metadata.Operations.checkDeployStatus(jobId);
+        System.assertEquals(
+            true,
+            result.isSuccess(),
+            'State translation metadata deployment should succeed.'
+        );
+    }
+
+    /**
      * Ensure a ResourceAbsence exists that overlaps "now".
      * ResourceId is required in your org, so we tie it to the current ServiceResource.
      */
@@ -1700,5 +1743,77 @@ static void testUnscheduledAndAttachmentFromWorkOrderAndOpportunity() {
     );
 }
 
+
+@isTest
+static void testUpdateWorkOrderAddressTranslatesStateAbbreviation() {
+    ensureStateTranslationMetadata('CO', 'Colorado');
+
+    ResourceContext context = createSyntheticResourceContext();
+
+    Account acc = new Account(Name = 'State Translation Acc');
+    insert acc;
+
+    WorkOrder wo = new WorkOrder(
+        Subject            = 'Needs Address Update',
+        Status             = 'New',
+        OwnerId            = context.user.Id,
+        ServiceTerritoryId = context.stm.ServiceTerritoryId,
+        AccountId          = acc.Id,
+        Street             = '1 Old St',
+        City               = 'Old City',
+        State              = 'Old State',
+        PostalCode         = '00000',
+        Country            = 'United States'
+    );
+    insert wo;
+
+    ServiceAppointment sa = new ServiceAppointment(
+        Work_Order__c      = wo.Id,
+        Subject            = 'Needs Address Update',
+        Status             = 'New',
+        ServiceTerritoryId = context.stm.ServiceTerritoryId,
+        ParentRecordId     = wo.Id
+    );
+    insert sa;
+
+    Test.startTest();
+    FslTechnicianOnlineController.AddressUpdateResult result =
+        FslTechnicianOnlineController.updateWorkOrderAddress(
+            wo.Id,
+            sa.Id,
+            '123 Main St',
+            'Denver',
+            'co',
+            '80202',
+            'United States'
+        );
+    Test.stopTest();
+
+    wo = [
+        SELECT Street, City, State, PostalCode, Country
+        FROM WorkOrder
+        WHERE Id = :wo.Id
+    ];
+    sa = [
+        SELECT Street, City, State, PostalCode, Country
+        FROM ServiceAppointment
+        WHERE Id = :sa.Id
+    ];
+
+    System.assertEquals('Colorado', wo.State,
+        'Work Order should store the translated state name.');
+    System.assertEquals('Colorado', sa.State,
+        'Service Appointment should store the translated state name.');
+    System.assertEquals('Colorado', result.state,
+        'Result should return the translated state name.');
+    System.assertEquals('123 Main St', result.street,
+        'Result should echo back cleaned street.');
+    System.assertEquals('Denver', result.city,
+        'Result should echo back cleaned city.');
+    System.assertEquals('80202', result.postalCode,
+        'Result should echo back cleaned postal code.');
+    System.assertEquals('United States', result.country,
+        'Result should echo back cleaned country.');
+}
 
 }

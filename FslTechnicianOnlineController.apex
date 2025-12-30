@@ -1727,6 +1727,8 @@ public with sharing class FslTechnicianOnlineController {
             );
         }
 
+        String translatedState = translateStateAbbreviation(cleanState);
+
         WorkOrder wo = [
             SELECT Id
             FROM WorkOrder
@@ -1739,7 +1741,7 @@ public with sharing class FslTechnicianOnlineController {
             Id = wo.Id,
             Street = cleanStreet,
             City = cleanCity,
-            State = cleanState,
+            State = translatedState,
             PostalCode = cleanPostal,
             Country = cleanCountry
         );
@@ -1759,7 +1761,7 @@ public with sharing class FslTechnicianOnlineController {
                 Id = sa.Id,
                 Street = cleanStreet,
                 City = cleanCity,
-                State = cleanState,
+                State = translatedState,
                 PostalCode = cleanPostal,
                 Country = cleanCountry
             );
@@ -1768,7 +1770,7 @@ public with sharing class FslTechnicianOnlineController {
         }
 
         List<String> parts = new List<String>();
-        for (String part : new List<String>{ cleanStreet, cleanCity, cleanState, cleanPostal, cleanCountry }) {
+        for (String part : new List<String>{ cleanStreet, cleanCity, translatedState, cleanPostal, cleanCountry }) {
             if (String.isNotBlank(part)) {
                 parts.add(part);
             }
@@ -1779,12 +1781,40 @@ public with sharing class FslTechnicianOnlineController {
         result.serviceAppointmentId = serviceAppointmentId;
         result.street = cleanStreet;
         result.city = cleanCity;
-        result.state = cleanState;
+        result.state = translatedState;
         result.postalCode = cleanPostal;
         result.country = cleanCountry;
         result.fullAddress = String.join(parts, ', ');
 
         return result;
+    }
+
+    @TestVisible
+    private static String translateStateAbbreviation(String stateAbbreviation) {
+        String cleanAbbreviation = String.isNotBlank(stateAbbreviation)
+            ? stateAbbreviation.trim().toUpperCase()
+            : '';
+
+        if (String.isBlank(cleanAbbreviation)) {
+            return cleanAbbreviation;
+        }
+
+        if (cleanAbbreviation.length() != 2) {
+            throw new AuraHandledException('Please enter the two-letter state abbreviation.');
+        }
+
+        List<StateTranslation__mdt> translations = [
+            SELECT State_Name__c
+            FROM StateTranslation__mdt
+            WHERE State_Abbreviation__c = :cleanAbbreviation
+            LIMIT 1
+        ];
+
+        if (translations.isEmpty() || String.isBlank(translations[0].State_Name__c)) {
+            throw new AuraHandledException('State abbreviation "' + cleanAbbreviation + '" is not recognized.');
+        }
+
+        return translations[0].State_Name__c;
     }
 
     @AuraEnabled
