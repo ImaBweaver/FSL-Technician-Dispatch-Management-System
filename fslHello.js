@@ -979,7 +979,19 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             this.normalizeAddressValue(postalCode),
             this.normalizeAddressValue(country)
         ].filter(Boolean);
+
+        if (
+            parts.length === 1 &&
+            parts[0].toLowerCase() === 'united states'
+        ) {
+            return '';
+        }
+
         return parts.join(', ');
+    }
+
+    hasStreetValue(record) {
+        return Boolean(this.normalizeAddressValue(record?.street));
     }
 
     hasCompleteAddress(record) {
@@ -1048,6 +1060,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 workOrderSubject: wo.subject,
                 accountName: wo.accountName,
                 fullAddress: wo.fullAddress,
+                hasFullAddress: this.hasStreetValue(wo),
                 opportunityRecordType: wo.opportunityRecordType,
                 quoteLineItems: this.normalizeQuoteLineItems(wo.quoteLineItems),
                 quoteAttachmentUrl: wo.quoteAttachmentDownloadUrl || null,
@@ -4363,14 +4376,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     clone.opportunityTrackingNumber =
                         wo.opportunityTrackingNumber || null;
 
-                    const parts = [
-                        wo.street,
-                        wo.city,
-                        wo.state,
-                        wo.postalCode,
-                        wo.country
-                    ].filter(Boolean);
-                    clone.fullAddress = parts.join(', ');
+                    clone.fullAddress = this.composeFullAddress(wo);
+                    clone.hasFullAddress = this.hasStreetValue(wo);
                     return clone;
                 });
 
@@ -4462,15 +4469,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     clone.opportunityTrackingNumber =
                         appt.opportunityTrackingNumber || null;
 
-
-                    const parts = [
-                        appt.street,
-                        appt.city,
-                        appt.state,
-                        appt.postalCode,
-                        appt.country
-                    ].filter(Boolean);
-                    clone.fullAddress = parts.join(', ');
+                    clone.fullAddress = this.composeFullAddress(appt);
+                    clone.hasFullAddress = this.hasStreetValue(appt);
 
                     const crewMembers = appt.crewMembers || [];
                     clone.crewMembers = crewMembers;
@@ -6391,10 +6391,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 (workOrderId && appt.workOrderId === workOrderId) ||
                 (appointmentId && appt.appointmentId === appointmentId)
             ) {
+                const fullAddress = address.fullAddress;
                 return {
                     ...appt,
                     ...address,
-                    fullAddress: address.fullAddress
+                    fullAddress,
+                    hasFullAddress: this.hasStreetValue(address)
                 };
             }
             return appt;
@@ -6403,10 +6405,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.unscheduledWorkOrders = (this.unscheduledWorkOrders || []).map(
             wo => {
                 if (wo.workOrderId === workOrderId) {
+                    const fullAddress = address.fullAddress;
                     return {
                         ...wo,
                         ...address,
-                        fullAddress: address.fullAddress
+                        fullAddress,
+                        hasFullAddress: this.hasStreetValue(address)
                     };
                 }
                 return wo;
@@ -6420,10 +6424,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 (appointmentId &&
                     this.selectedAppointment.appointmentId === appointmentId))
         ) {
+            const fullAddress = address.fullAddress;
             this.selectedAppointment = {
                 ...this.selectedAppointment,
                 ...address,
-                fullAddress: address.fullAddress
+                fullAddress,
+                hasFullAddress: this.hasStreetValue(address)
             };
         }
 
@@ -7446,15 +7452,14 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     normalizeTransferRequest(req) {
         const clone = { ...req };
-        const parts = [
-            req.street,
-            req.city,
-            req.state,
-            req.postalCode,
-            req.country
-        ].filter(Boolean);
-
-        clone.fullAddress = parts.join(', ');
+        clone.fullAddress = this.composeFullAddress({
+            street: req.street,
+            city: req.city,
+            state: req.state,
+            postalCode: req.postalCode,
+            country: req.country
+        });
+        clone.hasFullAddress = this.hasStreetValue(req);
 
         const statusMeta = this.getTransferStatusMeta(req);
         clone.statusLabel = statusMeta.statusLabel;
