@@ -196,6 +196,17 @@
     gap: 0.5rem;
 }
 
+.sfs-journey_compact {
+    gap: 0.35rem;
+}
+
+.sfs-journey__compact-header {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    min-height: 0.5rem;
+}
+
 .sfs-journey__header {
     display: flex;
     align-items: flex-start;
@@ -1799,6 +1810,14 @@
 .sfs-detail-card_closing {
     transform: translateY(100%);
     opacity: 0;
+}
+
+.sfs-detail-journey {
+    margin: 0.25rem 0 0.75rem;
+}
+
+.sfs-detail-journey .sfs-journey {
+    margin-bottom: 0;
 }
 
 .sfs-detail-header {

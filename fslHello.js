@@ -5027,6 +5027,16 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             ...this.journeyExpanded,
             [cardId]: !isExpanded
         };
+
+        if (this.selectedAppointment && this.selectedAppointment.cardId === cardId) {
+            const journeyExpanded = !isExpanded;
+            this.selectedAppointment = {
+                ...this.selectedAppointment,
+                journeyExpanded,
+                journeyToggleLabel: journeyExpanded ? 'Hide checklist' : 'View checklist',
+                journeyToggleTitle: journeyExpanded ? 'Hide full checklist' : 'View full checklist'
+            };
+        }
     }
 
     handleQuoteAttachmentClick(event) {
