@@ -1988,6 +1988,9 @@
                         name="state"
                         label="State/Province"
                         value={addressForm.state}
+                        maxlength="2"
+                        pattern="[A-Za-z]{2}"
+                        message-when-pattern-mismatch="Use the two-letter state abbreviation (A-Z)."
                         onchange={handleAddressInputChange}
                     ></lightning-input>
                     <lightning-input
