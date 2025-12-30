@@ -1518,15 +1518,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return false;
         }
 
-        const status = (record.workOrderStatus || record.status || '').toLowerCase();
-        const hasQuoteStatus =
-            status === 'need quote' ||
-            status === 'quote sent' ||
-            status === 'quote and ship';
-
-        return hasQuoteStatus &&
+        return (
             Array.isArray(record.quoteLineItems) &&
-            record.quoteLineItems.length > 0;
+            record.quoteLineItems.length > 0
+        );
     }
 
     resolveTrackingNumber(record, hasLineItemTracking) {
