@@ -471,6 +471,26 @@
                                                     </span>
                                                 </p>
                                             </template>
+                                            <template if:false={appt.fullAddress}>
+                                                <p class="sfs-line sfs-line_address sfs-line_address-empty">
+                                                    <span class="sfs-label">Address</span>
+                                                    <button
+                                                        class="sfs-address-edit"
+                                                        type="button"
+                                                        data-id={appt.cardId}
+                                                        data-woid={appt.workOrderId}
+                                                        data-appointment-id={appt.appointmentId}
+                                                        onclick={openAddressModal}
+                                                    >
+                                                        <lightning-icon
+                                                            icon-name="utility:edit"
+                                                            size="x-small"
+                                                            class="sfs-address-edit__icon"
+                                                        ></lightning-icon>
+                                                        <span>Add address</span>
+                                                    </button>
+                                                </p>
+                                            </template>
 
                                             <template if:true={appt.showResolvedTracking}>
                                                 <p class="sfs-line">
@@ -744,13 +764,20 @@
                                             </template>
 
                                             <template if:true={appt.showQuickSchedule}>
-                                                <div class="sfs-actions sfs-schedule-actions sfs-quick-schedule__actions-inline sfs-option-actions">
+                                                <div
+                                                    class={appt.scheduleActionsClass}
+                                                    data-id={appt.cardId}
+                                                    data-blocked={appt.scheduleDisabled}
+                                                    onclick={handleScheduleActionClick}
+                                                >
                                                     <lightning-button
                                                         variant="neutral"
                                                         label={appt.quickScheduleLabel}
                                                         data-id={appt.cardId}
                                                         onclick={handleToggleQuickSchedulePanel}
-                                                        class="sfs-compact-button sfs-option-button"
+                                                        class={appt.quickScheduleButtonClass}
+                                                        title={appt.scheduleBlockedReason}
+                                                        aria-disabled={appt.scheduleDisabled}
                                                     >
                                                     </lightning-button>
                                                     <template if:true={appt.showScheduleOnCalendar}>
@@ -759,11 +786,19 @@
                                                             label="Schedule on Calendar"
                                                             data-id={appt.cardId}
                                                             onclick={handleScheduleOnCalendar}
-                                                            class="sfs-compact-button sfs-option-button"
+                                                            class={appt.calendarButtonClass}
+                                                            title={appt.scheduleBlockedReason}
+                                                            aria-disabled={appt.scheduleDisabled}
                                                         >
                                                         </lightning-button>
                                                     </template>
                                                 </div>
+
+                                                <template if:true={appt.showAddressHelpBubble}>
+                                                    <div class="sfs-help-bubble" role="status">
+                                                        Enter an address to schedule.
+                                                    </div>
+                                                </template>
 
                                                 <template if:true={appt.quickScheduleExpanded}>
                                                     <div class="sfs-input-block sfs-quick-schedule__input">
@@ -1644,6 +1679,26 @@
                                 </span>
                             </p>
                         </template>
+                        <template if:false={selectedAppointment.fullAddress}>
+                            <p class="sfs-detail-line">
+                                <span class="sfs-detail-label">Address</span>
+                                <button
+                                    type="button"
+                                    class="sfs-address-edit sfs-address-edit_inline"
+                                    data-id={selectedAppointment.cardId}
+                                    data-woid={selectedAppointment.workOrderId}
+                                    data-appointment-id={selectedAppointment.appointmentId}
+                                    onclick={openAddressModal}
+                                >
+                                    <lightning-icon
+                                        icon-name="utility:edit"
+                                        size="x-small"
+                                        class="sfs-address-edit__icon"
+                                    ></lightning-icon>
+                                    <span>Add address</span>
+                                </button>
+                            </p>
+                        </template>
                     </div>
 
                     <!-- CONTACTS SECTION -->
@@ -1768,8 +1823,17 @@
                                     variant="brand"
                                     label={selectedQuickScheduleLabel}
                                     onclick={handleOpenQuickScheduleFromDetail}
+                                    class={selectedDetailQuickScheduleClass}
+                                    title={selectedScheduleBlockedReason}
+                                    aria-disabled={selectedAppointmentScheduleBlocked}
+                                    data-id={selectedAppointment.cardId}
                                 >
                                 </lightning-button>
+                            </template>
+                            <template if:true={selectedAddressHelpVisible}>
+                                <div class="sfs-help-bubble" role="status">
+                                    Enter an address to schedule.
+                                </div>
                             </template>
                                 <lightning-button-menu
                                     alternative-text="More actions"
@@ -1889,6 +1953,72 @@
                         </div>
                     </div>
                 </article>
+            </div>
+        </template>
+
+        <template if:true={isAddressModalOpen}>
+            <div class="sfs-modal-backdrop" onclick={closeAddressModal}>
+                <div class="sfs-modal" onclick={handleDetailCardClick}>
+                    <div class="sfs-modal-header">
+                        <h3 class="sfs-modal-title">Add address</h3>
+                        <button
+                            class="sfs-modal-close"
+                            type="button"
+                            onclick={closeAddressModal}
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    <p class="sfs-modal-copy">
+                        Enter the work order address so it can be scheduled.
+                    </p>
+                    <lightning-input
+                        name="street"
+                        label="Street"
+                        value={addressForm.street}
+                        onchange={handleAddressInputChange}
+                    ></lightning-input>
+                    <lightning-input
+                        name="city"
+                        label="City"
+                        value={addressForm.city}
+                        onchange={handleAddressInputChange}
+                    ></lightning-input>
+                    <lightning-input
+                        name="state"
+                        label="State/Province"
+                        value={addressForm.state}
+                        maxlength="2"
+                        pattern="[A-Za-z]{2}"
+                        message-when-pattern-mismatch="Use the two-letter state abbreviation (A-Z)."
+                        onchange={handleAddressInputChange}
+                    ></lightning-input>
+                    <lightning-input
+                        name="country"
+                        label="Country"
+                        value={addressForm.country}
+                        onchange={handleAddressInputChange}
+                    ></lightning-input>
+                    <lightning-input
+                        name="postalCode"
+                        label="Zip/Postal Code"
+                        value={addressForm.postalCode}
+                        onchange={handleAddressInputChange}
+                    ></lightning-input>
+                    <div class="sfs-actions sfs-modal-actions">
+                        <lightning-button
+                            variant="brand"
+                            label="Save address"
+                            onclick={submitAddressUpdate}
+                            disabled={addressSubmitDisabled}
+                        ></lightning-button>
+                        <lightning-button
+                            variant="neutral"
+                            label="Cancel"
+                            onclick={closeAddressModal}
+                        ></lightning-button>
+                    </div>
+                </div>
             </div>
         </template>
 

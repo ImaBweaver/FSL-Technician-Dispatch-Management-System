@@ -69,6 +69,17 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public Id userId;
     }
 
+    public class AddressUpdateResult {
+        @AuraEnabled public Id workOrderId;
+        @AuraEnabled public Id serviceAppointmentId;
+        @AuraEnabled public String street;
+        @AuraEnabled public String city;
+        @AuraEnabled public String state;
+        @AuraEnabled public String postalCode;
+        @AuraEnabled public String country;
+        @AuraEnabled public String fullAddress;
+    }
+
     public class ResourceAbsenceDTO {
         @AuraEnabled public Id absenceId;
         @AuraEnabled public Id resourceId;
@@ -1684,6 +1695,126 @@ public with sharing class FslTechnicianOnlineController {
         ];
 
         delete ra;
+    }
+
+    @AuraEnabled
+    public static AddressUpdateResult updateWorkOrderAddress(
+        Id workOrderId,
+        Id serviceAppointmentId,
+        String street,
+        String city,
+        String state,
+        String postalCode,
+        String country
+    ) {
+        if (workOrderId == null) {
+            throw new AuraHandledException('Work Order Id is required.');
+        }
+
+        String cleanStreet = String.isNotBlank(street) ? street.trim() : '';
+        String cleanCity = String.isNotBlank(city) ? city.trim() : '';
+        String cleanState = String.isNotBlank(state) ? state.trim() : '';
+        String cleanPostal = String.isNotBlank(postalCode) ? postalCode.trim() : '';
+        String cleanCountry = String.isNotBlank(country)
+            ? country.trim()
+            : 'United States';
+
+        if (String.isBlank(cleanStreet) || String.isBlank(cleanCity) ||
+            String.isBlank(cleanState) || String.isBlank(cleanPostal) ||
+            String.isBlank(cleanCountry)) {
+            throw new AuraHandledException(
+                'Street, City, State, Postal Code, and Country are required to schedule.'
+            );
+        }
+
+        String translatedState = translateStateAbbreviation(cleanState);
+
+        WorkOrder wo = [
+            SELECT Id
+            FROM WorkOrder
+            WHERE Id = :workOrderId
+            LIMIT 1
+            FOR UPDATE
+        ];
+
+        wo = new WorkOrder(
+            Id = wo.Id,
+            Street = cleanStreet,
+            City = cleanCity,
+            State = translatedState,
+            PostalCode = cleanPostal,
+            Country = cleanCountry
+        );
+
+        update wo;
+
+        if (serviceAppointmentId != null) {
+            ServiceAppointment sa = [
+                SELECT Id
+                FROM ServiceAppointment
+                WHERE Id = :serviceAppointmentId
+                LIMIT 1
+                FOR UPDATE
+            ];
+
+            sa = new ServiceAppointment(
+                Id = sa.Id,
+                Street = cleanStreet,
+                City = cleanCity,
+                State = translatedState,
+                PostalCode = cleanPostal,
+                Country = cleanCountry
+            );
+
+            update sa;
+        }
+
+        List<String> parts = new List<String>();
+        for (String part : new List<String>{ cleanStreet, cleanCity, translatedState, cleanPostal, cleanCountry }) {
+            if (String.isNotBlank(part)) {
+                parts.add(part);
+            }
+        }
+
+        AddressUpdateResult result = new AddressUpdateResult();
+        result.workOrderId = workOrderId;
+        result.serviceAppointmentId = serviceAppointmentId;
+        result.street = cleanStreet;
+        result.city = cleanCity;
+        result.state = translatedState;
+        result.postalCode = cleanPostal;
+        result.country = cleanCountry;
+        result.fullAddress = String.join(parts, ', ');
+
+        return result;
+    }
+
+    @TestVisible
+    private static String translateStateAbbreviation(String stateAbbreviation) {
+        String cleanAbbreviation = String.isNotBlank(stateAbbreviation)
+            ? stateAbbreviation.trim().toUpperCase()
+            : '';
+
+        if (String.isBlank(cleanAbbreviation)) {
+            return cleanAbbreviation;
+        }
+
+        if (cleanAbbreviation.length() != 2) {
+            throw new AuraHandledException('Please enter the two-letter state abbreviation.');
+        }
+
+        List<StateTranslation__mdt> translations = [
+            SELECT State_Name__c
+            FROM StateTranslation__mdt
+            WHERE State_Abbreviation__c = :cleanAbbreviation
+            LIMIT 1
+        ];
+
+        if (translations.isEmpty() || String.isBlank(translations[0].State_Name__c)) {
+            throw new AuraHandledException('State abbreviation "' + cleanAbbreviation + '" is not recognized.');
+        }
+
+        return translations[0].State_Name__c;
     }
 
     @AuraEnabled
