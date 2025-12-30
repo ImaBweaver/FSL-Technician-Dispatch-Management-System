@@ -2060,6 +2060,67 @@
     word-wrap: break-word;
 }
 
+.sfs-line_address-empty {
+    align-items: center;
+}
+
+.sfs-address-edit {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    border: 1px dashed #a8b7c7;
+    border-radius: 0.35rem;
+    background: #f8fbff;
+    color: #0b5cab;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+    transition: border-color 120ms ease, background 120ms ease;
+}
+
+.sfs-address-edit:hover {
+    border-color: #0b5cab;
+    background: #eef5ff;
+}
+
+.sfs-address-edit__icon {
+    --sds-c-icon-color-foreground-default: #0b5cab;
+}
+
+.sfs-address-edit_inline {
+    margin-left: 0.35rem;
+}
+
+.sfs-schedule-actions_disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.sfs-option-button_disabled {
+    --slds-c-button-text-color: #7e8a9a;
+    --slds-c-button-color-border: #d8dde6;
+    --slds-c-button-color-background: #f3f4f6;
+    pointer-events: auto;
+    cursor: not-allowed;
+}
+
+.sfs-option-button_primary {
+    --slds-c-button-brand-color-background: #0b5cab;
+    --slds-c-button-brand-color-border: #0b5cab;
+}
+
+.sfs-help-bubble {
+    background: #0b5cab;
+    color: #ffffff;
+    padding: 0.35rem 0.5rem;
+    border-radius: 0.4rem;
+    font-size: 0.78rem;
+    margin-top: 0.25rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    box-shadow: 0 2px 6px rgba(11, 92, 171, 0.25);
+}
+
 .sfs-value_tracking {
     display: inline-flex;
     align-items: center;
