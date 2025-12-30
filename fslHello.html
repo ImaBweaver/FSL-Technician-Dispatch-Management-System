@@ -353,26 +353,12 @@
                                         <div class="sfs-card-body">
                                             <div class="sfs-journey">
                                                 <div class="sfs-journey__header">
-                                                    <div class="sfs-journey__status-block">
-                                                        <p class="sfs-journey__eyebrow">Quote flow</p>
-                                                        <div class="sfs-journey__status-row">
-                                                            <div class="sfs-journey__current">
-                                                                {appt.journey.currentLabel}
-                                                            </div>
-                                                            <span class="sfs-journey__pill">
-                                                                Next: {appt.journey.nextLabel}
-                                                            </span>
-                                                        </div>                                                      
-                                                    </div>
                                                     <div class="sfs-journey__header-actions">
                                                         <div class="sfs-journey__badges">
                                                             <template if:true={appt.journey.isOnHold}>
                                                                 <span class="sfs-journey__badge sfs-journey__badge_hold">
                                                                     On Hold
                                                                 </span>
-                                                            </template>
-                                                            <template if:true={appt.journey.hasDetour}>
-                                                                <span class="sfs-journey__badge sfs-journey__badge_detour">Path: {appt.journey.detourLabel}</span>
                                                             </template>
                                                         </div>
                                                         <button
@@ -405,7 +391,7 @@
                                                         </div>
                                                         <div class="sfs-journey__progress-meta">
                                                             <span class="sfs-journey__compact-current">
-                                                                {appt.journey.currentLabel}
+                                                                Current: {appt.journey.currentLabel}
                                                             </span>
                                                             <span class="sfs-journey__compact-next">
                                                                 Next: {appt.journey.nextLabel}
