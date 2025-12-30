@@ -1771,6 +1771,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return cardId ? this.addressHelpCardId === cardId : false;
     }
 
+    get selectedDetailQuickScheduleClass() {
+        return this.selectedAppointmentScheduleBlocked
+            ? 'sfs-option-button sfs-option-button_disabled'
+            : 'sfs-option-button';
+    }
+
     get isAddressFormValid() {
         return this.hasCompleteAddress(this.addressForm);
     }
