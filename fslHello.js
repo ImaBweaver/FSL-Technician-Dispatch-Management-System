@@ -960,6 +960,17 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return (value || '').toString().trim();
     }
 
+    normalizeStateInput(value) {
+        const cleaned = this.normalizeAddressValue(value)
+            .toUpperCase()
+            .replace(/[^A-Z]/g, '');
+        return cleaned.slice(0, 2);
+    }
+
+    isValidStateAbbreviation(value) {
+        return this.normalizeStateInput(value).length === 2;
+    }
+
     composeFullAddress({ street, city, state, postalCode, country }) {
         const parts = [
             this.normalizeAddressValue(street),
@@ -1778,7 +1789,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     get isAddressFormValid() {
-        return this.hasCompleteAddress(this.addressForm);
+        return (
+            this.hasCompleteAddress(this.addressForm) &&
+            this.isValidStateAbbreviation(this.addressForm.state)
+        );
     }
 
     get addressSubmitDisabled() {
@@ -6246,7 +6260,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         this.addressForm = {
             street: this.normalizeAddressValue(record?.street),
             city: this.normalizeAddressValue(record?.city),
-            state: this.normalizeAddressValue(record?.state),
+            state: this.normalizeStateInput(record?.state),
             country:
                 this.normalizeAddressValue(record?.country) || 'United States',
             postalCode: this.normalizeAddressValue(record?.postalCode)
@@ -6281,15 +6295,21 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         const value =
             (event.detail && event.detail.value) || event.target.value || '';
 
+        const nextValue =
+            field === 'state' ? this.normalizeStateInput(value) : value;
+
         this.addressForm = {
             ...this.addressForm,
-            [field]: value
+            [field]: nextValue
         };
     }
 
     submitAddressUpdate() {
         const workOrderId = this.addressModalWorkOrderId;
         const serviceAppointmentId = this.addressModalAppointmentId;
+        const stateAbbreviation = this.normalizeStateInput(
+            this.addressForm.state
+        );
 
         if (!workOrderId) {
             this.showToast(
@@ -6309,6 +6329,15 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             return;
         }
 
+        if (!this.isValidStateAbbreviation(stateAbbreviation)) {
+            this.showToast(
+                'State abbreviation',
+                'Enter the 2-letter state abbreviation (A-Z).',
+                'warning'
+            );
+            return;
+        }
+
         this.addressSaving = true;
 
         updateWorkOrderAddress({
@@ -6316,7 +6345,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             serviceAppointmentId,
             street: this.addressForm.street,
             city: this.addressForm.city,
-            state: this.addressForm.state,
+            state: stateAbbreviation,
             postalCode: this.addressForm.postalCode,
             country: this.addressForm.country
         })
