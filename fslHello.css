@@ -864,8 +864,19 @@
     font-weight: 600;
 }
 
+.sfs-label-WOLabel {
+    font-weight: 600;
+    font-size: 40px !important;
+}
+
 .sfs-value {
     text-align: right;
+}
+
+.sfs-value-wonumber {
+    text-align: right;
+    font-weight: 600;
+    font-size: 20;
 }
 
 .sfs-value_left {
