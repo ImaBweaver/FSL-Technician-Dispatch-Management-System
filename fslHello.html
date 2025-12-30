@@ -463,7 +463,7 @@
                                             </p>
 
                                             <!-- Address -->
-                                            <template if:true={appt.fullAddress}>
+                                            <template if:true={appt.hasFullAddress}>
                                                 <p class="sfs-line sfs-line_address">
                                                     <span class="sfs-label">Address</span>
                                                     <span class="sfs-value sfs-value_address">
@@ -471,7 +471,7 @@
                                                     </span>
                                                 </p>
                                             </template>
-                                            <template if:false={appt.fullAddress}>
+                                            <template if:false={appt.hasFullAddress}>
                                                 <p class="sfs-line sfs-line_address sfs-line_address-empty">
                                                     <span class="sfs-label">Address</span>
                                                     <button
@@ -1671,7 +1671,7 @@
                             </span>
                         </p>
 
-                        <template if:true={selectedAppointment.fullAddress}>
+                        <template if:true={selectedAppointment.hasFullAddress}>
                             <p class="sfs-detail-line sfs-detail-line_multiline">
                                 <span class="sfs-detail-label">Address</span>
                                 <span class="sfs-detail-value sfs-detail-value_multiline">
@@ -1679,7 +1679,7 @@
                                 </span>
                             </p>
                         </template>
-                        <template if:false={selectedAppointment.fullAddress}>
+                        <template if:false={selectedAppointment.hasFullAddress}>
                             <p class="sfs-detail-line">
                                 <span class="sfs-detail-label">Address</span>
                                 <button
@@ -1986,7 +1986,7 @@
                     ></lightning-input>
                     <lightning-input
                         name="state"
-                        label="State/Province"
+                        label="State/Province (2-digit)"
                         value={addressForm.state}
                         maxlength="2"
                         pattern="[A-Za-z]{2}"
