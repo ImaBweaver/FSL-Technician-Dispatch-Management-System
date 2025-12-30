@@ -59,31 +59,16 @@
                 </template>
 
                 <div class="sfs-list-mode">
-                    <div class="sfs-list-mode__picker">
-                        <lightning-combobox
-                            name="listMode"
-                            label="View"
-                            value={listMode}
-                            options={listModeOptions}
-                            class="sfs-view-combobox"
-                            onchange={handleListModeChange}
-                        ></lightning-combobox>
-                    </div>
-                    <div class="sfs-list-mode__right">
-                        <div class="sfs-list-mode-chips" role="list">
-                            <template for:each={listModeChips} for:item="chip">
-                                <button
-                                    key={chip.value}
-                                    type="button"
-                                    class={chip.className}
-                                    data-mode={chip.value}
-                                    onclick={handleListModeChange}
-                                    aria-pressed={chip.isActive}
-                                    role="listitem"
-                                >
-                                    {chip.label}
-                                </button>
-                            </template>
+                    <div class="sfs-list-mode__controls">
+                        <div class="sfs-list-mode__picker">
+                            <lightning-combobox
+                                name="listMode"
+                                label="View"
+                                value={listMode}
+                                options={listModeOptions}
+                                class="sfs-view-combobox"
+                                onchange={handleListModeChange}
+                            ></lightning-combobox>
                         </div>
                         <lightning-button
                             variant="neutral"
@@ -92,6 +77,21 @@
                             disabled={collapseAllDisabled}
                             class="sfs-collapse-all-btn"
                         ></lightning-button>
+                    </div>
+                    <div class="sfs-list-mode-chips" role="list">
+                        <template for:each={listModeChips} for:item="chip">
+                            <button
+                                key={chip.value}
+                                type="button"
+                                class={chip.className}
+                                data-mode={chip.value}
+                                onclick={handleListModeChange}
+                                aria-pressed={chip.isActive}
+                                role="listitem"
+                            >
+                                {chip.label}
+                            </button>
+                        </template>
                     </div>
                 </div>
 
