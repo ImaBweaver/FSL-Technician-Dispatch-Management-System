@@ -59,31 +59,16 @@
                 </template>
 
                 <div class="sfs-list-mode">
-                    <div class="sfs-list-mode__picker">
-                        <lightning-combobox
-                            name="listMode"
-                            label="View"
-                            value={listMode}
-                            options={listModeOptions}
-                            class="sfs-view-combobox"
-                            onchange={handleListModeChange}
-                        ></lightning-combobox>
-                    </div>
-                    <div class="sfs-list-mode__right">
-                        <div class="sfs-list-mode-chips" role="list">
-                            <template for:each={listModeChips} for:item="chip">
-                                <button
-                                    key={chip.value}
-                                    type="button"
-                                    class={chip.className}
-                                    data-mode={chip.value}
-                                    onclick={handleListModeChange}
-                                    aria-pressed={chip.isActive}
-                                    role="listitem"
-                                >
-                                    {chip.label}
-                                </button>
-                            </template>
+                    <div class="sfs-list-mode__controls">
+                        <div class="sfs-list-mode__picker">
+                            <lightning-combobox
+                                name="listMode"
+                                label="View"
+                                value={listMode}
+                                options={listModeOptions}
+                                class="sfs-view-combobox"
+                                onchange={handleListModeChange}
+                            ></lightning-combobox>
                         </div>
                         <lightning-button
                             variant="neutral"
@@ -92,6 +77,21 @@
                             disabled={collapseAllDisabled}
                             class="sfs-collapse-all-btn"
                         ></lightning-button>
+                    </div>
+                    <div class="sfs-list-mode-chips" role="list">
+                        <template for:each={listModeChips} for:item="chip">
+                            <button
+                                key={chip.value}
+                                type="button"
+                                class={chip.className}
+                                data-mode={chip.value}
+                                onclick={handleListModeChange}
+                                aria-pressed={chip.isActive}
+                                role="listitem"
+                            >
+                                {chip.label}
+                            </button>
+                        </template>
                     </div>
                 </div>
 
@@ -329,6 +329,10 @@
                                                 data-woid={appt.workOrderId}
                                                 data-id={appt.appointmentId}
                                             >
+                                                <lightning-menu-item
+                                                    value="openInApp"
+                                                    label="Open in app"
+                                                ></lightning-menu-item>
                                                 <template if:true={appt.hasAppointment}>
                                                     <lightning-menu-item
                                                         value="unassign"
@@ -350,11 +354,33 @@
                                             </lightning-button-menu>
                                         </div>
 
-                                        <div class="sfs-card-body">
+                                        <div class="sfs-card-body">                                         
+                                                <div class="sfs-journey__compact-header">
+                                                    <template if:true={appt.journey.isOnHold}>
+                                                        <span class="sfs-journey__badge sfs-journey__badge_hold">
+                                                            On Hold
+                                                        </span>
+                                                    </template>
+                                                </div>
+                                                    <div class="sfs-journey__progress-track">
+                                                        <span
+                                                            class="sfs-journey__progress-fill"
+                                                            style={appt.journey.progressStyle}
+                                                        ></span>
+                                                    </div>
+                                                    <div class="sfs-journey__progress-meta">
+                                                        <span class="sfs-journey__compact-current">
+                                                            Current: {appt.journey.currentLabel}
+                                                        </span>
+                                                        <span class="sfs-journey__compact-next">
+                                                            Next: {appt.journey.nextLabel}
+                                                        </span>
+                                                    </div>
+                                                    <br/>
                                             <!-- Subject opens the bottom sheet -->
                                             <div class="sfs-line sfs-wo-line">
-                                                <span class="sfs-label">WO #</span>
-                                                <span class="sfs-value">
+                                                <span class="sfs-label-WOLabel">WO #</span>
+                                                <span class="sfs-value-wonumber">
                                                     <template if:true={appt.workOrderNumber}>
                                                         {appt.workOrderNumber}
                                                     </template>
@@ -1407,6 +1433,140 @@
                         </span>
                     </h3>
 
+                    <template if:true={selectedAppointment.journey}>
+                        <div class="sfs-detail-journey">
+                            <div class="sfs-journey">
+                                <div class="sfs-journey__header">
+                                    <div class="sfs-journey__header-actions">
+                                        <div class="sfs-journey__badges">
+                                            <template if:true={selectedAppointment.journey.isOnHold}>
+                                                <span class="sfs-journey__badge sfs-journey__badge_hold">
+                                                    On Hold
+                                                </span>
+                                            </template>
+                                        </div>
+                                        <button
+                                            class="sfs-journey__toggle"
+                                            type="button"
+                                            data-card-id={selectedAppointment.cardId}
+                                            onclick={handleToggleJourney}
+                                            aria-pressed={selectedAppointment.journeyExpanded}
+                                            title={selectedAppointment.journeyToggleTitle}
+                                        >
+                                            {selectedAppointment.journeyToggleLabel}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="sfs-journey__glance">
+                                    <div
+                                        class="sfs-journey__progress"
+                                        role="progressbar"
+                                        aria-valuemin="0"
+                                        aria-valuemax="100"
+                                        aria-valuenow={selectedAppointment.journey.progressPercent}
+                                        aria-label="Quote progress"
+                                    >
+                                        <div class="sfs-journey__progress-track">
+                                            <span
+                                                class="sfs-journey__progress-fill"
+                                                style={selectedAppointment.journey.progressStyle}
+                                            ></span>
+                                        </div>
+                                        <div class="sfs-journey__progress-meta">
+                                            <span class="sfs-journey__compact-current">
+                                                Current: {selectedAppointment.journey.currentLabel}
+                                            </span>
+                                            <span class="sfs-journey__compact-next">
+                                                Next: {selectedAppointment.journey.nextLabel}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="sfs-journey__compact-rail" role="list" aria-label="Key steps">
+                                        <template if:true={selectedAppointment.journey.compactSummary.completedBefore}>
+                                            <span class="sfs-journey__chip sfs-journey__chip_muted" role="listitem">
+                                                +{selectedAppointment.journey.compactSummary.completedBefore} done
+                                            </span>
+                                        </template>
+                                        <template
+                                            for:each={selectedAppointment.journey.compactSummary.visibleSteps}
+                                            for:item="step"
+                                        >
+                                            <span key={step.id} class={step.compactClass} role="listitem">
+                                                {step.label}
+                                            </span>
+                                        </template>
+                                        <template if:true={selectedAppointment.journey.compactSummary.upcomingAfter}>
+                                            <span class="sfs-journey__chip sfs-journey__chip_muted" role="listitem">
+                                                +{selectedAppointment.journey.compactSummary.upcomingAfter} upcoming
+                                            </span>
+                                        </template>
+                                    </div>
+                                </div>
+
+                                <template if:true={selectedAppointment.journeyExpanded}>
+                                    <div class="sfs-journey__rail" role="list" aria-label="Quote flow steps">
+                                        <div class="sfs-journey__steps">
+                                            <template
+                                                for:each={selectedAppointment.journey.mainSteps}
+                                                for:item="step"
+                                            >
+                                                <div key={step.id} class={step.className} role="listitem">
+                                                    <span class="sfs-journey__dot"></span>
+                                                    <span class="sfs-journey__label">{step.label}</span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                        <div class="sfs-journey__fade sfs-journey__fade_left"></div>
+                                        <div class="sfs-journey__fade sfs-journey__fade_right"></div>
+                                    </div>
+
+                                    <template if:true={selectedAppointment.journey.hasDetour}>
+                                        <div class="sfs-journey__detour">
+                                            <div class="sfs-journey__rail-heading">
+                                                <div class="sfs-journey__rail-title">
+                                                    <span class="sfs-journey__detour-label">
+                                                        {selectedAppointment.journey.detourLabel}
+                                                    </span>
+                                                </div>
+                                                <template if:true={selectedAppointment.journey.detour.detourNext}>
+                                                    <span class="sfs-journey__pill sfs-journey__pill_subtle">
+                                                        Next: {selectedAppointment.journey.detour.detourNext.label}
+                                                    </span>
+                                                </template>
+                                            </div>
+                                            <div
+                                                class="sfs-journey__rail sfs-journey__rail_detour"
+                                                role="list"
+                                                aria-label="Detour steps"
+                                            >
+                                                <div class="sfs-journey__steps sfs-journey__steps_detour">
+                                                    <template
+                                                        for:each={selectedAppointment.journey.detour.steps}
+                                                        for:item="step"
+                                                    >
+                                                        <div
+                                                            key={step.id}
+                                                            class={step.className}
+                                                            role="listitem"
+                                                        >
+                                                            <span class="sfs-journey__dot"></span>
+                                                            <span class="sfs-journey__label">
+                                                                {step.label}
+                                                            </span>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                                <div class="sfs-journey__fade sfs-journey__fade_left"></div>
+                                                <div class="sfs-journey__fade sfs-journey__fade_right"></div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+
                     <!-- JOB SECTION -->
                     <div class="sfs-detail-section">
                         <div class="sfs-detail-section-title">Job</div>
@@ -1620,6 +1780,10 @@
                                     data-woid={selectedAppointment.workOrderId}
                                     data-id={selectedAppointment.appointmentId}
                                 >
+                                    <lightning-menu-item
+                                        value="openInApp"
+                                        label="Open in app"
+                                    ></lightning-menu-item>
                                     <lightning-menu-item
                                         value="requestTransfer"
                                         label="Request Reschedule w/ Another Tech"

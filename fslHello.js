@@ -183,7 +183,32 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         'Quote Attached',
         'PO Attached'
     ];
+    journeyMainFlow = ['New', 'In Progress', 'Ready for Close'];
+    journeyTerminalStatuses = [
+        'Closed',
+        'Completed WO',
+        'Completed Work Order',
+        'Cannot Complete',
+        'Canceled'
+    ];
+    journeyDetours = {
+        quote: {
+            label: 'Quote path',
+            steps: [
+                'Need Quote',
+                'Quote Attached',
+                'Quote Sent',
+                'PO Requested',
+                'PO Attached'
+            ]
+        },
+        parts: {
+            label: 'Parts path',
+            steps: ['Parts Requested', 'PO Requested', 'PO Attached']
+        }
+    };
     quoteLineItemsExpanded = {};
+    journeyExpanded = {};
 
     // For auto-centering timeline
     hasAutoCentered = false;
@@ -721,6 +746,12 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             );
 
             const showScheduleActions = this.shouldShowScheduleActions(item);
+            const journey = this.buildWorkOrderJourney(item);
+            const journeyExpanded = Boolean(this.journeyExpanded[item.cardId]);
+            const journeyToggleLabel = journeyExpanded ? 'Hide checklist' : 'View checklist';
+            const journeyToggleTitle = journeyExpanded
+                ? 'Hide full checklist'
+                : 'View full checklist';
 
             return {
                 ...item,
@@ -743,7 +774,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 hasLineItemTracking,
                 resolvedTrackingNumber,
                 showResolvedTracking: Boolean(resolvedTrackingNumber),
-                groupedQuoteLineItems
+                groupedQuoteLineItems,
+                journey,
+                journeyExpanded,
+                journeyToggleLabel,
+                journeyToggleTitle
             };
         });
     }
@@ -979,6 +1014,301 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         const status = (record.workOrderStatus || record.status || '').toLowerCase();
         return status === 'quote sent' || status.startsWith('quote attached');
+    }
+
+    normalizeStatusLabel(value) {
+        return (value || '').trim().toLowerCase();
+    }
+
+    isTerminalStatus(statusLabel) {
+        const normalized = this.normalizeStatusLabel(statusLabel);
+        return this.journeyTerminalStatuses.some(
+            terminal => this.normalizeStatusLabel(terminal) === normalized
+        );
+    }
+
+    getTerminalLabel(statusLabel) {
+        if (this.isTerminalStatus(statusLabel)) {
+            return statusLabel || 'Closed';
+        }
+        return 'Closed';
+    }
+
+    getDetourKind(record) {
+        const statusLabel = record.workOrderStatus || record.status || '';
+        const normalized = this.normalizeStatusLabel(statusLabel);
+
+        if (
+            normalized === 'need quote' ||
+            normalized === 'quote attached' ||
+            normalized === 'quote sent'
+        ) {
+            return 'quote';
+        }
+
+        if (normalized === 'parts requested') {
+            return 'parts';
+        }
+
+        if (normalized === 'po requested' || normalized === 'po attached') {
+            if (
+                this.isQuoteAttachedAppointment(record) ||
+                (record.quoteLineItems && record.quoteLineItems.length) ||
+                record.hasQuoteAttachment
+            ) {
+                return 'quote';
+            }
+
+            if (record.somePartsEnRoute || record.allPartsEnRoute) {
+                return 'parts';
+            }
+
+            // Default to quote path for PO states when we cannot infer context.
+            return 'quote';
+        }
+
+        return null;
+    }
+
+    buildDetourModel(record, normalizedStatus) {
+        const kind = this.getDetourKind(record);
+
+        if (!kind || !this.journeyDetours[kind]) {
+            return {
+                kind: null,
+                label: '',
+                steps: [],
+                hasDetour: false,
+                detourComplete: false,
+                activeStep: null,
+                detourNext: null
+            };
+        }
+
+        const detourDef = this.journeyDetours[kind];
+        const normalizedSteps = detourDef.steps.map(step =>
+            this.normalizeStatusLabel(step)
+        );
+        const currentIndex = normalizedSteps.indexOf(normalizedStatus);
+        const steps = detourDef.steps.map((stepLabel, index) => {
+            const normalizedStep = normalizedSteps[index];
+            const isCurrent = currentIndex === index;
+            const isDone = currentIndex > index;
+
+            const variant = isCurrent ? 'current' : isDone ? 'done' : 'upcoming';
+
+            return {
+                id: `${kind}-${normalizedStep}`,
+                label: stepLabel,
+                variant,
+                className: this.getJourneyStepClass(
+                    {
+                        id: `${kind}-${normalizedStep}`,
+                        label: stepLabel,
+                        variant
+                    },
+                    true
+                )
+            };
+        });
+
+        const activeStep = steps.find(step => step.variant === 'current');
+        const detourNext =
+            steps.find(step => step.variant === 'upcoming') ||
+            steps[steps.length - 1];
+        const detourComplete = currentIndex >= steps.length - 1 && currentIndex !== -1;
+
+        return {
+            kind,
+            label: detourDef.label,
+            steps,
+            hasDetour: true,
+            activeStep,
+            detourNext,
+            detourComplete
+        };
+    }
+
+    getMainStepIndex(normalizedStatus, detourComplete) {
+        if (this.isTerminalStatus(normalizedStatus)) {
+            return 3;
+        }
+
+        if (normalizedStatus === 'ready for close') {
+            return 2;
+        }
+
+        if (
+            normalizedStatus === 'in progress' ||
+            normalizedStatus === 'po attached' ||
+            normalizedStatus === 'on hold'
+        ) {
+            return 1;
+        }
+
+        if (detourComplete) {
+            return 1;
+        }
+
+        return 0;
+    }
+
+    getJourneyStepClass(step, isDetour = false) {
+        const base = isDetour
+            ? 'sfs-journey__step sfs-journey__step_detour'
+            : 'sfs-journey__step';
+        const variant = step.variant ? ` sfs-journey__step_${step.variant}` : '';
+        const paused = step.isPaused ? ' sfs-journey__step_paused' : '';
+        const terminal = step.isTerminal ? ' sfs-journey__step_terminal' : '';
+        return `${base}${variant}${paused}${terminal}`.trim();
+    }
+
+    buildMainJourneySteps(statusLabel, normalizedStatus, detourComplete) {
+        const terminalLabel = this.getTerminalLabel(statusLabel);
+        const steps = this.journeyMainFlow.map(flowLabel => ({
+            id: this.normalizeStatusLabel(flowLabel).replace(/\s+/g, '-'),
+            label: flowLabel
+        }));
+
+        steps.push({ id: 'terminal', label: terminalLabel, isTerminal: true });
+
+        const currentIndex = this.getMainStepIndex(
+            normalizedStatus,
+            detourComplete
+        );
+
+        return steps.map((step, index) => {
+            let variant = 'upcoming';
+            if (index === currentIndex) {
+                variant = 'current';
+            } else if (index < currentIndex) {
+                variant = 'done';
+            }
+
+            const isPaused = normalizedStatus === 'on hold' && index === currentIndex;
+
+            return {
+                ...step,
+                variant,
+                isPaused,
+                className: this.getJourneyStepClass(
+                    {
+                        ...step,
+                        variant,
+                        isPaused
+                    },
+                    false
+                )
+            };
+        });
+    }
+
+    getNextStepLabelFromSteps(steps) {
+        const upcoming = steps.find(step => step.variant === 'upcoming');
+        if (upcoming) {
+            return upcoming.label;
+        }
+        const current = steps.find(step => step.variant === 'current');
+        if (current) {
+            return current.label;
+        }
+        return steps.length ? steps[steps.length - 1].label : '';
+    }
+
+    buildCompactJourneySummary(steps) {
+        if (!steps || !steps.length) {
+            return {
+                visibleSteps: [],
+                completedBefore: 0,
+                upcomingAfter: 0
+            };
+        }
+
+        const currentIndex = steps.findIndex(step => step.variant === 'current');
+        const focusIndex = currentIndex === -1 ? 0 : currentIndex;
+        const startIndex = Math.max(0, focusIndex - 1);
+        const endIndex = Math.min(steps.length - 1, focusIndex + 1);
+
+        const completedBefore = Math.max(0, startIndex);
+        const upcomingAfter = Math.max(0, steps.length - 1 - endIndex);
+
+        const visibleSteps = steps.slice(startIndex, endIndex + 1).map(step => {
+            const variant = step.variant || 'upcoming';
+            return {
+                ...step,
+                compactClass: `sfs-journey__chip sfs-journey__chip_${variant}`
+            };
+        });
+
+        return {
+            visibleSteps,
+            completedBefore,
+            upcomingAfter
+        };
+    }
+
+    buildWorkOrderJourney(record) {
+        const statusLabel = (record.workOrderStatus || record.status || 'New').trim();
+        const normalizedStatus = this.normalizeStatusLabel(statusLabel);
+        const detour = this.buildDetourModel(record, normalizedStatus);
+        const mainSteps = this.buildMainJourneySteps(
+            statusLabel,
+            normalizedStatus,
+            detour.detourComplete
+        );
+
+        const progressSteps =
+            detour.hasDetour && !detour.detourComplete && detour.steps.length
+                ? detour.steps
+                : mainSteps;
+        const completedSteps = progressSteps.filter(step => step.variant === 'done').length;
+        const activeIndex = progressSteps.findIndex(step => step.variant === 'current');
+        const segmentCount = Math.max(progressSteps.length - 1, 1);
+        const progressPortion = completedSteps + (activeIndex >= 0 ? 0.5 : 0);
+        const progressPercent = Math.min(
+            100,
+            Math.max(0, Math.round((progressPortion / segmentCount) * 100))
+        );
+        const progressLabel = `${completedSteps} of ${progressSteps.length} steps`;
+        const stepsForSummary =
+            detour.hasDetour && !detour.detourComplete && detour.steps.length
+                ? detour.steps
+                : mainSteps;
+        const compactSummary = this.buildCompactJourneySummary(stepsForSummary);
+
+        const detourActiveLabel =
+            detour.hasDetour && detour.activeStep ? detour.activeStep.label : '';
+        const currentLabel = detourActiveLabel || statusLabel || 'New';
+
+        let nextLabel = '';
+        if (detour.hasDetour && !detour.detourComplete && detour.detourNext) {
+            nextLabel = detour.detourNext.label;
+        } else {
+            nextLabel = this.getNextStepLabelFromSteps(mainSteps);
+        }
+
+        const compactHint = `${currentLabel || 'Current'} • Next: ${
+            nextLabel || 'TBD'
+        }`;
+
+        return {
+            statusLabel: statusLabel || 'New',
+            normalizedStatus,
+            currentLabel,
+            nextLabel,
+            isOnHold: normalizedStatus === 'on hold',
+            mainSteps,
+            detour,
+            hasDetour: detour.hasDetour,
+            detourLabel: detour.label,
+            detourKind: detour.kind,
+            detourActiveLabel,
+            compactHint,
+            progressPercent,
+            progressStyle: `width: ${progressPercent}%`,
+            progressLabel,
+            compactSummary
+        };
     }
 
     normalizeQuoteLineItems(items) {
@@ -4689,6 +5019,30 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         };
     }
 
+    handleToggleJourney(event) {
+        const cardId = event?.currentTarget?.dataset?.cardId;
+
+        if (!cardId) {
+            return;
+        }
+
+        const isExpanded = Boolean(this.journeyExpanded[cardId]);
+        this.journeyExpanded = {
+            ...this.journeyExpanded,
+            [cardId]: !isExpanded
+        };
+
+        if (this.selectedAppointment && this.selectedAppointment.cardId === cardId) {
+            const journeyExpanded = !isExpanded;
+            this.selectedAppointment = {
+                ...this.selectedAppointment,
+                journeyExpanded,
+                journeyToggleLabel: journeyExpanded ? 'Hide checklist' : 'View checklist',
+                journeyToggleTitle: journeyExpanded ? 'Hide full checklist' : 'View full checklist'
+            };
+        }
+    }
+
     handleQuoteAttachmentClick(event) {
         event.preventDefault();
 
@@ -6313,6 +6667,17 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return workOrderId;
     }
 
+    openWorkOrderFromActionMenu(appointmentId, workOrderId) {
+        if (appointmentId) {
+            this.navigateToServiceAppointment(appointmentId, workOrderId);
+            return;
+        }
+
+        if (workOrderId) {
+            this.navigateToWorkOrderRecord(workOrderId);
+        }
+    }
+
     handleRequestReschedule(event) {
         const workOrderId = this.getWorkOrderIdFromContext(event);
 
@@ -6326,8 +6691,13 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     handleMoreActionsSelect(event) {
         event.stopPropagation();
         const action = event.detail.value;
-        const workOrderId = this.getWorkOrderIdFromContext(event);
         const appointmentId = event.currentTarget.dataset.id;
+        const workOrderId = this.getWorkOrderIdFromContext(event);
+
+        if (action === 'openInApp') {
+            this.openWorkOrderFromActionMenu(appointmentId, workOrderId);
+            return;
+        }
 
         if (!workOrderId) {
             return;
