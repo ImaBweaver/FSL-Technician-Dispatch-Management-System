@@ -1266,7 +1266,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             Math.max(0, Math.round((progressPortion / segmentCount) * 100))
         );
         const progressLabel = `${completedSteps} of ${mainSteps.length} steps`;
-        const compactSummary = this.buildCompactJourneySummary(mainSteps);
+        const stepsForSummary =
+            detour.hasDetour && !detour.detourComplete && detour.steps.length
+                ? detour.steps
+                : mainSteps;
+        const compactSummary = this.buildCompactJourneySummary(stepsForSummary);
 
         const detourActiveLabel =
             detour.hasDetour && detour.activeStep ? detour.activeStep.label : '';
