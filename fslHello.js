@@ -253,6 +253,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return this.activeTab === 'list';
     }
 
+    get isPreventativeMaintenanceTabActive() {
+        return this.activeTab === 'preventativeMaintenance';
+    }
+
     get isManagerTabActive() {
         return this.activeTab === 'manager';
     }
@@ -263,6 +267,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     get listTabButtonClass() {
         return this.getTabButtonClass('list');
+    }
+
+    get preventativeMaintenanceTabButtonClass() {
+        return this.getTabButtonClass('preventativeMaintenance');
     }
 
     get calendarTabButtonClass() {
@@ -584,6 +592,14 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return this.appointments;
     }
 
+    get ownedAppointmentsWithCards() {
+        return this.ownedAppointments.map(appt => ({
+            ...appt,
+            cardId: appt.appointmentId,
+            hasAppointment: true
+        }));
+    }
+
     get quotesCount() {
         return (
             this.ownedAppointments.filter(appt =>
@@ -651,11 +667,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         let baseList = [];
 
-        const ownedAppointments = this.ownedAppointments.map(appt => ({
-            ...appt,
-            cardId: appt.appointmentId,
-            hasAppointment: true
-        }));
+        const ownedAppointments = this.ownedAppointmentsWithCards;
 
         const quoteWorkOrders = this.quoteWorkOrders;
         const unscheduledWorkOrders = this.unscheduledListItems;
@@ -736,6 +748,38 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             }
         }
 
+        return this.buildListAppointments(baseList);
+    }
+
+    get preventativeMaintenanceAppointments() {
+        const ownedAppointments = this.ownedAppointmentsWithCards;
+        const allowedStatuses = new Set(['new', 'in progress']);
+
+        const preventativeMaintenance = ownedAppointments.filter(appt => {
+            const status = (appt.workOrderStatus || '').toLowerCase();
+            const workTypeName = (appt.workTypeName || '').toLowerCase();
+
+            return allowedStatuses.has(status) && workTypeName === 'ppm';
+        });
+
+        return this.buildListAppointments(preventativeMaintenance);
+    }
+
+    get hasPreventativeMaintenanceAppointments() {
+        return (this.preventativeMaintenanceAppointments || []).length > 0;
+    }
+
+    get appointmentGroups() {
+        return this.buildAppointmentGroups(this.visibleAppointments || []);
+    }
+
+    get preventativeMaintenanceGroups() {
+        return this.buildAppointmentGroups(
+            this.preventativeMaintenanceAppointments || []
+        );
+    }
+
+    buildListAppointments(baseList) {
         return baseList.map(item => {
             const isQuickScheduleExpanded = Boolean(
                 this.quickScheduleExpanded[item.cardId]
@@ -782,6 +826,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             const journeyToggleTitle = journeyExpanded
                 ? 'Hide full checklist'
                 : 'View full checklist';
+            const journeyToggleIcon = journeyExpanded
+                ? 'utility:chevrondown'
+                : 'utility:chevronright';
             const hasCompleteAddress = this.hasCompleteAddress(item);
             const scheduleDisabled = !hasCompleteAddress;
             const scheduleBlockedReason = this.getAddressBlockedReason(item);
@@ -837,6 +884,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 journeyExpanded,
                 journeyToggleLabel,
                 journeyToggleTitle,
+                journeyToggleIcon,
                 hasCompleteAddress,
                 scheduleDisabled,
                 scheduleBlockedReason,
@@ -848,9 +896,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         });
     }
 
-    get appointmentGroups() {
+    buildAppointmentGroups(appointments) {
         const groups = new Map();
-        const appointments = this.visibleAppointments || [];
 
         appointments.forEach(appt => {
             const groupInfo = this.getAppointmentGroup(appt);
@@ -5217,7 +5264,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 ...this.selectedAppointment,
                 journeyExpanded,
                 journeyToggleLabel: journeyExpanded ? 'Hide checklist' : 'View checklist',
-                journeyToggleTitle: journeyExpanded ? 'Hide full checklist' : 'View full checklist'
+                journeyToggleTitle: journeyExpanded ? 'Hide full checklist' : 'View full checklist',
+                journeyToggleIcon: journeyExpanded
+                    ? 'utility:chevrondown'
+                    : 'utility:chevronright'
             };
         }
     }
