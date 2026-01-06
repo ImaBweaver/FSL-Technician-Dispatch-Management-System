@@ -592,6 +592,16 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         );
     }
 
+    get revisitPendingAppointments() {
+        return this.ownedAppointments.filter(
+            appt => appt.latestReturnVisitRequired
+        );
+    }
+
+    get revisitPendingCount() {
+        return this.revisitPendingAppointments.length;
+    }
+
     get needQuoteCount() {
         return (
             this.ownedAppointments.filter(appt =>
@@ -713,6 +723,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
             case 'unscheduled':
                 baseList = unscheduledWorkOrders;
+                break;
+
+            case 'revisitPending':
+                baseList = this.revisitPendingAppointments;
                 break;
 
             case 'my':
@@ -1848,6 +1862,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 'transferRequests',
                 'Transfer Requests',
                 this.transferRequestCount
+            ),
+            this.buildListModeOption(
+                'revisitPending',
+                'Revisit Pending',
+                this.revisitPendingCount
             ),
             this.buildListModeOption('crew', 'Crew Pool', this.crewCount),
             this.buildListModeOption(
@@ -4476,6 +4495,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     }));
                     clone.selectedCrewMemberId = null;
                     clone.disableAssignTech = true;
+
+                    clone.latestReturnVisitRequired = Boolean(
+                        appt.latestReturnVisitRequired
+                    );
 
                     clone.quoteLineItems = this.normalizeQuoteLineItems(
                         appt.quoteLineItems
