@@ -1221,15 +1221,15 @@
                                                                 class="sfs-journey__toggle"
                                                                 data-card-id={appt.cardId}
                                                                 onclick={handleToggleJourney}
-                                                                title={appt.journeyToggleTitle}
-                                                            >
-                                                                <lightning-icon
-                                                                    icon-name={appt.journeyExpanded ? 'utility:chevrondown' : 'utility:chevronright'}
+                                                            title={appt.journeyToggleTitle}
+                                                        >
+                                                            <lightning-icon
+                                                                    icon-name={appt.journeyToggleIcon}
                                                                     size="x-small"
                                                                     class="sfs-journey__toggle-icon"
-                                                                ></lightning-icon>
-                                                                <span>{appt.journeyToggleLabel}</span>
-                                                            </button>
+                                                            ></lightning-icon>
+                                                            <span>{appt.journeyToggleLabel}</span>
+                                                        </button>
                                                         </div>
 
                                                         <template if:true={appt.journeyExpanded}>

@@ -826,6 +826,9 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             const journeyToggleTitle = journeyExpanded
                 ? 'Hide full checklist'
                 : 'View full checklist';
+            const journeyToggleIcon = journeyExpanded
+                ? 'utility:chevrondown'
+                : 'utility:chevronright';
             const hasCompleteAddress = this.hasCompleteAddress(item);
             const scheduleDisabled = !hasCompleteAddress;
             const scheduleBlockedReason = this.getAddressBlockedReason(item);
@@ -881,6 +884,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 journeyExpanded,
                 journeyToggleLabel,
                 journeyToggleTitle,
+                journeyToggleIcon,
                 hasCompleteAddress,
                 scheduleDisabled,
                 scheduleBlockedReason,
@@ -5260,7 +5264,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 ...this.selectedAppointment,
                 journeyExpanded,
                 journeyToggleLabel: journeyExpanded ? 'Hide checklist' : 'View checklist',
-                journeyToggleTitle: journeyExpanded ? 'Hide full checklist' : 'View full checklist'
+                journeyToggleTitle: journeyExpanded ? 'Hide full checklist' : 'View full checklist',
+                journeyToggleIcon: journeyExpanded
+                    ? 'utility:chevrondown'
+                    : 'utility:chevronright'
             };
         }
     }
