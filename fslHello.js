@@ -912,7 +912,8 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         let label = startDate.toLocaleDateString(undefined, {
             weekday: 'long',
             month: 'short',
-            day: 'numeric'
+            day: 'numeric',
+            year: 'numeric'
         });
 
         if (groupKey === todayKey) {
