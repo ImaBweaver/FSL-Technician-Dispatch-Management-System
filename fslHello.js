@@ -753,14 +753,17 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     get preventativeMaintenanceAppointments() {
         const ownedAppointments = this.ownedAppointmentsWithCards;
+        const unscheduledWorkOrders = this.unscheduledListItems;
         const allowedStatuses = new Set(['new', 'in progress']);
 
-        const preventativeMaintenance = ownedAppointments.filter(appt => {
-            const status = (appt.workOrderStatus || '').toLowerCase();
-            const workTypeName = (appt.workTypeName || '').toLowerCase();
+        const preventativeMaintenance = [...ownedAppointments, ...unscheduledWorkOrders].filter(
+            appt => {
+                const status = (appt.workOrderStatus || '').toLowerCase();
+                const workTypeName = (appt.workTypeName || '').toLowerCase();
 
-            return allowedStatuses.has(status) && workTypeName === 'ppm';
-        });
+                return allowedStatuses.has(status) && workTypeName === 'ppm';
+            }
+        );
 
         return this.buildListAppointments(preventativeMaintenance);
     }
