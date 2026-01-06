@@ -671,11 +671,10 @@
 }
 
 .sfs-card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
     gap: 0.35rem;
-    flex-wrap: wrap;
 }
 
 .sfs-card-header-pills {
@@ -683,6 +682,11 @@
     align-items: center;
     gap: 0.35rem;
     flex-wrap: wrap;
+}
+
+.sfs-card-header-more-actions {
+    justify-self: end;
+    align-self: start;
 }
 
 .sfs-visit-pill {
