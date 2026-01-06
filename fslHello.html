@@ -1339,7 +1339,7 @@
                                                                     data-id={appt.cardId}
                                                                     onclick={handleQuickScheduleToggle}
                                                                     aria-expanded={appt.quickScheduleExpanded}
-                                                                    aria-controls={`qs-${appt.cardId}`}
+                                                                    aria-controls={appt.quickScheduleBodyId}
                                                                     disabled={appt.scheduleDisabled}
                                                                 >
                                                                     {appt.quickScheduleLabel}
@@ -1357,7 +1357,7 @@
                                                         </div>
 
                                                         <template if:true={appt.quickScheduleExpanded}>
-                                                            <div class="sfs-quick-schedule__body" id={`qs-${appt.cardId}`}>
+                                                            <div class="sfs-quick-schedule__body" id={appt.quickScheduleBodyId}>
                                                                 <p class="sfs-quick-schedule__hint">
                                                                     Pick the time range you want to schedule for.
                                                                 </p>

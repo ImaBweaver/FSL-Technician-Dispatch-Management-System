@@ -829,6 +829,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
             const journeyToggleIcon = journeyExpanded
                 ? 'utility:chevrondown'
                 : 'utility:chevronright';
+            const quickScheduleBodyId = `qs-${item.cardId}`;
             const hasCompleteAddress = this.hasCompleteAddress(item);
             const scheduleDisabled = !hasCompleteAddress;
             const scheduleBlockedReason = this.getAddressBlockedReason(item);
@@ -885,6 +886,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 journeyToggleLabel,
                 journeyToggleTitle,
                 journeyToggleIcon,
+                quickScheduleBodyId,
                 hasCompleteAddress,
                 scheduleDisabled,
                 scheduleBlockedReason,
