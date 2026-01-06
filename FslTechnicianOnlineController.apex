@@ -37,6 +37,7 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public Boolean allPartsEnRoute;
         @AuraEnabled public Boolean somePartsEnRoute;
         @AuraEnabled public Boolean hasQuoteAttachment;
+        @AuraEnabled public Boolean latestReturnVisitRequired;
         @AuraEnabled public String quoteAttachmentDownloadUrl;
         @AuraEnabled public Id quoteAttachmentDocumentId;
         @AuraEnabled public String opportunityRecordType;
@@ -411,6 +412,7 @@ public with sharing class FslTechnicianOnlineController {
             PostalCode,
             Country,
             Tracking_Number__c,
+            Return_Visit_Required__c,
             CreatedDate
             FROM ServiceAppointment
             WHERE Id IN :saIds
@@ -421,6 +423,7 @@ public with sharing class FslTechnicianOnlineController {
 
         Map<Id, Datetime> latestSaCreatedByWo = new Map<Id, Datetime>();
         Map<Id, String> latestSaTrackingByWo = new Map<Id, String>();
+        Map<Id, Boolean> latestSaReturnVisitRequiredByWo = new Map<Id, Boolean>();
 
         // 5) Work Orders referenced by these appointments
         Set<Id> workOrderIds = new Set<Id>();
@@ -458,6 +461,10 @@ public with sharing class FslTechnicianOnlineController {
                 if (latestCreated == null || sa.CreatedDate > latestCreated) {
                     latestSaCreatedByWo.put(sa.Work_Order__c, sa.CreatedDate);
                     latestSaTrackingByWo.put(sa.Work_Order__c, sa.Tracking_Number__c);
+                    latestSaReturnVisitRequiredByWo.put(
+                        sa.Work_Order__c,
+                        sa.Return_Visit_Required__c == true
+                    );
                 }
             }
         }
@@ -752,6 +759,11 @@ public with sharing class FslTechnicianOnlineController {
 
             dto.hasQuoteAttachment = hasAttachment ||
                 (dto.workOrderStatus == 'Quote Attached');
+
+            dto.latestReturnVisitRequired = (sa.Work_Order__c != null &&
+                latestSaReturnVisitRequiredByWo.containsKey(sa.Work_Order__c))
+                    ? latestSaReturnVisitRequiredByWo.get(sa.Work_Order__c)
+                    : sa.Return_Visit_Required__c == true;
 
             dto.opportunityRecordType = (sa.Work_Order__c != null &&
                 opportunityRecordTypeByWo.containsKey(sa.Work_Order__c))
