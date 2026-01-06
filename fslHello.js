@@ -1863,11 +1863,6 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 'Transfer Requests',
                 this.transferRequestCount
             ),
-            this.buildListModeOption(
-                'revisitPending',
-                'Revisit Pending',
-                this.revisitPendingCount
-            ),
             this.buildListModeOption('crew', 'Crew Pool', this.crewCount),
             this.buildListModeOption(
                 'needQuote',
@@ -1898,6 +1893,11 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                 'fulfilling',
                 'Currently Fulfilling',
                 this.fulfillingCount
+            ),
+            this.buildListModeOption(
+                'revisitPending',
+                'Revisit Pending',
+                this.revisitPendingCount
             )
         ];
     }
