@@ -6677,12 +6677,14 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         const { appointmentId, workOrderId } = this.selectedAppointment;
 
-        if (appointmentId) {
-            this.navigateToServiceAppointment(appointmentId, workOrderId);
+        if (workOrderId) {
+            this.navigateToWorkOrderRecord(workOrderId);
             return;
         }
 
-        this.navigateToWorkOrderRecord(workOrderId);
+        if (appointmentId) {
+            this.navigateToServiceAppointment(appointmentId, null);
+        }
     }
 
     handleOpenAccount() {
