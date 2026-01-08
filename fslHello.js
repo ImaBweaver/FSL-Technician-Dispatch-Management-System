@@ -7442,13 +7442,13 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     openWorkOrderFromActionMenu(appointmentId, workOrderId) {
-        if (appointmentId) {
-            this.navigateToServiceAppointment(appointmentId, workOrderId);
+        if (workOrderId) {
+            this.navigateToWorkOrderRecord(workOrderId);
             return;
         }
 
-        if (workOrderId) {
-            this.navigateToWorkOrderRecord(workOrderId);
+        if (appointmentId) {
+            this.navigateToServiceAppointment(appointmentId, null);
         }
     }
 
