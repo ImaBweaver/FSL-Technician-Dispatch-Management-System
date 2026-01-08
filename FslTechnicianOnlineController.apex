@@ -6,6 +6,7 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public String workTypeName;
         @AuraEnabled public String workOrderSubject;
         @AuraEnabled public String accountName;
+        @AuraEnabled public String accountNameFreeText;
         @AuraEnabled public Id accountId;
         @AuraEnabled public String contactName;
         @AuraEnabled public Id contactId;
@@ -81,6 +82,11 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public String fullAddress;
     }
 
+    public class AccountNameUpdateResult {
+        @AuraEnabled public Id workOrderId;
+        @AuraEnabled public String accountNameFreeText;
+    }
+
     public class ResourceAbsenceDTO {
         @AuraEnabled public Id absenceId;
         @AuraEnabled public Id resourceId;
@@ -107,6 +113,7 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public Boolean hasCrewAssignment;
         @AuraEnabled public Id accountId;
         @AuraEnabled public String accountName;
+        @AuraEnabled public String accountNameFreeText;
         @AuraEnabled public Id contactId;
         @AuraEnabled public String contactName;
         @AuraEnabled public String contactPhone;
@@ -394,6 +401,7 @@ public with sharing class FslTechnicianOnlineController {
             Work_Order__r.Tracking_Number__c,
             Work_Order__r.AccountId,
             Work_Order__r.Account.Name,
+            Work_Order__r.Account_Name_Free_Text__c,
             Work_Order__r.ContactId,
             Work_Order__r.Contact.Name,
             Work_Order__r.Contact.Phone,
@@ -683,6 +691,9 @@ public with sharing class FslTechnicianOnlineController {
                 dto.accountId   = null;
                 dto.accountName = null;
             }
+            dto.accountNameFreeText = (sa.Work_Order__r != null)
+                ? sa.Work_Order__r.Account_Name_Free_Text__c
+                : null;
 
             dto.contactId = (sa.Work_Order__r != null) ? sa.Work_Order__r.ContactId : null;
             if (sa.Work_Order__r != null && sa.Work_Order__r.Contact != null) {
@@ -973,6 +984,7 @@ public with sharing class FslTechnicianOnlineController {
                 Tracking_Number__c,
                 AccountId,
                 Account.Name,
+                Account_Name_Free_Text__c,
                 ContactId,
                 Contact.Name,
                 Contact.Phone,
@@ -1283,6 +1295,7 @@ public with sharing class FslTechnicianOnlineController {
             dto.hasCrewAssignment = workOrdersWithCrewAssignment.contains(wo.Id);
             dto.accountId       = wo.AccountId;
             dto.accountName     = (wo.Account != null ? wo.Account.Name : null);
+            dto.accountNameFreeText = wo.Account_Name_Free_Text__c;
             dto.contactId       = wo.ContactId;
             if (wo.Contact != null) {
                 dto.contactName  = wo.Contact.Name;
@@ -1798,6 +1811,50 @@ public with sharing class FslTechnicianOnlineController {
         result.country = cleanCountry;
         result.fullAddress = String.join(parts, ', ');
 
+        return result;
+    }
+
+    @AuraEnabled
+    public static AccountNameUpdateResult updateWorkOrderAccountName(
+        Id workOrderId,
+        String accountName
+    ) {
+        if (workOrderId == null) {
+            throw new AuraHandledException('Work Order Id is required.');
+        }
+
+        String cleanName = String.isNotBlank(accountName)
+            ? accountName.trim()
+            : '';
+
+        if (String.isBlank(cleanName)) {
+            throw new AuraHandledException('Account name is required.');
+        }
+
+        WorkOrder wo = [
+            SELECT Id, AccountId
+            FROM WorkOrder
+            WHERE Id = :workOrderId
+            LIMIT 1
+            FOR UPDATE
+        ];
+
+        if (wo.AccountId != null) {
+            throw new AuraHandledException(
+                'An account is already associated with this work order.'
+            );
+        }
+
+        wo = new WorkOrder(
+            Id = wo.Id,
+            Account_Name_Free_Text__c = cleanName
+        );
+
+        update wo;
+
+        AccountNameUpdateResult result = new AccountNameUpdateResult();
+        result.workOrderId = wo.Id;
+        result.accountNameFreeText = cleanName;
         return result;
     }
 
