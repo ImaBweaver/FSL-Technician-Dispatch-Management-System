@@ -2005,6 +2005,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     get showScheduleActionsInListMode() {
+        if (this.isRecentTabActive) {
+            return true;
+        }
+
         return this.listMode !== 'my' && this.listMode !== 'readyForClose';
     }
 
