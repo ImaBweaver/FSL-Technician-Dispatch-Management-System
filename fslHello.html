@@ -468,7 +468,33 @@
                                             <!-- Account -->
                                             <p class="sfs-line">
                                                 <span class="sfs-label">Account</span>
-                                                <span class="sfs-value">{appt.accountName}</span>
+                                                <span class="sfs-value">
+                                                    <template if:true={appt.hasAccountDisplay}>
+                                                        {appt.accountDisplayName}
+                                                    </template>
+                                                    <template if:false={appt.hasAccountDisplay}>
+                                                        <template if:true={appt.showAccountEdit}>
+                                                            <button
+                                                                class="sfs-address-edit"
+                                                                type="button"
+                                                                data-id={appt.cardId}
+                                                                data-woid={appt.workOrderId}
+                                                                data-appointment-id={appt.appointmentId}
+                                                                onclick={openAccountModal}
+                                                            >
+                                                                <lightning-icon
+                                                                    icon-name="utility:edit"
+                                                                    size="x-small"
+                                                                    class="sfs-address-edit__icon"
+                                                                ></lightning-icon>
+                                                                <span>Add account</span>
+                                                            </button>
+                                                        </template>
+                                                        <template if:false={appt.showAccountEdit}>
+                                                            —
+                                                        </template>
+                                                    </template>
+                                                </span>
                                             </p>
 
                                             <!-- Address -->
@@ -1109,7 +1135,33 @@
                                             <!-- Account -->
                                             <p class="sfs-line">
                                                 <span class="sfs-label">Account</span>
-                                                <span class="sfs-value">{appt.accountName}</span>
+                                                <span class="sfs-value">
+                                                    <template if:true={appt.hasAccountDisplay}>
+                                                        {appt.accountDisplayName}
+                                                    </template>
+                                                    <template if:false={appt.hasAccountDisplay}>
+                                                        <template if:true={appt.showAccountEdit}>
+                                                            <button
+                                                                class="sfs-address-edit"
+                                                                type="button"
+                                                                data-id={appt.cardId}
+                                                                data-woid={appt.workOrderId}
+                                                                data-appointment-id={appt.appointmentId}
+                                                                onclick={openAccountModal}
+                                                            >
+                                                                <lightning-icon
+                                                                    icon-name="utility:edit"
+                                                                    size="x-small"
+                                                                    class="sfs-address-edit__icon"
+                                                                ></lightning-icon>
+                                                                <span>Add account</span>
+                                                            </button>
+                                                        </template>
+                                                        <template if:false={appt.showAccountEdit}>
+                                                            —
+                                                        </template>
+                                                    </template>
+                                                </span>
                                             </p>
 
                                             <!-- Address -->
@@ -2308,14 +2360,36 @@
                         <p class="sfs-detail-line">
                             <span class="sfs-detail-label">Account</span>
                             <span class="sfs-detail-value">
-                                <template if:true={selectedAppointment.accountName}>
+                                <template if:true={selectedAppointment.accountId}>
                                     <button
                                         type="button"
                                         class="sfs-detail-title-link"
                                         onclick={handleOpenAccount}
                                     >
-                                        {selectedAppointment.accountName}
+                                        {selectedAppointment.accountDisplayName}
                                     </button>
+                                </template>
+                                <template if:false={selectedAppointment.accountId}>
+                                    <template if:true={selectedAppointment.accountDisplayName}>
+                                        {selectedAppointment.accountDisplayName}
+                                    </template>
+                                    <template if:false={selectedAppointment.accountDisplayName}>
+                                        <button
+                                            type="button"
+                                            class="sfs-address-edit sfs-address-edit_inline"
+                                            data-id={selectedAppointment.cardId}
+                                            data-woid={selectedAppointment.workOrderId}
+                                            data-appointment-id={selectedAppointment.appointmentId}
+                                            onclick={openAccountModal}
+                                        >
+                                            <lightning-icon
+                                                icon-name="utility:edit"
+                                                size="x-small"
+                                                class="sfs-address-edit__icon"
+                                            ></lightning-icon>
+                                            <span>Add account</span>
+                                        </button>
+                                    </template>
                                 </template>
                             </span>
                         </p>
@@ -2602,6 +2676,45 @@
                         </div>
                     </div>
                 </article>
+            </div>
+        </template>
+
+        <template if:true={isAccountModalOpen}>
+            <div class="sfs-modal-backdrop" onclick={closeAccountModal}>
+                <div class="sfs-modal" onclick={handleDetailCardClick}>
+                    <div class="sfs-modal-header">
+                        <h3 class="sfs-modal-title">Add account</h3>
+                        <button
+                            class="sfs-modal-close"
+                            type="button"
+                            onclick={closeAccountModal}
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    <p class="sfs-modal-copy">
+                        Enter the account name to associate with this work order.
+                    </p>
+                    <lightning-input
+                        name="accountName"
+                        label="Account name"
+                        value={accountForm.name}
+                        onchange={handleAccountInputChange}
+                    ></lightning-input>
+                    <div class="sfs-actions sfs-modal-actions">
+                        <lightning-button
+                            variant="brand"
+                            label="Save account"
+                            onclick={submitAccountUpdate}
+                            disabled={accountSubmitDisabled}
+                        ></lightning-button>
+                        <lightning-button
+                            variant="neutral"
+                            label="Cancel"
+                            onclick={closeAccountModal}
+                        ></lightning-button>
+                    </div>
+                </div>
             </div>
         </template>
 
