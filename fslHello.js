@@ -263,6 +263,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return this.activeTab === 'list';
     }
 
+    get isRecentTabActive() {
+        return this.activeTab === 'recent';
+    }
+
     get isPreventativeMaintenanceTabActive() {
         return this.activeTab === 'preventativeMaintenance';
     }
@@ -277,6 +281,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     get listTabButtonClass() {
         return this.getTabButtonClass('list');
+    }
+
+    get recentTabButtonClass() {
+        return this.getTabButtonClass('recent');
     }
 
     get preventativeMaintenanceTabButtonClass() {
@@ -600,6 +608,32 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         }
 
         return this.appointments;
+    }
+
+    get hasRecentWorkOrders() {
+        return this.recentWorkOrderCards.length > 0;
+    }
+
+    get recentWorkOrderCards() {
+        const cutoff = Date.now() - 5 * 60 * 1000;
+        const source = [
+            ...this.ownedAppointmentsWithCards,
+            ...this.unscheduledListItems
+        ];
+        const recent = source.filter(item =>
+            this.isRecentWorkOrder(item, cutoff)
+        );
+        const sorted = recent.sort((a, b) => {
+            const aTime = this.toDateValue(a.workOrderCreatedDate);
+            const bTime = this.toDateValue(b.workOrderCreatedDate);
+            return bTime - aTime;
+        });
+
+        return this.buildListAppointments(sorted);
+    }
+
+    get recentWorkOrderGroups() {
+        return this.buildAppointmentGroups(this.recentWorkOrderCards || []);
     }
 
     get ownedAppointmentsWithCards() {
@@ -1283,6 +1317,31 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return (value || '').trim().toLowerCase();
     }
 
+    toDateValue(value) {
+        if (!value) {
+            return 0;
+        }
+
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+    }
+
+    isRecentWorkOrder(item, cutoff) {
+        if (!item || !this.currentUserId) {
+            return false;
+        }
+
+        if (!item.workOrderCreatedDate) {
+            return false;
+        }
+
+        if (item.workOrderCreatedById !== this.currentUserId) {
+            return false;
+        }
+
+        return this.toDateValue(item.workOrderCreatedDate) >= cutoff;
+    }
+
     isTerminalStatus(statusLabel) {
         const normalized = this.normalizeStatusLabel(statusLabel);
         return this.journeyTerminalStatuses.some(
@@ -1946,6 +2005,10 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     }
 
     get showScheduleActionsInListMode() {
+        if (this.isRecentTabActive) {
+            return true;
+        }
+
         return this.listMode !== 'my' && this.listMode !== 'readyForClose';
     }
 
