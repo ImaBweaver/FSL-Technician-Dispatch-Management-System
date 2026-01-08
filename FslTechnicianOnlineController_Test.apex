@@ -1816,4 +1816,41 @@ static void testUpdateWorkOrderAddressTranslatesStateAbbreviation() {
         'Result should echo back cleaned country.');
 }
 
+@isTest
+static void testUpdateWorkOrderAccountNameFreeText() {
+    ResourceContext context = createSyntheticResourceContext();
+
+    WorkOrder wo = new WorkOrder(
+        Subject            = 'Needs Account Name Update',
+        Status             = 'New',
+        OwnerId            = context.user.Id,
+        ServiceTerritoryId = context.stm.ServiceTerritoryId,
+        Street             = '1 Old St',
+        City               = 'Old City',
+        State              = 'Old State',
+        PostalCode         = '00000',
+        Country            = 'United States'
+    );
+    insert wo;
+
+    Test.startTest();
+    FslTechnicianOnlineController.AccountNameUpdateResult result =
+        FslTechnicianOnlineController.updateWorkOrderAccountName(
+            wo.Id,
+            'Free Text Account'
+        );
+    Test.stopTest();
+
+    wo = [
+        SELECT Account_Name_Free_Text__c
+        FROM WorkOrder
+        WHERE Id = :wo.Id
+    ];
+
+    System.assertEquals('Free Text Account', wo.Account_Name_Free_Text__c,
+        'Work Order should store the free-text account name.');
+    System.assertEquals('Free Text Account', result.accountNameFreeText,
+        'Result should return the updated account name.');
+}
+
 }

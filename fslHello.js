@@ -18,6 +18,7 @@ import markWorkOrderReadyForClose from '@salesforce/apex/FslTechnicianOnlineCont
 import updateResourceAbsence from '@salesforce/apex/FslTechnicianOnlineController.updateResourceAbsence';
 import deleteResourceAbsence from '@salesforce/apex/FslTechnicianOnlineController.deleteResourceAbsence';
 import updateWorkOrderAddress from '@salesforce/apex/FslTechnicianOnlineController.updateWorkOrderAddress';
+import updateWorkOrderAccountName from '@salesforce/apex/FslTechnicianOnlineController.updateWorkOrderAccountName';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
 export default class FslHello extends NavigationMixin(LightningElement) {
@@ -190,6 +191,15 @@ export default class FslHello extends NavigationMixin(LightningElement) {
     };
     addressHelpCardId = null;
     _addressHelpTimeout = null;
+    // Account modal state
+    isAccountModalOpen = false;
+    accountSaving = false;
+    accountModalWorkOrderId = null;
+    accountModalAppointmentId = null;
+    accountModalCardId = null;
+    accountForm = {
+        name: ''
+    };
 
     quoteStatuses = [
         'Need Quote',
@@ -1027,6 +1037,50 @@ export default class FslHello extends NavigationMixin(LightningElement) {
         return (value || '').toString().trim();
     }
 
+    normalizeAccountValue(value) {
+        return (value || '').toString().trim();
+    }
+
+    resolveAccountDisplayName(record) {
+        if (!record) {
+            return null;
+        }
+
+        const accountName = this.normalizeAccountValue(record.accountName);
+        const freeText = this.normalizeAccountValue(record.accountNameFreeText);
+
+        if (record.accountId && accountName) {
+            return accountName;
+        }
+
+        if (!record.accountId && freeText) {
+            return freeText;
+        }
+
+        return accountName || freeText || null;
+    }
+
+    shouldShowAccountEdit(record) {
+        if (!record) {
+            return false;
+        }
+
+        return (
+            !record.accountId &&
+            !this.normalizeAccountValue(record.accountNameFreeText)
+        );
+    }
+
+    applyAccountPresentation(record) {
+        const accountDisplayName = this.resolveAccountDisplayName(record);
+        return {
+            ...record,
+            accountDisplayName,
+            hasAccountDisplay: Boolean(accountDisplayName),
+            showAccountEdit: this.shouldShowAccountEdit(record)
+        };
+    }
+
     normalizeStateInput(value) {
         const cleaned = this.normalizeAddressValue(value)
             .toUpperCase()
@@ -1111,43 +1165,52 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         return this.unscheduledWorkOrders
             .filter(wo => this.isQuoteStatus(wo.status))
-            .map(wo => ({
-                cardId: `wo-${wo.workOrderId}`,
-                appointmentId: null,
-                hasAppointment: false,
-                completedVisitCount: wo.completedVisitCount || 0,
-                visitNumber: wo.visitNumber || (wo.completedVisitCount || 0) + 1,
-                visitLabel:
-                    wo.visitLabel ||
-                    `Visit ${wo.visitNumber || (wo.completedVisitCount || 0) + 1}`,
-                workOrderId: wo.workOrderId,
-                workOrderStatus: wo.status,
-                workOrderStage: wo.workOrderStage || wo.stage,
-                workOrderNumber: wo.workOrderNumber,
-                workOrderSubject: wo.subject,
-                accountName: wo.accountName,
-                fullAddress: wo.fullAddress,
-                hasFullAddress: this.hasStreetValue(wo),
-                opportunityRecordType: wo.opportunityRecordType,
-                quoteLineItems: this.normalizeQuoteLineItems(wo.quoteLineItems),
-                quoteAttachmentUrl: wo.quoteAttachmentDownloadUrl || null,
-                quoteAttachmentDocumentId:
-                    wo.quoteAttachmentDocumentId || null,
-                hasQuoteAttachment: Boolean(
-                    wo.hasQuoteAttachment ||
-                        wo.quoteAttachmentDownloadUrl ||
-                        wo.quoteAttachmentDocumentId
-                ),
-                showQuoteActions:
-                    wo.status === 'Quote Sent' ||
-                    wo.status === 'PO Attached' ||
-                    this.isQuoteAttachedAppointment(wo),
-                showMarkQuoteSentAction: this.isQuoteAttachedAppointment(wo),
-                showMarkPoAttachedAction: this.shouldShowMarkPoAttached(wo),
-                isExpanded: false,
-                workTypeName: 'Work Order',
-                workTypeClass: 'sfs-worktype'
-            }));
+            .map(wo => {
+                const base = {
+                    cardId: `wo-${wo.workOrderId}`,
+                    appointmentId: null,
+                    hasAppointment: false,
+                    completedVisitCount: wo.completedVisitCount || 0,
+                    visitNumber:
+                        wo.visitNumber || (wo.completedVisitCount || 0) + 1,
+                    visitLabel:
+                        wo.visitLabel ||
+                        `Visit ${wo.visitNumber || (wo.completedVisitCount || 0) + 1}`,
+                    workOrderId: wo.workOrderId,
+                    workOrderStatus: wo.status,
+                    workOrderStage: wo.workOrderStage || wo.stage,
+                    workOrderNumber: wo.workOrderNumber,
+                    workOrderSubject: wo.subject,
+                    accountId: wo.accountId,
+                    accountName: wo.accountName,
+                    accountNameFreeText: wo.accountNameFreeText,
+                    fullAddress: wo.fullAddress,
+                    hasFullAddress: this.hasStreetValue(wo),
+                    opportunityRecordType: wo.opportunityRecordType,
+                    quoteLineItems: this.normalizeQuoteLineItems(
+                        wo.quoteLineItems
+                    ),
+                    quoteAttachmentUrl: wo.quoteAttachmentDownloadUrl || null,
+                    quoteAttachmentDocumentId:
+                        wo.quoteAttachmentDocumentId || null,
+                    hasQuoteAttachment: Boolean(
+                        wo.hasQuoteAttachment ||
+                            wo.quoteAttachmentDownloadUrl ||
+                            wo.quoteAttachmentDocumentId
+                    ),
+                    showQuoteActions:
+                        wo.status === 'Quote Sent' ||
+                        wo.status === 'PO Attached' ||
+                        this.isQuoteAttachedAppointment(wo),
+                    showMarkQuoteSentAction: this.isQuoteAttachedAppointment(wo),
+                    showMarkPoAttachedAction: this.shouldShowMarkPoAttached(wo),
+                    isExpanded: false,
+                    workTypeName: 'Work Order',
+                    workTypeClass: 'sfs-worktype'
+                };
+
+                return this.applyAccountPresentation(base);
+            });
     }
 
     get unscheduledListItems() {
@@ -1872,6 +1935,14 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
     get addressSubmitDisabled() {
         return this.addressSaving || !this.isAddressFormValid;
+    }
+
+    get isAccountFormValid() {
+        return Boolean(this.normalizeAccountValue(this.accountForm.name));
+    }
+
+    get accountSubmitDisabled() {
+        return this.accountSaving || !this.isAccountFormValid;
     }
 
     get showScheduleActionsInListMode() {
@@ -4445,7 +4516,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
                     clone.fullAddress = this.composeFullAddress(wo);
                     clone.hasFullAddress = this.hasStreetValue(wo);
-                    return clone;
+                    return this.applyAccountPresentation(clone);
                 });
 
                 const transferRequests =
@@ -4575,7 +4646,7 @@ export default class FslHello extends NavigationMixin(LightningElement) {
                     clone.cardId = appt.appointmentId;
                     clone.hasAppointment = true;
 
-                    return clone;
+                    return this.applyAccountPresentation(clone);
                 });
 
                 if (!this.timelineStartDate && !this.weekStartDate) {
@@ -6509,6 +6580,147 @@ export default class FslHello extends NavigationMixin(LightningElement) {
 
         this.addressHelpCardId = null;
         this.safeClearTimeout(this._addressHelpTimeout);
+    }
+
+    // ======= ACCOUNT EDITING =======
+
+    openAccountModal(event) {
+        const dataset = event?.currentTarget?.dataset || {};
+        const cardId = dataset.id || dataset.cardId || null;
+        const workOrderId = dataset.woid || dataset.workorderid || null;
+        const appointmentId =
+            dataset.appointmentId || dataset.appointmentid || null;
+
+        const record =
+            this.findAppointmentByCardId(cardId) ||
+            (workOrderId
+                ? (this.unscheduledWorkOrders || []).find(
+                      wo => wo.workOrderId === workOrderId
+                  )
+                : null);
+
+        this.accountForm = {
+            name: this.normalizeAccountValue(record?.accountNameFreeText)
+        };
+
+        this.accountModalWorkOrderId =
+            workOrderId || record?.workOrderId || null;
+        this.accountModalAppointmentId =
+            appointmentId || record?.appointmentId || null;
+        this.accountModalCardId = cardId;
+        this.isAccountModalOpen = true;
+        this.accountSaving = false;
+    }
+
+    closeAccountModal() {
+        this.isAccountModalOpen = false;
+        this.accountSaving = false;
+        this.accountModalWorkOrderId = null;
+        this.accountModalAppointmentId = null;
+        this.accountModalCardId = null;
+        this.accountForm = {
+            name: ''
+        };
+    }
+
+    handleAccountInputChange(event) {
+        const value =
+            (event.detail && event.detail.value) || event.target.value || '';
+
+        this.accountForm = {
+            ...this.accountForm,
+            name: value
+        };
+    }
+
+    submitAccountUpdate() {
+        const workOrderId = this.accountModalWorkOrderId;
+        const accountName = this.normalizeAccountValue(this.accountForm.name);
+
+        if (!workOrderId) {
+            this.showToast(
+                'Missing work order',
+                'Select a work order before saving the account.',
+                'error'
+            );
+            return;
+        }
+
+        if (!accountName) {
+            this.showToast(
+                'Add account',
+                'Enter the account name before saving.',
+                'warning'
+            );
+            return;
+        }
+
+        this.accountSaving = true;
+
+        updateWorkOrderAccountName({
+            workOrderId,
+            accountName
+        })
+            .then(result => {
+                this.applyAccountUpdate(result);
+                this.showToast(
+                    'Account saved',
+                    'The work order account was updated.',
+                    'success'
+                );
+                this.closeAccountModal();
+            })
+            .catch(error => {
+                const message = this.reduceError(error);
+                this.showToast('Error saving account', message, 'error');
+            })
+            .finally(() => {
+                this.accountSaving = false;
+            });
+    }
+
+    applyAccountUpdate(result) {
+        if (!result) {
+            return;
+        }
+
+        const workOrderId = result.workOrderId;
+        const accountNameFreeText = this.normalizeAccountValue(
+            result.accountNameFreeText
+        );
+
+        this.appointments = (this.appointments || []).map(appt => {
+            if (workOrderId && appt.workOrderId === workOrderId) {
+                return this.applyAccountPresentation({
+                    ...appt,
+                    accountNameFreeText
+                });
+            }
+            return appt;
+        });
+
+        this.unscheduledWorkOrders = (this.unscheduledWorkOrders || []).map(
+            wo => {
+                if (wo.workOrderId === workOrderId) {
+                    return this.applyAccountPresentation({
+                        ...wo,
+                        accountNameFreeText
+                    });
+                }
+                return wo;
+            }
+        );
+
+        if (
+            this.selectedAppointment &&
+            workOrderId &&
+            this.selectedAppointment.workOrderId === workOrderId
+        ) {
+            this.selectedAppointment = this.applyAccountPresentation({
+                ...this.selectedAppointment,
+                accountNameFreeText
+            });
+        }
     }
 
     // ======= DETAIL SCHEDULING =======
