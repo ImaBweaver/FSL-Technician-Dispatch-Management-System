@@ -12,6 +12,15 @@
             </button>
             <button
                 type="button"
+                class={recentTabButtonClass}
+                data-tab="recent"
+                onclick={handleTabButtonClick}
+                aria-pressed={isRecentTabActive}
+            >
+                Recent
+            </button>
+            <button
+                type="button"
                 class={preventativeMaintenanceTabButtonClass}
                 data-tab="preventativeMaintenance"
                 onclick={handleTabButtonClick}
@@ -906,6 +915,691 @@
                         </template>
                     </template>
                 </template>
+        </template>
+
+        <!-- RECENT TAB -->
+        <template if:true={isRecentTabActive}>
+            <div class="sfs-header">
+                <h2 class="sfs-title">Recently Created Work Orders</h2>
+                <div class="sfs-header-actions">
+                    <lightning-button
+                        variant="neutral"
+                        label="Refresh"
+                        onclick={handleRefresh}
+                        class="sfs-refresh-btn"
+                    ></lightning-button>
+                </div>
+            </div>
+
+            <template if:true={isOffline}>
+                <div class="sfs-offline-banner">
+                    <lightning-icon
+                        icon-name="utility:offline"
+                        size="x-small"
+                        class="sfs-offline-icon"
+                    ></lightning-icon>
+                    <span>This tool only works when you are online.</span>
+                </div>
+            </template>
+
+            <template if:true={isLoading}>
+                <div class="sfs-loading">
+                    <lightning-spinner alternative-text="Loading appointments"></lightning-spinner>
+                </div>
+            </template>
+
+            <template if:false={isLoading}>
+                <template if:true={hasRecentWorkOrders}>
+                    <div class="sfs-list">
+                        <template for:each={recentWorkOrderGroups} for:item="group">
+                            <div key={group.key} class="sfs-list-group">
+                                <div class="sfs-list-group__header">
+                                    <div class="sfs-list-group__title">
+                                        <span class="sfs-list-group__label">{group.label}</span>
+                                        <span class="sfs-list-group__count">({group.count})</span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        class="sfs-list-group__toggle"
+                                        data-group-key={group.key}
+                                        onclick={handleToggleGroup}
+                                    >
+                                        <lightning-icon
+                                            icon-name={group.toggleIcon}
+                                            size="x-small"
+                                            alternative-text={group.toggleLabel}
+                                            class="sfs-list-group__toggle-icon"
+                                        ></lightning-icon>
+                                        <span>{group.toggleLabel}</span>
+                                    </button>
+                                </div>
+
+                                <template if:false={group.isCollapsed}>
+                                    <div class="sfs-list-group__cards">
+                                        <template for:each={group.appointments} for:item="appt">
+                                            <article
+                                                key={appt.cardId}
+                                                class={appt.cardClass}
+                                                data-card-id={appt.cardId}
+                                            >
+                                                <div class="sfs-card-header">
+                                                    <div class="sfs-card-header-pills">
+                                                        <span class={appt.workTypeClass}>
+                                                            {appt.workTypeName}
+                                                        </span>
+
+                                                        <span class="sfs-visit-pill">
+                                                            {appt.visitLabel}
+                                                        </span>
+
+                                                        <template if:true={appt.opportunityRecordType}>
+                                                            <span class="sfs-opportunity-pill">
+                                                                {appt.opportunityRecordType}
+                                                            </span>
+                                                        </template>
+
+                                                        <template if:true={appt.makeModel}>
+                                                            <span class="sfs-makemodel-pill">
+                                                                {appt.makeModel}
+                                                            </span>
+                                                        </template>
+                                                    </div>
+
+                                                    <lightning-button-menu
+                                                        alternative-text="More actions"
+                                                        icon-name="utility:rows"
+                                                        onselect={handleMoreActionsSelect}
+                                                        class="sfs-more-actions-menu sfs-card-header-more-actions"
+                                                        menu-alignment="right"
+                                                        data-woid={appt.workOrderId}
+                                                        data-id={appt.appointmentId}
+                                                    >
+                                                        <lightning-menu-item
+                                                            value="openInApp"
+                                                            label="Open in app"
+                                                        ></lightning-menu-item>
+                                                        <template if:true={appt.hasAppointment}>
+                                                            <lightning-menu-item
+                                                                value="unassign"
+                                                                label="Unschedule"
+                                                            ></lightning-menu-item>
+                                                        </template>
+                                                        <lightning-menu-item
+                                                            value="requestTransfer"
+                                                            label="Request transfer to new technician"
+                                                        ></lightning-menu-item>
+                                                        <lightning-menu-item
+                                                            value="readyForClose"
+                                                            label="Ready for Close"
+                                                        ></lightning-menu-item>
+                                                        <lightning-menu-item
+                                                            value="cancelWorkOrder"
+                                                            label="Cancel work order"
+                                                        ></lightning-menu-item>
+                                                    </lightning-button-menu>
+                                                </div>
+
+                                                <div class="sfs-card-body">
+                                                    <div class="sfs-journey__compact-header">
+                                                        <template if:true={appt.journey.isOnHold}>
+                                                            <span class="sfs-journey__badge sfs-journey__badge_hold">
+                                                                On Hold
+                                                            </span>
+                                                        </template>
+                                                    </div>
+                                                    <div class="sfs-journey__progress-track">
+                                                        <span
+                                                            class="sfs-journey__progress-fill"
+                                                            style={appt.journey.progressStyle}
+                                                        ></span>
+                                                    </div>
+                                                    <div class="sfs-journey__progress-meta">
+                                                        <span class="sfs-journey__compact-current">
+                                                            Current: {appt.journey.currentLabel}
+                                                        </span>
+                                                        <span class="sfs-journey__compact-next">
+                                                            Next: {appt.journey.nextLabel}
+                                                        </span>
+                                                    </div>
+                                                    <br/>
+                                                    <!-- Subject opens the bottom sheet -->
+                                                    <div class="sfs-line sfs-wo-line">
+                                                        <span class="sfs-label-WOLabel">WO #</span>
+                                                        <span class="sfs-value-wonumber">
+                                                            <template if:true={appt.workOrderNumber}>
+                                                                {appt.workOrderNumber}
+                                                            </template>
+                                                            <template if:false={appt.workOrderNumber}>
+                                                                —
+                                                            </template>
+                                                        </span>
+                                                    </div>
+
+                                                    <div class="sfs-subject-row">
+                                                        <span
+                                                            class="sfs-subject-btn sfs-subject-btn_static"
+                                                        >
+                                                            {appt.workOrderSubject}
+                                                        </span>
+
+                                                        <button
+                                                            type="button"
+                                                            class="sfs-info-button"
+                                                            data-id={appt.cardId}
+                                                            onclick={handleListInfoClick}
+                                                        >
+                                                            See more info
+                                                        </button>
+                                                    </div>
+
+                                                    <template if:true={appt.showQuoteActions}>
+                                                        <div class="sfs-quote-bar">
+                                                            <template if:true={appt.showMarkQuoteSentAction}>
+                                                                <button
+                                                                    type="button"
+                                                                    class="sfs-quote-action"
+                                                                    data-id={appt.workOrderId}
+                                                                    onclick={handleMarkQuoteSent}
+                                                                >
+                                                                    Mark quote sent
+                                                                </button>
+                                                            </template>
+
+                                                            <template if:true={appt.showMarkPoAttachedAction}>
+                                                                <button
+                                                                    type="button"
+                                                                    class="sfs-quote-action"
+                                                                    data-id={appt.workOrderId}
+                                                                    onclick={handleMarkPoAttached}
+                                                                >
+                                                                    Mark PO attached
+                                                                </button>
+                                                            </template>
+
+                                                            <template if:true={appt.hasQuoteAttachment}>
+                                                                <a
+                                                                    href={appt.quoteAttachmentUrl}
+                                                                    target="_blank"
+                                                                    rel="noopener"
+                                                                    class="sfs-quote-link"
+                                                                >
+                                                                    View quote
+                                                                </a>
+                                                            </template>
+                                                        </div>
+                                                    </template>
+
+                                                    <template if:true={appt.journeyExpanded}>
+                                                        <div class="sfs-journey__list">
+                                                            <template for:each={appt.journey.steps} for:item="step">
+                                                                <div key={step.key} class={step.itemClass}>
+                                                                    <span class={step.iconClass}></span>
+                                                                    <span class="sfs-journey__step-label">
+                                                                        {step.label}
+                                                                    </span>
+                                                                </div>
+                                                            </template>
+                                                        </div>
+                                                    </template>
+
+                                                    <button
+                                                        type="button"
+                                                        class="sfs-journey__toggle"
+                                                        onclick={handleJourneyToggle}
+                                                        data-id={appt.cardId}
+                                                    >
+                                                        <lightning-icon
+                                                            icon-name={appt.journeyToggleIcon}
+                                                            size="x-small"
+                                                            alternative-text={appt.journeyToggleLabel}
+                                                        ></lightning-icon>
+                                                        <span>{appt.journeyToggleLabel}</span>
+                                                    </button>
+
+                                                    <template if:true={appt.quoteLineItems}>
+                                                        <template if:true={appt.showQuoteLineItems}>
+                                                            <div class="sfs-quote-line-items">
+                                                                <template for:each={appt.quoteLineItems} for:item="line">
+                                                                    <div key={line.lineItemId} class="sfs-quote-line-item">
+                                                                        <div class="sfs-quote-line-item__header">
+                                                                            <span class="sfs-quote-line-item__product">
+                                                                                {line.productName}
+                                                                            </span>
+                                                                            <span class="sfs-quote-line-item__quantity">
+                                                                                Qty {line.quantity}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div class="sfs-quote-line-item__details">
+                                                                            <span class="sfs-quote-line-item__description">
+                                                                                {line.description}
+                                                                            </span>
+                                                                            <template if:true={line.trackingNumber}>
+                                                                                <span class="sfs-quote-line-item__tracking">
+                                                                                    Tracking: {line.trackingNumber}
+                                                                                </span>
+                                                                            </template>
+                                                                        </div>
+                                                                    </div>
+                                                                </template>
+                                                            </div>
+                                                        </template>
+                                                        <template if:true={appt.quoteLineItemsToggleLabel}>
+                                                            <button
+                                                                type="button"
+                                                                class="sfs-quote-line-items__toggle"
+                                                                data-id={appt.cardId}
+                                                                onclick={handleQuoteLineItemsToggle}
+                                                            >
+                                                                <lightning-icon
+                                                                    icon-name={appt.quoteLineItemsToggleIcon}
+                                                                    size="x-small"
+                                                                    alternative-text={appt.quoteLineItemsToggleLabel}
+                                                                ></lightning-icon>
+                                                                <span>{appt.quoteLineItemsToggleLabel}</span>
+                                                            </button>
+                                                        </template>
+                                                    </template>
+
+                                                    <div class="sfs-line">
+                                                        <span class="sfs-label">Account</span>
+                                                        <span class="sfs-value sfs-value_left">
+                                                            {appt.accountDisplayName}
+                                                        </span>
+                                                    </div>
+
+                                                    <template if:true={appt.fullAddress}>
+                                                        <div class="sfs-line sfs-line_address">
+                                                            <span class="sfs-label">Address</span>
+                                                            <span class="sfs-value sfs-value_address">
+                                                                {appt.fullAddress}
+                                                            </span>
+                                                        </div>
+                                                    </template>
+
+                                                    <template if:true={appt.contactName}>
+                                                        <div class="sfs-line">
+                                                            <span class="sfs-label">Contact</span>
+                                                            <span class="sfs-value sfs-value_left">
+                                                                {appt.contactName}
+                                                            </span>
+                                                        </div>
+                                                    </template>
+
+                                                    <template if:true={appt.contactPhone}>
+                                                        <div class="sfs-line">
+                                                            <span class="sfs-label">Phone</span>
+                                                            <span class="sfs-value sfs-value_left">
+                                                                {appt.contactPhone}
+                                                            </span>
+                                                        </div>
+                                                    </template>
+
+                                                    <template if:true={appt.contactEmail}>
+                                                        <div class="sfs-line">
+                                                            <span class="sfs-label">Email</span>
+                                                            <span class="sfs-value sfs-value_left">
+                                                                {appt.contactEmail}
+                                                            </span>
+                                                        </div>
+                                                    </template>
+
+                                                    <template if:true={appt.showTrackingNumber}>
+                                                        <div class="sfs-line">
+                                                            <span class="sfs-label">Tracking</span>
+                                                            <span class="sfs-value sfs-value_left">
+                                                                {appt.trackingNumber}
+                                                            </span>
+                                                        </div>
+                                                    </template>
+
+                                                    <template if:true={appt.hasAppointment}>
+                                                        <div class="sfs-line">
+                                                            <span class="sfs-label">Schedule</span>
+                                                            <span class="sfs-value sfs-value_left">
+                                                                {appt.schedDisplay}
+                                                            </span>
+                                                        </div>
+                                                    </template>
+
+                                                    <template if:true={appt.showScheduleActions}>
+                                                        <div class="sfs-actions">
+                                                            <template if:true={appt.showQuickSchedule}>
+                                                                <button
+                                                                    type="button"
+                                                                    class="sfs-action-link"
+                                                                    data-id={appt.cardId}
+                                                                    onclick={toggleQuickSchedule}
+                                                                >
+                                                                    {appt.quickScheduleToggleLabel}
+                                                                </button>
+                                                            </template>
+
+                                                            <template if:true={appt.showScheduleButton}>
+                                                                <lightning-button
+                                                                    variant="brand"
+                                                                    label="Schedule"
+                                                                    data-id={appt.cardId}
+                                                                    onclick={handleQuickSchedule}
+                                                                ></lightning-button>
+                                                            </template>
+
+                                                            <template if:true={appt.showScheduleWarning}>
+                                                                <div class="sfs-schedule-warning">
+                                                                    {appt.scheduleWarning}
+                                                                </div>
+                                                            </template>
+                                                        </div>
+                                                    </template>
+
+                                                    <template if:true={appt.showQuickScheduleForm}>
+                                                        <div class="sfs-quick-schedule">
+                                                            <div class="sfs-input-block">
+                                                                <lightning-input
+                                                                    type="date"
+                                                                    label="Date"
+                                                                    value={appt.quickScheduleDate}
+                                                                    data-id={appt.cardId}
+                                                                    onchange={handleQuickScheduleDateChange}
+                                                                ></lightning-input>
+                                                            </div>
+
+                                                            <div class="sfs-input-block">
+                                                                <lightning-input
+                                                                    type="time"
+                                                                    label="Start"
+                                                                    value={appt.quickScheduleTime}
+                                                                    data-id={appt.cardId}
+                                                                    onchange={handleQuickScheduleTimeChange}
+                                                                ></lightning-input>
+                                                            </div>
+
+                                                            <div class="sfs-actions">
+                                                                <lightning-button
+                                                                    variant="brand"
+                                                                    label="Confirm"
+                                                                    data-id={appt.cardId}
+                                                                    onclick={handleConfirmQuickSchedule}
+                                                                    disabled={appt.disableConfirmQuickSchedule}
+                                                                ></lightning-button>
+                                                            </div>
+                                                        </div>
+                                                    </template>
+
+                                                    <template if:true={appt.showScheduleHelper}>
+                                                        <div class="sfs-schedule-helper">
+                                                            {appt.scheduleHelperText}
+                                                        </div>
+                                                    </template>
+
+                                                    <template if:true={appt.showScheduleActions}>
+                                                        <template if:true={appt.hasMissingAddress}>
+                                                            <div class="sfs-inline-help">
+                                                                <lightning-icon
+                                                                    icon-name="utility:warning"
+                                                                    size="x-small"
+                                                                    class="sfs-inline-help__icon"
+                                                                ></lightning-icon>
+                                                                <span class="sfs-inline-help__text">
+                                                                    {appt.missingAddressMessage}
+                                                                </span>
+                                                            </div>
+                                                        </template>
+                                                    </template>
+
+                                                    <template if:true={appt.showScheduleActions}>
+                                                        <template if:true={appt.hasMissingAccountName}>
+                                                            <div class="sfs-inline-help">
+                                                                <lightning-icon
+                                                                    icon-name="utility:warning"
+                                                                    size="x-small"
+                                                                    class="sfs-inline-help__icon"
+                                                                ></lightning-icon>
+                                                                <span class="sfs-inline-help__text">
+                                                                    {appt.missingAccountNameMessage}
+                                                                </span>
+                                                            </div>
+                                                        </template>
+                                                    </template>
+
+                                                    <template if:true={appt.showQuoteLineItems}>
+                                                        <template if:true={appt.hasLineItemTracking}>
+                                                            <div class="sfs-inline-help">
+                                                                <lightning-icon
+                                                                    icon-name="utility:info"
+                                                                    size="x-small"
+                                                                    class="sfs-inline-help__icon"
+                                                                ></lightning-icon>
+                                                                <span class="sfs-inline-help__text">
+                                                                    {appt.lineItemTrackingLabel}
+                                                                </span>
+                                                            </div>
+                                                        </template>
+                                                    </template>
+
+                                                    <template if:true={appt.showTrackingInfo}>
+                                                        <div class="sfs-inline-help">
+                                                            <lightning-icon
+                                                                icon-name="utility:info"
+                                                                size="x-small"
+                                                                class="sfs-inline-help__icon"
+                                                            ></lightning-icon>
+                                                            <span class="sfs-inline-help__text">
+                                                                {appt.trackingInfoLabel}
+                                                            </span>
+                                                        </div>
+                                                    </template>
+
+                                                    <template if:true={appt.showMissingTracking}>
+                                                        <div class="sfs-inline-help">
+                                                            <lightning-icon
+                                                                icon-name="utility:info"
+                                                                size="x-small"
+                                                                class="sfs-inline-help__icon"
+                                                            ></lightning-icon>
+                                                            <span class="sfs-inline-help__text">
+                                                                {appt.missingTrackingLabel}
+                                                            </span>
+                                                        </div>
+                                                    </template>
+
+                                                    <template if:true={appt.showScheduleActions}>
+                                                        <template if:true={appt.showMissingReturnVisit}>
+                                                            <div class="sfs-inline-help">
+                                                                <lightning-icon
+                                                                    icon-name="utility:warning"
+                                                                    size="x-small"
+                                                                    class="sfs-inline-help__icon"
+                                                                ></lightning-icon>
+                                                                <span class="sfs-inline-help__text">
+                                                                    {appt.missingReturnVisitLabel}
+                                                                </span>
+                                                            </div>
+                                                        </template>
+                                                    </template>
+
+                                                    <template if:true={appt.showScheduleActions}>
+                                                        <template if:true={appt.showCrewWarning}>
+                                                            <div class="sfs-inline-help">
+                                                                <lightning-icon
+                                                                    icon-name="utility:warning"
+                                                                    size="x-small"
+                                                                    class="sfs-inline-help__icon"
+                                                                ></lightning-icon>
+                                                                <span class="sfs-inline-help__text">
+                                                                    {appt.crewWarningLabel}
+                                                                </span>
+                                                            </div>
+                                                        </template>
+                                                    </template>
+
+                                                    <template if:true={appt.showScheduleActions}>
+                                                        <template if:true={appt.showReturnWarning}>
+                                                            <div class="sfs-inline-help">
+                                                                <lightning-icon
+                                                                    icon-name="utility:warning"
+                                                                    size="x-small"
+                                                                    class="sfs-inline-help__icon"
+                                                                ></lightning-icon>
+                                                                <span class="sfs-inline-help__text">
+                                                                    {appt.returnVisitWarningLabel}
+                                                                </span>
+                                                            </div>
+                                                        </template>
+                                                    </template>
+
+                                                    <template if:true={appt.showScheduleActions}>
+                                                        <template if:true={appt.showVisitWarning}>
+                                                            <div class="sfs-inline-help">
+                                                                <lightning-icon
+                                                                    icon-name="utility:warning"
+                                                                    size="x-small"
+                                                                    class="sfs-inline-help__icon"
+                                                                ></lightning-icon>
+                                                                <span class="sfs-inline-help__text">
+                                                                    {appt.visitWarningLabel}
+                                                                </span>
+                                                            </div>
+                                                        </template>
+                                                    </template>
+
+                                                    <template if:true={appt.showScheduleActions}>
+                                                        <template if:true={appt.showReadyForCloseWarning}>
+                                                            <div class="sfs-inline-help">
+                                                                <lightning-icon
+                                                                    icon-name="utility:warning"
+                                                                    size="x-small"
+                                                                    class="sfs-inline-help__icon"
+                                                                ></lightning-icon>
+                                                                <span class="sfs-inline-help__text">
+                                                                    {appt.readyForCloseWarningLabel}
+                                                                </span>
+                                                            </div>
+                                                        </template>
+                                                    </template>
+
+                                                    <template if:true={appt.showScheduleActions}>
+                                                        <template if:true={appt.showCancelledWarning}>
+                                                            <div class="sfs-inline-help">
+                                                                <lightning-icon
+                                                                    icon-name="utility:warning"
+                                                                    size="x-small"
+                                                                    class="sfs-inline-help__icon"
+                                                                ></lightning-icon>
+                                                                <span class="sfs-inline-help__text">
+                                                                    {appt.cancelledWarningLabel}
+                                                                </span>
+                                                            </div>
+                                                        </template>
+                                                    </template>
+
+                                                    <template if:true={appt.showScheduleActions}>
+                                                        <template if:true={appt.showCompletedWarning}>
+                                                            <div class="sfs-inline-help">
+                                                                <lightning-icon
+                                                                    icon-name="utility:warning"
+                                                                    size="x-small"
+                                                                    class="sfs-inline-help__icon"
+                                                                ></lightning-icon>
+                                                                <span class="sfs-inline-help__text">
+                                                                    {appt.completedWarningLabel}
+                                                                </span>
+                                                            </div>
+                                                        </template>
+                                                    </template>
+
+                                                    <template if:true={appt.showScheduleActions}>
+                                                        <template if:true={appt.showCannotCompleteWarning}>
+                                                            <div class="sfs-inline-help">
+                                                                <lightning-icon
+                                                                    icon-name="utility:warning"
+                                                                    size="x-small"
+                                                                    class="sfs-inline-help__icon"
+                                                                ></lightning-icon>
+                                                                <span class="sfs-inline-help__text">
+                                                                    {appt.cannotCompleteWarningLabel}
+                                                                </span>
+                                                            </div>
+                                                        </template>
+                                                    </template>
+
+                                                    <template if:true={appt.showScheduleActions}>
+                                                        <template if:true={appt.showClosedWarning}>
+                                                            <div class="sfs-inline-help">
+                                                                <lightning-icon
+                                                                    icon-name="utility:warning"
+                                                                    size="x-small"
+                                                                    class="sfs-inline-help__icon"
+                                                                ></lightning-icon>
+                                                                <span class="sfs-inline-help__text">
+                                                                    {appt.closedWarningLabel}
+                                                                </span>
+                                                            </div>
+                                                        </template>
+                                                    </template>
+
+                                                    <!-- Quick schedule -->
+                                                    <template if:true={appt.showQuickSchedule}>
+                                                        <template if:true={appt.showQuickScheduleExpanded}>
+                                                            <div class="sfs-quick-schedule-expanded">
+                                                                <template if:true={appt.quickScheduleAppointments}>
+                                                                    <template for:each={appt.quickScheduleAppointments} for:item="quickAppt">
+                                                                        <div key={quickAppt.key} class="sfs-quick-schedule-item">
+                                                                            <span class="sfs-quick-schedule-time">
+                                                                                {quickAppt.timeLabel}
+                                                                            </span>
+                                                                            <span class="sfs-quick-schedule-availability">
+                                                                                {quickAppt.availabilityLabel}
+                                                                            </span>
+                                                                        </div>
+                                                                    </template>
+                                                                </template>
+                                                            </div>
+                                                        </template>
+                                                    </template>
+
+                                                    <!-- Crew assignment controls shown only in Crew Pool mode -->
+                                                    <template if:true={isCrewMode}>
+                                                        <template if:true={appt.crewOptions}>
+                                                            <div class="sfs-input-block">
+                                                                <lightning-combobox
+                                                                    name="crewMember"
+                                                                    label="Assign to crew member"
+                                                                    placeholder="Select technician"
+                                                                    options={appt.crewOptions}
+                                                                    value={appt.selectedCrewMemberId}
+                                                                    data-id={appt.appointmentId}
+                                                                    onchange={handleCrewMemberChange}
+                                                                >
+                                                                </lightning-combobox>
+                                                            </div>
+
+                                                            <div class="sfs-actions">
+                                                                <lightning-button
+                                                                    variant="neutral"
+                                                                    label="Assign Tech"
+                                                                    data-id={appt.appointmentId}
+                                                                    onclick={handleAssignToCrewMember}
+                                                                    disabled={appt.disableAssignTech}
+                                                                >
+                                                                </lightning-button>
+                                                            </div>
+                                                        </template>
+                                                    </template>
+                                                </div>
+                                            </article>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+                <template if:false={hasRecentWorkOrders}>
+                    <div class="sfs-empty">
+                        <p>No work orders created by you in the last 5 minutes.</p>
+                    </div>
+                </template>
+            </template>
         </template>
 
         <!-- PREVENTATIVE MAINTENANCE TAB -->

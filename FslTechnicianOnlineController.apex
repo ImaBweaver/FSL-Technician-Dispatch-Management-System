@@ -17,6 +17,8 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public Id workOrderId;
         @AuraEnabled public String workOrderStatus;
         @AuraEnabled public String workOrderNumber;
+        @AuraEnabled public Datetime workOrderCreatedDate;
+        @AuraEnabled public Id workOrderCreatedById;
         @AuraEnabled public String serviceAppointmentTrackingNumber;
         @AuraEnabled public String latestServiceAppointmentTrackingNumber;
         @AuraEnabled public String workOrderTrackingNumber;
@@ -103,6 +105,8 @@ public with sharing class FslTechnicianOnlineController {
         @AuraEnabled public String subject;
         @AuraEnabled public String status;
         @AuraEnabled public String workTypeName;
+        @AuraEnabled public Datetime workOrderCreatedDate;
+        @AuraEnabled public Id workOrderCreatedById;
         @AuraEnabled public Integer serviceAppointmentCount;
         @AuraEnabled public Integer unscheduledServiceAppointmentCount;
         @AuraEnabled public Integer completedVisitCount;
@@ -406,6 +410,8 @@ public with sharing class FslTechnicianOnlineController {
             Work_Order__r.Contact.Name,
             Work_Order__r.Contact.Phone,
             Work_Order__r.Contact.Email,
+            Work_Order__r.CreatedDate,
+            Work_Order__r.CreatedById,
             Work_Order__r.Opportunity__c,
             Work_Order__r.Opportunity__r.RecordType.Name,
             Work_Order__r.Opportunity__r.Tracking__c,
@@ -656,6 +662,12 @@ public with sharing class FslTechnicianOnlineController {
             dto.workOrderStatus       = (sa.Work_Order__r != null)
                                         ? sa.Work_Order__r.Status : null;
             dto.serviceAppointmentTrackingNumber = sa.Tracking_Number__c;
+            dto.workOrderCreatedDate = (sa.Work_Order__r != null)
+                ? sa.Work_Order__r.CreatedDate
+                : null;
+            dto.workOrderCreatedById = (sa.Work_Order__r != null)
+                ? sa.Work_Order__r.CreatedById
+                : null;
             dto.latestServiceAppointmentTrackingNumber = (sa.Work_Order__c != null &&
                 latestSaTrackingByWo.containsKey(sa.Work_Order__c))
                     ? latestSaTrackingByWo.get(sa.Work_Order__c)
@@ -989,6 +1001,8 @@ public with sharing class FslTechnicianOnlineController {
                 Contact.Name,
                 Contact.Phone,
                 Contact.Email,
+                CreatedDate,
+                CreatedById,
                 Opportunity__c,
                 Opportunity__r.RecordType.Name,
                 Opportunity__r.Tracking__c,
@@ -1275,6 +1289,8 @@ public with sharing class FslTechnicianOnlineController {
             dto.subject         = wo.Subject;
             dto.status          = wo.Status;
             dto.workTypeName    = (wo.WorkType != null ? wo.WorkType.Name : null);
+            dto.workOrderCreatedDate = wo.CreatedDate;
+            dto.workOrderCreatedById = wo.CreatedById;
             dto.serviceAppointmentCount = saCountByWo.containsKey(wo.Id)
                 ? saCountByWo.get(wo.Id)
                 : 0;
